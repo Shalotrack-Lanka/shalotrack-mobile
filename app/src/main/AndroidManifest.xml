@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
         <activity
+            android:name=".ProcessingActivity"
+            android:exported="false" />
+        <activity
             android:name=".EmailInputActivity"
             android:exported="false" />
         <activity
