@@ -1,6 +1,6 @@
 package com.example.letstracklanka;
 
-import android.content.Intent; // මේක අලුතින් එකතු වෙන්න ඕනේ
+import android.content.Intent; // Import required for navigation
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -11,10 +11,10 @@ public class SignUpActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // අපි හදපු ලස්සන Design එක ලෝඩ් කරන්නේ මෙතනින්
+        // Load the UI design for the sign-up screen
         setContentView(R.layout.activity_sign_up);
 
-        // භාෂාව තෝරන Dropdown එකට භාෂා ටික දැමීම
+        // Add languages to the dropdown menu
         String[] languages = {"English (US)", "Sinhala (LK)", "Tamil (LK)"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
@@ -25,13 +25,13 @@ public class SignUpActivity extends AppCompatActivity {
         AutoCompleteTextView dropdownLanguage = findViewById(R.id.dropdownLanguage);
         dropdownLanguage.setAdapter(adapter);
 
-        // Back බටන් එක එබුවම ආපහු කලින් පිටුවට යන්න
+        // Go back to the previous screen when the back button is clicked
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
-        // Send Code බටන් එක එබුවම OTP පිටුවට යනවා
+        // Navigate to the OTP verification screen when 'Send Code' is clicked
         findViewById(R.id.btnSendCode).setOnClickListener(v -> {
             Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
             startActivity(intent);
-        }); // කලින් කේතයේ මේ වරහන් ටික තමයි අඩුවෙලා තිබුණේ
+        });
     }
 }

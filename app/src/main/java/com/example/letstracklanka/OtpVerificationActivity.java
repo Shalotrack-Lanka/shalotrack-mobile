@@ -23,20 +23,19 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
         setupOtpInputs();
 
-        // Back බටන් එක
+        // Close this screen when the back button is clicked
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
-        // Verify කරාට පස්සේ යන තැන
+        // Handle the Verify button click
         findViewById(R.id.btnVerifyCode).setOnClickListener(v -> {
-            // මෙතනින් Dashboard එකට හරි Profile Setup එකට හරි යවන්න පුළුවන්
-            // දැනට අපි අර කැරකෙන MainActivity එකට යවමු
-            Intent intent = new Intent(OtpVerificationActivity.this, MainActivity.class);
+            // Navigate to the Email Input screen after verification
+            Intent intent = new Intent(OtpVerificationActivity.this, EmailInputActivity.class);
             startActivity(intent);
             finish();
         });
     }
 
-    // එක කොටුවක අංකයක් ගැහුවම ඉබේම ඊළඟ එකට පනින්න හදන කේතය
+    // Setup the logic to automatically jump to the next input box
     private void setupOtpInputs() {
         etOtp1.addTextChangedListener(new OtpTextWatcher(etOtp1, etOtp2));
         etOtp2.addTextChangedListener(new OtpTextWatcher(etOtp2, etOtp3));
@@ -61,7 +60,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
         @Override
         public void afterTextChanged(Editable s) {
             if (s.length() == 1 && nextView != null) {
-                nextView.requestFocus(); // ඊළඟ කොටුවට පනිනවා
+                nextView.requestFocus(); // Move focus to the next box
             }
         }
     }
