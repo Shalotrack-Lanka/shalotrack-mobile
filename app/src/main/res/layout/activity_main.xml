@@ -7,71 +7,87 @@
     android:layout_height="match_parent"
     android:background="#FAFAFA">
 
+    <!-- Subtle background pattern -->
     <ImageView
         android:id="@+id/imgBackgroundPattern"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:src="@drawable/bg_pattern"
-        android:alpha="0.15"
+        android:alpha="0.06"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Neon ring -->
     <ImageView
         android:id="@+id/imgNeonRing"
-        android:layout_width="380dp"
-        android:layout_height="260dp"
+        android:layout_width="340dp"
+        android:layout_height="230dp"
         android:src="@drawable/neon_ring"
         android:alpha="0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.45" />
+        app:layout_constraintVertical_bias="0.42" />
 
-    <ImageView android:id="@+id/imgItem1" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_1" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem2" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_2" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem3" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_3" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem4" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_4" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem5" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_5" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem6" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_6" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem7" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_7" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem8" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_8" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
-    <ImageView android:id="@+id/imgItem9" android:layout_width="120dp" android:layout_height="120dp" android:scaleType="fitCenter" android:src="@drawable/item_9" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.45" />
+    <!-- Orbiting item images -->
+    <ImageView android:id="@+id/imgItem1" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_1" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem2" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_2" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem3" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_3" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem4" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_4" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem5" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_5" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem6" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_6" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem7" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_7" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem8" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_8" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
+    <ImageView android:id="@+id/imgItem9" android:layout_width="100dp" android:layout_height="100dp" android:scaleType="fitCenter" android:src="@drawable/item_9" android:alpha="0" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.42" />
 
-    <ImageView
-        android:id="@+id/imgFullLogo"
-        android:layout_width="280dp"
+    <!-- Logo card container -->
+    <LinearLayout
+        android:id="@+id/layoutLogoCard"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/logo_full"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="20dp"
+        android:background="@drawable/logo_card_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.45" />
+        app:layout_constraintVertical_bias="0.42">
 
-    <!-- Loading Text එක -->
+        <ImageView
+            android:id="@+id/imgFullLogo"
+            android:layout_width="140dp"
+            android:layout_height="wrap_content"
+            android:src="@drawable/logo_full" />
+
+    </LinearLayout>
+
+    <!-- Loading text -->
     <TextView
         android:id="@+id/txtLoading"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="14dp"
         android:text="Syncing your trackers..."
-        android:textColor="#888888"
-        android:textSize="14sp"
-        android:textStyle="bold"
+        android:textColor="#999999"
+        android:textSize="13sp"
+        android:letterSpacing="0.04"
         app:layout_constraintBottom_toTopOf="@+id/progressBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- ProgressBar (Loading Indicator) එක -->
+    <!-- Progress spinner -->
     <ProgressBar
         android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="60dp"
+        style="@style/Widget.AppCompat.ProgressBar"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginBottom="56dp"
         android:indeterminateTint="#0A2463"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

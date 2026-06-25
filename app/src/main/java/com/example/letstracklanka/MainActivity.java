@@ -44,23 +44,20 @@ public class MainActivity extends AppCompatActivity {
             float centerX = imgFullLogo.getX() + (imgFullLogo.getWidth() / 2f);
             float centerY = imgFullLogo.getY() + (imgFullLogo.getHeight() / 2f);
 
-
-            float orbitWidth = imgNeonRing.getWidth() / 2f;
+            float orbitWidth  = imgNeonRing.getWidth()  / 2f;
             float orbitHeight = imgNeonRing.getHeight() / 2f;
 
-            float itemHalfW = items[0].getWidth() / 2f;
+            float itemHalfW = items[0].getWidth()  / 2f;
             float itemHalfH = items[0].getHeight() / 2f;
 
-
-            imgNeonRing.animate().alpha(1f).setDuration(200).start();
+            // Fade in ring + items
+            imgNeonRing.animate().alpha(1f).setDuration(400).start();
             for (ImageView item : items) {
-                item.animate().alpha(1f).setDuration(200).start();
-
-                item.setRotation(0f);
+                item.animate().alpha(1f).setDuration(400).start();
             }
 
             ValueAnimator orbitAnimator = ValueAnimator.ofFloat(0f, (float) (2 * Math.PI));
-            orbitAnimator.setDuration(12000);
+            orbitAnimator.setDuration(14000);
             orbitAnimator.setRepeatCount(ValueAnimator.INFINITE);
             orbitAnimator.setInterpolator(new LinearInterpolator());
 
@@ -69,20 +66,32 @@ public class MainActivity extends AppCompatActivity {
 
                 for (int i = 0; i < items.length; i++) {
                     float angleOffset = (float) (i * (2 * Math.PI / items.length));
-                    float finalAngle = currentAngle + angleOffset;
+                    float finalAngle  = currentAngle + angleOffset;
 
-
-                    float x = centerX + orbitWidth * (float) Math.cos(finalAngle) - itemHalfW;
+                    float x = centerX + orbitWidth  * (float) Math.cos(finalAngle) - itemHalfW;
                     float y = centerY + orbitHeight * (float) Math.sin(finalAngle) - itemHalfH;
 
                     items[i].setX(x);
                     items[i].setY(y);
 
+                    // Depth effect: items at the back (sin < 0) appear smaller + transparent
+                    float sinVal = (float) Math.sin(finalAngle);
+                    float depthScale = 0.65f + 0.35f * ((sinVal + 1f) / 2f);
+                    float depthAlpha = 0.45f + 0.55f * ((sinVal + 1f) / 2f);
 
+                    items[i].setScaleX(depthScale);
+                    items[i].setScaleY(depthScale);
+                    items[i].setAlpha(depthAlpha);
+
+                    // Elevation: front items render on top
+                    items[i].setTranslationZ(sinVal * 8f);
                 }
             });
 
             orbitAnimator.start();
         });
     }
+
+
+
 }

@@ -11,35 +11,41 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
-        <activity
-            android:name=".OtpVerificationActivity"
-            android:exported="false" />
-        <!-- අලුත් Welcome තිරය -->
+
         <activity
             android:name=".WelcomeActivity"
             android:exported="true"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- අලුතින් හදපු Sign Up තිරය -->
+        </activity>
+
         <activity
             android:name=".SignUpActivity"
             android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" /> <!-- අනිත් තිර -->
-        <activity
-            android:name=".SplashActivity"
-            android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
+
         <activity
             android:name=".OtpVerificationActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
+        <activity
+            android:name=".SplashActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>
