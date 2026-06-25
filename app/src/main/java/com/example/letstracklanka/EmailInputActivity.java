@@ -6,6 +6,8 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,6 +18,8 @@ public class EmailInputActivity extends AppCompatActivity {
 
     private TextInputEditText etEmail;
     private CountDownTimer countDownTimer;
+    private Dialog timerDialog;
+    private boolean isEmailAppOpened = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,10 +29,8 @@ public class EmailInputActivity extends AppCompatActivity {
         etEmail = findViewById(R.id.etEmail);
         MaterialButton btnContinue = findViewById(R.id.btnContinue);
 
-        // Close this screen when the back button is clicked
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
-        // Handle the Continue button click
         btnContinue.setOnClickListener(v -> {
             String email = etEmail.getText().toString().trim();
 
@@ -37,41 +39,34 @@ public class EmailInputActivity extends AppCompatActivity {
             } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 Toast.makeText(EmailInputActivity.this, "Please enter a valid email address", Toast.LENGTH_SHORT).show();
             } else {
-                // Email is valid, show custom dialog
                 showVerificationDialog();
             }
         });
     }
 
     private void showVerificationDialog() {
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.dialog_email_verification);
+        timerDialog = new Dialog(this);
+        timerDialog.setContentView(R.layout.dialog_email_verification);
+        timerDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        timerDialog.setCancelable(false);
 
-        // Make the dialog background transparent to remove extra white space
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        TextView txtTimer = timerDialog.findViewById(R.id.txtTimer);
+        MaterialButton btnOpenEmail = timerDialog.findViewById(R.id.btnOpenEmail);
+        TextView btnCancel = timerDialog.findViewById(R.id.btnCancel);
 
-        // Don't close the dialog unless the user clicks the Cancel button
-        dialog.setCancelable(false);
-
-        TextView txtTimer = dialog.findViewById(R.id.txtTimer);
-        MaterialButton btnOpenEmail = dialog.findViewById(R.id.btnOpenEmail);
-        TextView btnCancel = dialog.findViewById(R.id.btnCancel);
-
-        // Start countdown timer for 174 seconds
         countDownTimer = new CountDownTimer(174000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 txtTimer.setText(String.valueOf(millisUntilFinished / 1000));
             }
-
             @Override
             public void onFinish() {
                 txtTimer.setText("0");
             }
         }.start();
 
-        // Open the default Email app on the phone
         btnOpenEmail.setOnClickListener(v -> {
+            isEmailAppOpened = true; // Mark that user went to email app
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_APP_EMAIL);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -82,21 +77,54 @@ public class EmailInputActivity extends AppCompatActivity {
             }
         });
 
-        // Handle the Cancel button click
         btnCancel.setOnClickListener(v -> {
-            if (countDownTimer != null) {
-                countDownTimer.cancel(); // Stop timer
-            }
-            dialog.dismiss(); // Close dialog
+            if (countDownTimer != null) countDownTimer.cancel();
+            timerDialog.dismiss();
+            isEmailAppOpened = false; // Reset if cancelled
         });
 
-        dialog.show();
+        timerDialog.show();
+    }
+
+    // This runs when user comes back from the Email app
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isEmailAppOpened) {
+            isEmailAppOpened = false;
+
+            // Close timer dialog
+            if (timerDialog != null && timerDialog.isShowing()) {
+                timerDialog.dismiss();
+            }
+            if (countDownTimer != null) {
+                countDownTimer.cancel();
+            }
+
+            // Show Success Dialog
+            showSuccessDialog();
+        }
+    }
+
+    private void showSuccessDialog() {
+        Dialog successDialog = new Dialog(this);
+        successDialog.setContentView(R.layout.dialog_email_success);
+        successDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        successDialog.setCancelable(false);
+        successDialog.show();
+
+        // Wait 2 seconds, then go to Processing Screen
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            successDialog.dismiss();
+            Intent intent = new Intent(EmailInputActivity.this, ProcessingActivity.class);
+            startActivity(intent);
+            finish();
+        }, 2000);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Stop the timer when the screen closes to prevent memory leaks
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
