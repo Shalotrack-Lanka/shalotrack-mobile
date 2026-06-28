@@ -4,7 +4,9 @@ import android.animation.ValueAnimator;
 import android.os.Bundle;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
-
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -40,9 +42,10 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(R.id.imgItem9)
         };
 
-        imgFullLogo.post(() -> {
-            float centerX = imgFullLogo.getX() + (imgFullLogo.getWidth() / 2f);
-            float centerY = imgFullLogo.getY() + (imgFullLogo.getHeight() / 2f);
+        imgNeonRing.post(() -> { // Changed to imgNeonRing.post to ensure it's measured
+            // Calculate center based on the Neon Ring instead of the Full Logo
+            float centerX = imgNeonRing.getX() + (imgNeonRing.getWidth() / 2f);
+            float centerY = imgNeonRing.getY() + (imgNeonRing.getHeight() / 2f);
 
             float orbitWidth  = imgNeonRing.getWidth()  / 2f;
             float orbitHeight = imgNeonRing.getHeight() / 2f;
@@ -89,9 +92,14 @@ public class MainActivity extends AppCompatActivity {
             });
 
             orbitAnimator.start();
+
+            // තත්පර 4කට පස්සේ HomeActivity එකට යන්න
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                startActivity(intent);
+                finish(); // ආපහු Back කරාම Loading තිරයට එන එක නවත්වන්න මේක දානවා
+            }, 4000); // 4000 කියන්නේ මිලි තත්පර 4000 (තත්පර 4යි)
         });
     }
-
-
 
 }
