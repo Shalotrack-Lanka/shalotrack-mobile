@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "425166487990",
+    "project_id": "shalotracklanka",
+    "storage_bucket": "shalotracklanka.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425166487990:android:65e3fe0599ac4033248117",
+        "android_client_info": {
+          "package_name": "com.example.letstracklanka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbFQSKpl8B4ld47LH4-BaGGWKa55ha9kk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
