@@ -77,8 +77,52 @@
                     app:backgroundTint="#FFFFFF"
 
                     app:fabSize="mini"
+                    app:tint="@null"
 
                     app:srcCompat="@drawable/ic_layers" />
+
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/mapTypeMenu"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:visibility="gone"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="8dp"
+                    app:layout_constraintTop_toBottomOf="@+id/fabLayers"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:layout_marginBottom="16dp">
+
+                    <GridLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:columnCount="2"
+                        android:padding="8dp"
+                        android:rowCount="2">
+
+                        <LinearLayout android:id="@+id/typeDefault" android:layout_width="100dp" android:layout_height="90dp" android:orientation="vertical" android:gravity="center" android:padding="4dp" android:background="?attr/selectableItemBackground">
+                            <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@android:drawable/ic_dialog_map" android:scaleType="centerCrop"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Default" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                        </LinearLayout>
+
+                        <LinearLayout android:id="@+id/typeTerrain" android:layout_width="100dp" android:layout_height="90dp" android:orientation="vertical" android:gravity="center" android:padding="4dp" android:background="?attr/selectableItemBackground">
+                            <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@android:drawable/ic_menu_mapmode" android:scaleType="centerCrop"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Terrain" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                        </LinearLayout>
+
+                        <LinearLayout android:id="@+id/typeSatellite" android:layout_width="100dp" android:layout_height="90dp" android:orientation="vertical" android:gravity="center" android:padding="4dp" android:background="?attr/selectableItemBackground">
+                            <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@android:drawable/ic_menu_gallery" android:scaleType="centerCrop"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Satellite" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                        </LinearLayout>
+
+                        <LinearLayout android:id="@+id/typeHybrid" android:layout_width="100dp" android:layout_height="90dp" android:orientation="vertical" android:gravity="center" android:padding="4dp" android:background="?attr/selectableItemBackground">
+                            <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@android:drawable/ic_menu_mylocation" android:scaleType="centerCrop"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hybrid" android:textSize="14sp" android:textStyle="bold" android:layout_marginTop="4dp"/>
+                        </LinearLayout>
+                    </GridLayout>
+                </androidx.cardview.widget.CardView>
 
 
 
