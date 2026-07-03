@@ -1,0 +1,128 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background rounded square -->
+    <path android:pathData="M24,0 H84 A24,24 0 0,1 108,24 V84 A24,24 0 0,1 84,108 H24 A24,24 0 0,1 0,84 V24 A24,24 0 0,1 24,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="10"
+                android:startY="0"
+                android:endX="98"
+                android:endY="108"
+                android:startColor="#F0F6FF"
+                android:endColor="#C8DCFA" />
+        </aapt:attr>
+    </path>
+
+    <!-- Soft drop shadow under the car -->
+    <path
+        android:pathData="M17,90 A38,6 0 0,0 93,90 A38,6 0 0,0 17,90 Z"
+        android:fillColor="#1A1A2E"
+        android:fillAlpha="0.18" />
+
+    <!-- Car body -->
+    <path
+        android:pathData="M14,79 L14,71 C14,67 17,64 21,63 L27,62
+                           C30,52 40,45 51,44 L66,44
+                           C75,45 82,51 86,61 L91,62
+                           C95,63 97,66 97,70 L97,79 Z"
+        android:strokeColor="#7A0E08"
+        android:strokeWidth="1">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="14"
+                android:startY="40"
+                android:endX="60"
+                android:endY="82"
+                android:startColor="#FF6B5B"
+                android:centerColor="#E4392A"
+                android:centerX="0.55"
+                android:endColor="#9E1B12" />
+        </aapt:attr>
+    </path>
+
+    <!-- Windshield / glass -->
+    <path android:pathData="M32,61 C34,53 42,48 51,47 L64,47 C71,48 77,53 81,60 L79,61 L34,61 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="34"
+                android:startY="44"
+                android:endX="80"
+                android:endY="62"
+                android:startColor="#BFE3FF"
+                android:endColor="#5E9FD6" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M53,47.5 L53,60.5" android:strokeColor="#3d6f96" android:strokeWidth="1.4" />
+
+    <!-- Roof gloss highlight -->
+    <path
+        android:pathData="M25,63 L86,61 C86,61 84,58 80,58 L30,59 C27,59 25,61 25,63 Z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.22" />
+
+    <!-- Door line -->
+    <path android:pathData="M62,47 L58,79" android:strokeColor="#7A0E08" android:strokeWidth="0.8" android:strokeAlpha="0.6" />
+
+    <!-- Headlight -->
+    <path android:pathData="M91,66 A3,4 0 0,0 91,74 A3,4 0 0,0 91,66 Z" android:fillColor="#FFE9A8" />
+    <!-- Taillight -->
+    <path android:pathData="M14,66 H17 A1.4,1.4 0 0,1 18.4,67.4 V70.6 A1.4,1.4 0 0,1 17,72 H14 Z" android:fillColor="#FFD1D1" />
+
+    <!-- Bumper strip -->
+    <path android:pathData="M14,76 H97 V79 H14 Z" android:fillColor="#3a3a3a" />
+
+    <!-- Wheels -->
+    <path android:pathData="M43,80 A11,11 0 0,1 21,80 A11,11 0 0,1 43,80 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="29.15"
+                android:centerY="76.75"
+                android:gradientRadius="8.25"
+                android:startColor="#6b6b6b"
+                android:endColor="#101010" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M37,80 A5,5 0 0,1 27,80 A5,5 0 0,1 37,80 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="30"
+                android:centerY="78"
+                android:gradientRadius="3.5"
+                android:startColor="#f2f2f2"
+                android:endColor="#a8a8a8" />
+        </aapt:attr>
+    </path>
+
+    <path android:pathData="M93,80 A11,11 0 0,1 71,80 A11,11 0 0,1 93,80 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="79.15"
+                android:centerY="76.75"
+                android:gradientRadius="8.25"
+                android:startColor="#6b6b6b"
+                android:endColor="#101010" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M87,80 A5,5 0 0,1 77,80 A5,5 0 0,1 87,80 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="80"
+                android:centerY="78"
+                android:gradientRadius="3.5"
+                android:startColor="#f2f2f2"
+                android:endColor="#a8a8a8" />
+        </aapt:attr>
+    </path>
+</vector>

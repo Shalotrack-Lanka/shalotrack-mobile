@@ -1,432 +1,845 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <androidx.constraintlayout.widget.ConstraintLayout
+
     xmlns:android="http://schemas.android.com/apk/res/android"
+
     xmlns:app="http://schemas.android.com/apk/res-auto"
+
     android:layout_width="match_parent"
+
     android:layout_height="match_parent"
+
     android:background="#F0F0F0">
 
-    <!-- Coordinator Layout (Map + Bottom Sheet) -->
+
+
     <androidx.coordinatorlayout.widget.CoordinatorLayout
+
         android:layout_width="match_parent"
+
         android:layout_height="0dp"
+
         app:layout_constraintTop_toTopOf="parent"
+
         app:layout_constraintBottom_toTopOf="@+id/bottomNavBar">
 
-        <!-- 1. MAP BACKGROUND -->
+
+
         <androidx.constraintlayout.widget.ConstraintLayout
+
             android:layout_width="match_parent"
+
             android:layout_height="match_parent">
 
-            <!-- Google Map Fragment -->
+
+
             <fragment
+
                 android:id="@+id/map"
+
                 android:name="com.google.android.gms.maps.SupportMapFragment"
+
                 android:layout_width="match_parent"
+
                 android:layout_height="match_parent" />
 
-            <!-- Map Floating Action Buttons (Top Right) -->
+
+
             <LinearLayout
+
                 android:layout_width="wrap_content"
+
                 android:layout_height="wrap_content"
+
                 android:orientation="vertical"
+
                 android:layout_marginTop="40dp"
+
                 android:layout_marginEnd="16dp"
+
                 app:layout_constraintTop_toTopOf="parent"
+
                 app:layout_constraintEnd_toEndOf="parent">
 
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/fabLayers"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    app:backgroundTint="#FFFFFF"
-                    app:fabSize="mini"
-                    app:srcCompat="@android:drawable/ic_menu_mapmode" />
+
 
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/fabLocation"
+
+                    android:id="@+id/fabLayers"
+
                     android:layout_width="wrap_content"
+
                     android:layout_height="wrap_content"
+
+                    android:layout_marginBottom="12dp"
+
                     app:backgroundTint="#FFFFFF"
+
                     app:fabSize="mini"
-                    app:srcCompat="@android:drawable/ic_menu_mylocation" />
+
+                    app:srcCompat="@drawable/ic_layers" />
+
+
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+
+                    android:id="@+id/fabLocation"
+
+                    android:layout_width="wrap_content"
+
+                    android:layout_height="wrap_content"
+
+                    app:backgroundTint="#FFFFFF"
+
+                    app:fabSize="mini"
+
+                    app:srcCompat="@drawable/ic_my_location" />
+
             </LinearLayout>
+
+
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+
+                android:layout_width="match_parent"
+
+                android:layout_height="wrap_content"
+
+                android:layout_marginBottom="145dp"
+
+                android:paddingHorizontal="16dp"
+
+                app:layout_constraintBottom_toBottomOf="parent">
+
+
+
+                <com.google.android.material.button.MaterialButton
+
+                    android:id="@+id/btnSendLocation"
+
+                    android:layout_width="0dp"
+
+                    android:layout_height="52dp"
+
+                    android:layout_marginEnd="8dp"
+
+                    android:text="Send Location"
+
+                    android:textAllCaps="false"
+
+                    android:textColor="#1877F2"
+
+                    android:textSize="15sp"
+
+                    app:backgroundTint="#FFFFFF"
+
+                    app:cornerRadius="12dp"
+
+                    app:icon="@drawable/ic_my_location"
+
+                    app:iconTint="#1877F2"
+
+                    app:layout_constraintBottom_toBottomOf="parent"
+
+                    app:layout_constraintEnd_toStartOf="@+id/btnSOS"
+
+                    app:layout_constraintStart_toStartOf="parent"
+
+                    app:layout_constraintTop_toTopOf="parent"
+
+                    app:strokeColor="#1877F2"
+
+                    app:strokeWidth="1.5dp" />
+
+
+
+                <com.google.android.material.button.MaterialButton
+
+                    android:id="@+id/btnSOS"
+
+                    android:layout_width="0dp"
+
+                    android:layout_height="52dp"
+
+                    android:layout_marginEnd="12dp"
+
+                    android:text="SOS"
+
+                    android:textAllCaps="false"
+
+                    android:textColor="#FFFFFF"
+
+                    android:textSize="16sp"
+
+                    android:textStyle="bold"
+
+                    app:backgroundTint="#E53935"
+
+                    app:cornerRadius="12dp"
+
+                    app:layout_constraintBottom_toBottomOf="parent"
+
+                    app:layout_constraintEnd_toStartOf="@+id/fabRefresh"
+
+                    app:layout_constraintStart_toEndOf="@+id/btnSendLocation"
+
+                    app:layout_constraintTop_toTopOf="parent" />
+
+
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+
+                    android:id="@+id/fabRefresh"
+
+                    android:layout_width="wrap_content"
+
+                    android:layout_height="wrap_content"
+
+                    app:backgroundTint="#FFFFFF"
+
+                    app:elevation="4dp"
+
+                    app:fabSize="normal"
+
+                    app:layout_constraintBottom_toBottomOf="parent"
+
+                    app:layout_constraintEnd_toEndOf="parent"
+
+                    app:layout_constraintTop_toTopOf="parent"
+
+                    app:srcCompat="@drawable/ic_refresh"
+
+                    app:tint="#1877F2" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- 2. BOTTOM SHEET -->
+
+
         <androidx.core.widget.NestedScrollView
+
             android:id="@+id/bottomSheet"
+
             android:layout_width="match_parent"
+
             android:layout_height="match_parent"
+
             android:background="@drawable/bottom_sheet_bg"
+
             app:behavior_hideable="false"
+
             app:behavior_peekHeight="130dp"
+
             app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+
             android:elevation="8dp">
 
+
+
             <LinearLayout
+
                 android:layout_width="match_parent"
+
                 android:layout_height="wrap_content"
+
                 android:orientation="vertical"
+
                 android:paddingBottom="24dp">
 
-                <!-- Drag Handle -->
-                <View
-                    android:layout_width="40dp"
-                    android:layout_height="4dp"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="#D1D5DB"
-                    app:cornerRadius="2dp" />
 
-                <!-- Sticky Header: LT Demo Device -->
+
+                <View
+
+                    android:layout_width="40dp"
+
+                    android:layout_height="4dp"
+
+                    android:layout_gravity="center_horizontal"
+
+                    android:layout_marginTop="12dp"
+
+                    android:layout_marginBottom="12dp"
+
+                    android:background="#D1D5DB" />
+
+
+
                 <LinearLayout
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="20dp"
+
                     android:paddingBottom="16dp"
+
                     android:gravity="center_vertical">
 
-                    <!-- Device Icon Container -->
+
+
                     <androidx.cardview.widget.CardView
+
                         android:layout_width="56dp"
+
                         android:layout_height="56dp"
+
                         app:cardCornerRadius="12dp"
+
                         app:cardBackgroundColor="#E6F0FA"
+
                         app:cardElevation="0dp">
+
+
+
                         <ImageView
+
                             android:layout_width="32dp"
+
                             android:layout_height="32dp"
+
                             android:layout_gravity="center"
-                            android:src="@android:drawable/ic_menu_call" /> <!-- ඔයාගේ device icon එක දාන්න -->
+
+                            android:src="@drawable/ic_car" />
+
                     </androidx.cardview.widget.CardView>
 
-                    <!-- Text Details -->
+
+
                     <LinearLayout
+
                         android:layout_width="0dp"
+
                         android:layout_height="wrap_content"
+
                         android:layout_weight="1"
+
                         android:orientation="vertical"
+
                         android:layout_marginStart="16dp">
 
+
+
                         <TextView
+
                             android:layout_width="wrap_content"
+
                             android:layout_height="wrap_content"
+
                             android:text="LT Demo Device"
+
                             android:textColor="#000000"
+
                             android:textSize="18sp"
+
                             android:textStyle="bold" />
 
+
+
                         <LinearLayout
+
                             android:layout_width="wrap_content"
+
                             android:layout_height="wrap_content"
+
                             android:orientation="horizontal"
+
                             android:layout_marginTop="2dp">
+
                             <TextView
+
                                 android:layout_width="wrap_content"
+
                                 android:layout_height="wrap_content"
+
                                 android:text="Parked "
+
                                 android:textColor="#1976D2"
+
                                 android:textSize="14sp" />
+
                             <TextView
+
                                 android:layout_width="wrap_content"
+
                                 android:layout_height="wrap_content"
+
                                 android:text="(14h 21m ago)"
+
                                 android:textColor="#333333"
+
                                 android:textSize="14sp" />
+
                         </LinearLayout>
 
+
+
                         <TextView
+
                             android:layout_width="wrap_content"
+
                             android:layout_height="wrap_content"
+
                             android:text="QCJ8+88X, Lokaipur, Uttar Pra..."
+
                             android:textColor="#888888"
+
                             android:textSize="13sp"
+
                             android:layout_marginTop="2dp"
+
                             android:maxLines="1"
+
                             android:ellipsize="end"/>
+
                     </LinearLayout>
 
-                    <!-- Heart Icon -->
+
+
                     <ImageView
+
                         android:layout_width="24dp"
+
                         android:layout_height="24dp"
+
                         android:src="@android:drawable/ic_menu_myplaces"
+
                         app:tint="#BDBDBD" />
+
                 </LinearLayout>
+
+
 
                 <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#F0F0F0"/>
 
-                <!-- Expandable List Items -->
-                <!-- Add a Person -->
+
+
                 <LinearLayout
+
+                    android:id="@+id/btnAddPerson"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="20dp"
+
                     android:paddingVertical="16dp"
+
                     android:gravity="center_vertical">
 
+
+
                     <androidx.cardview.widget.CardView
+
                         android:layout_width="48dp"
+
                         android:layout_height="48dp"
+
                         app:cardCornerRadius="12dp"
+
                         app:cardBackgroundColor="#1976D2"
+
                         app:cardElevation="0dp">
+
                         <ImageView
+
                             android:layout_width="24dp"
+
                             android:layout_height="24dp"
+
                             android:layout_gravity="center"
+
                             app:tint="#FFFFFF"
-                            android:src="@android:drawable/ic_menu_add" /> <!-- Add Person Icon -->
+
+                            android:src="@android:drawable/ic_menu_myplaces" />
+
                     </androidx.cardview.widget.CardView>
 
+
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
+
                         android:text="Add a Person"
+
                         android:textSize="16sp"
+
                         android:textColor="#000000"
+
                         android:layout_marginStart="16dp"
+
                         android:textStyle="bold"/>
+
                 </LinearLayout>
 
-                <!-- Add a Vehicle -->
+
+
                 <LinearLayout
+
+                    android:id="@+id/btnAddVehicle"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="20dp"
+
                     android:paddingVertical="16dp"
+
                     android:gravity="center_vertical">
 
+
+
                     <androidx.cardview.widget.CardView
+
                         android:layout_width="48dp"
+
                         android:layout_height="48dp"
+
                         app:cardCornerRadius="12dp"
+
                         app:cardBackgroundColor="#1976D2"
+
                         app:cardElevation="0dp">
+
                         <ImageView
+
                             android:layout_width="24dp"
+
                             android:layout_height="24dp"
+
                             android:layout_gravity="center"
+
                             app:tint="#FFFFFF"
-                            android:src="@android:drawable/ic_menu_directions" /> <!-- Add Vehicle Icon -->
+
+                            android:src="@drawable/ic_car" />
+
                     </androidx.cardview.widget.CardView>
 
+
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
+
                         android:text="Add a Vehicle"
+
                         android:textSize="16sp"
+
                         android:textColor="#000000"
+
                         android:layout_marginStart="16dp"
+
                         android:textStyle="bold"/>
+
                 </LinearLayout>
 
-                <!-- Add a Pet -->
+
+
                 <LinearLayout
+
+                    android:id="@+id/btnAddPet"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="20dp"
+
                     android:paddingVertical="16dp"
+
                     android:gravity="center_vertical">
 
+
+
                     <androidx.cardview.widget.CardView
+
                         android:layout_width="48dp"
+
                         android:layout_height="48dp"
+
                         app:cardCornerRadius="12dp"
+
                         app:cardBackgroundColor="#1976D2"
+
                         app:cardElevation="0dp">
+
                         <ImageView
+
                             android:layout_width="24dp"
+
                             android:layout_height="24dp"
+
                             android:layout_gravity="center"
+
                             app:tint="#FFFFFF"
-                            android:src="@android:drawable/ic_menu_add" /> <!-- Add Pet Icon -->
+
+                            android:src="@android:drawable/ic_menu_add" />
+
                     </androidx.cardview.widget.CardView>
 
+
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
+
                         android:text="Add a Pet"
+
                         android:textSize="16sp"
+
                         android:textColor="#000000"
+
                         android:layout_marginStart="16dp"
+
                         android:textStyle="bold"/>
+
                 </LinearLayout>
 
-                <!-- Add a TAG -->
+
+
                 <LinearLayout
+
+                    android:id="@+id/btnAddTag"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="20dp"
+
                     android:paddingVertical="16dp"
+
                     android:gravity="center_vertical">
 
+
+
                     <androidx.cardview.widget.CardView
+
                         android:layout_width="48dp"
+
                         android:layout_height="48dp"
+
                         app:cardCornerRadius="12dp"
+
                         app:cardBackgroundColor="#1976D2"
+
                         app:cardElevation="0dp">
+
                         <ImageView
+
                             android:layout_width="24dp"
+
                             android:layout_height="24dp"
+
                             android:layout_gravity="center"
+
                             app:tint="#FFFFFF"
-                            android:src="@android:drawable/ic_menu_crop" /> <!-- Add TAG Icon -->
+
+                            android:src="@drawable/ic_tag" />
+
                     </androidx.cardview.widget.CardView>
 
+
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
+
                         android:text="Add a TAG"
+
                         android:textSize="16sp"
+
                         android:textColor="#000000"
+
                         android:layout_marginStart="16dp"
+
                         android:textStyle="bold"/>
+
                 </LinearLayout>
 
-                <!-- Add a place -->
+
+
                 <LinearLayout
+
+                    android:id="@+id/btnAddPlace"
+
                     android:layout_width="match_parent"
+
                     android:layout_height="wrap_content"
+
                     android:orientation="horizontal"
+
                     android:paddingHorizontal="20dp"
+
                     android:paddingVertical="16dp"
+
                     android:gravity="center_vertical">
 
+
+
                     <androidx.cardview.widget.CardView
+
                         android:layout_width="48dp"
+
                         android:layout_height="48dp"
+
                         app:cardCornerRadius="12dp"
+
                         app:cardBackgroundColor="#1976D2"
+
                         app:cardElevation="0dp">
+
                         <ImageView
+
                             android:layout_width="24dp"
+
                             android:layout_height="24dp"
+
                             android:layout_gravity="center"
+
                             app:tint="#FFFFFF"
-                            android:src="@android:drawable/ic_menu_myplaces" /> <!-- Add Place Icon -->
+
+                            android:src="@android:drawable/ic_menu_myplaces" />
+
                     </androidx.cardview.widget.CardView>
 
+
+
                     <TextView
+
                         android:layout_width="wrap_content"
+
                         android:layout_height="wrap_content"
+
                         android:text="Add a place"
+
                         android:textSize="16sp"
+
                         android:textColor="#000000"
+
                         android:layout_marginStart="16dp"
+
                         android:textStyle="bold"/>
+
                 </LinearLayout>
+
+
 
             </LinearLayout>
+
         </androidx.core.widget.NestedScrollView>
 
-        <!-- 3. ACTION BUTTONS (Anchored to the Top of the Bottom Sheet) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:layout_marginBottom="16dp"
-            app:layout_anchor="@id/bottomSheet"
-            app:layout_anchorGravity="top"
-            android:gravity="center_vertical">
 
-            <!-- Send Location Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSendLocation"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="56dp"
-                android:text="Send Location"
-                android:textAllCaps="false"
-                android:textColor="#1976D2"
-                android:textStyle="bold"
-                app:icon="@android:drawable/ic_menu_mylocation"
-                app:iconTint="#1976D2"
-                app:backgroundTint="#FFFFFF"
-                app:cornerRadius="28dp"
-                app:strokeColor="#E0E0E0"
-                app:strokeWidth="1dp"
-                android:layout_marginEnd="8dp" />
-
-            <!-- SOS Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSOS"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="56dp"
-                android:text="SOS"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:backgroundTint="#E53935"
-                app:cornerRadius="28dp"
-                android:layout_marginEnd="12dp" />
-
-            <!-- Refresh Button -->
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fabRefresh"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:backgroundTint="#FFFFFF"
-                app:fabSize="normal"
-                app:tint="#1976D2"
-                app:srcCompat="@android:drawable/ic_popup_sync" />
-        </LinearLayout>
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <!-- 4. CUSTOM BOTTOM NAVIGATION (6 Items) -->
-    <!-- වෙනමම හදපු Navigation එකක්, මොකද standard BottomNav වල 6ක් දාන්න අමාරුයි -->
+
+
     <LinearLayout
+
         android:id="@+id/bottomNavBar"
+
         android:layout_width="match_parent"
+
         android:layout_height="65dp"
+
         android:orientation="horizontal"
+
         android:background="#FFFFFF"
+
         android:elevation="16dp"
+
         app:layout_constraintBottom_toBottomOf="parent">
 
+
+
         <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_dialog_dialer" app:tint="#1976D2"/>
+
+            <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
+
+            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#1976D2"/>
+
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
+
         </LinearLayout>
 
+
+
         <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_directions" app:tint="#757575"/>
+
+            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#757575"/>
+
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+
         </LinearLayout>
 
+
+
         <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_crop" app:tint="#757575"/>
+
+            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_tag" app:tint="#757575"/>
+
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+
         </LinearLayout>
 
+
+
         <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_share" app:tint="#757575"/>
+
+            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#757575"/>
+
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+
         </LinearLayout>
 
+
+
         <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_dialog_email" app:tint="#757575"/>
+
+            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="#757575"/>
+
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+
         </LinearLayout>
 
+
+
         <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_sort_by_size" app:tint="#757575"/>
+
+            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
+
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+
         </LinearLayout>
+
     </LinearLayout>
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
