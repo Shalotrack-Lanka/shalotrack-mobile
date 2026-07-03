@@ -300,13 +300,13 @@
 
                         <ImageView
 
-                            android:layout_width="32dp"
+                            android:layout_width="45dp"
 
-                            android:layout_height="32dp"
+                            android:layout_height="45dp"
 
                             android:layout_gravity="center"
 
-                            android:src="@drawable/ic_car" />
+                            android:src="@drawable/ic_car_image" />
 
                     </androidx.cardview.widget.CardView>
 
