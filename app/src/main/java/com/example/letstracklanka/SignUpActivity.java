@@ -28,13 +28,11 @@ public class SignUpActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
-        // Firebase ආරම්භ කිරීම අනිවාර්යයි
         FirebaseApp.initializeApp(this);
         mAuth = FirebaseAuth.getInstance();
 
         etPhoneNumber = findViewById(R.id.etPhoneNumber);
 
-        // Language Dropdown එක හදමු
         String[] languages = {"English (US)", "Sinhala (LK)", "Tamil (LK)"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
@@ -44,10 +42,8 @@ public class SignUpActivity extends AppCompatActivity {
         AutoCompleteTextView dropdownLanguage = findViewById(R.id.dropdownLanguage);
         dropdownLanguage.setAdapter(adapter);
 
-        // Back බටන් එක
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
-        // Send Code බටන් එක එබුවාම
         findViewById(R.id.btnSendCode).setOnClickListener(v -> {
             String number = etPhoneNumber.getText().toString().trim();
 
@@ -55,6 +51,17 @@ public class SignUpActivity extends AppCompatActivity {
                 Toast.makeText(this, "Enter a valid phone number", Toast.LENGTH_SHORT).show();
                 return;
             }
+
+            // =======================================================================
+            // Test Mode Bypass: ඔයාගේ නම්බර් එක ගැහුවොත් කෙළින්ම OTP තිරයට යනවා
+            if (number.equals("758381698") || number.equals("0758381698")) {
+                Toast.makeText(this, "Test Mode: Moving to OTP Screen", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
+                intent.putExtra("verificationId", "test_id_123");
+                startActivity(intent);
+                return; // මෙතනින් නවතිනවා, පල්ලෙහා තියෙන Firebase කේතය රන් වෙන්නේ නෑ
+            }
+            // =======================================================================
 
             if (number.length() == 10 && number.startsWith("0")) {
                 number = number.substring(1);
@@ -82,7 +89,6 @@ public class SignUpActivity extends AppCompatActivity {
                                 @Override
                                 public void onCodeSent(@NonNull String verificationId,
                                                        @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                                    // SMS එක සාර්ථකව යැව්වාම OTP තිරයට යනවා
                                     Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
                                     intent.putExtra("verificationId", verificationId);
                                     startActivity(intent);

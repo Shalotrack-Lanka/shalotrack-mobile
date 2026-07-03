@@ -23,7 +23,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_otp_verification);
 
         mAuth = FirebaseAuth.getInstance();
-        // කලින් තිරයෙන් එවපු ID එක ගන්නවා
         verificationId = getIntent().getStringExtra("verificationId");
 
         etOtp1 = findViewById(R.id.etOtp1);
@@ -37,7 +36,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
-        // Verify බටන් එක එබුවාම
         findViewById(R.id.btnVerifyCode).setOnClickListener(v -> {
             String code = etOtp1.getText().toString() + etOtp2.getText().toString() +
                     etOtp3.getText().toString() + etOtp4.getText().toString() +
@@ -52,20 +50,27 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void verifyCode(String code) {
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
-        mAuth.signInWithCredential(credential)
-                .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        // කෝඩ් එක හරි! ඊළඟ තිරයට යන්න.
-                        Toast.makeText(this, "Verification Successful!", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(OtpVerificationActivity.this, EmailInputActivity.class);
-                        startActivity(intent);
-                        finish();
-                    } else {
-                        // කෝඩ් එක වැරදියි
-                        Toast.makeText(this, "Invalid Code!", Toast.LENGTH_SHORT).show();
-                    }
-                });
+        // තාවකාලිකව SMS එක එනකම් ඉන්නේ නැතුව කෝඩ් එක "123456" කියලා ටෙස්ට් කරනවා
+        if (code.equals("123456")) {
+            Toast.makeText(this, "Testing Mode: Verification Successful!", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(OtpVerificationActivity.this, EmailInputActivity.class);
+            startActivity(intent);
+            finish();
+        } else {
+            // ඇත්තම Firebase Verification එක
+            PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
+            mAuth.signInWithCredential(credential)
+                    .addOnCompleteListener(this, task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(this, "Verification Successful!", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(OtpVerificationActivity.this, EmailInputActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            Toast.makeText(this, "Invalid Code!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
     }
 
     private void setupOtpInputs() {
