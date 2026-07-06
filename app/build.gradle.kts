@@ -61,4 +61,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-location:21.2.0")
+    implementation("io.github.jan-tennert.supabase:gotrue-kt:2.6.0")
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.6.0")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity:18.0.0")
+    implementation("com.google.firebase:firebase-appcheck:18.0.0")
 }

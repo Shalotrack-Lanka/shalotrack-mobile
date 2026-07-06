@@ -11,6 +11,11 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 
+// අලුතින් එකතු කළ Firebase Imports
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.appcheck.FirebaseAppCheck;
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
+
 public class WelcomeActivity extends AppCompatActivity {
 
     private ImageView imgBackground;
@@ -50,6 +55,14 @@ public class WelcomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
+
+        // --- Firebase සහ App Check ආරම්භ කිරීම (මෙතනයි අලුතින් එකතු වුණේ) ---
+        FirebaseApp.initializeApp(this);
+        FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
+        firebaseAppCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+        );
+        // -------------------------------------------------------------
 
         imgBackground   = findViewById(R.id.imgBackground);
         txtDescription  = findViewById(R.id.txtDescription);
