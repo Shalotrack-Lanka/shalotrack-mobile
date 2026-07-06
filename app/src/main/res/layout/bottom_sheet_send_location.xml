@@ -58,7 +58,7 @@
                 android:layout_width="28dp"
                 android:layout_height="28dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_mylocation"
+                android:src="@android:drawable/ic_current_location"
                 app:tint="#FFFFFF" />
         </androidx.cardview.widget.CardView>
 
