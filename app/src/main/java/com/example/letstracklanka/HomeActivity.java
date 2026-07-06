@@ -9,8 +9,10 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -83,10 +85,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         fabLocation.setOnClickListener(v -> getDeviceLocation());
 
         MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
-        btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet()); // 1 වෙනි මෙනු එක ලෝඩ් කරනවා
+        btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
     }
 
-    // 1 වෙනි මෙනු එක (නිල් පාට බටන් තියෙන එක)
+    // 1 වෙනි මෙනු එක
     @SuppressLint("InflateParams")
     private void showSendLocationBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
@@ -99,10 +101,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> bottomSheetDialog.dismiss());
 
-        // නිල් පාට "Share Your Current Location" එබුවම 2 වෙනි මෙනු එකට යනවා
         btnShareCurrent.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            showOrangeBottomSheet(); // තැඹිලි පාට මෙනු එක ඕපන් කරනවා
+            showOrangeBottomSheet(); // 2 වෙනි මෙනු එක ඕපන් කරනවා
         });
 
         btnShareLive.setOnClickListener(v -> {
@@ -113,7 +114,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetDialog.show();
     }
 
-    // 2 වෙනි මෙනු එක (තැඹිලි පාට බටන් තියෙන එක - පින්තූරේ විදිහට)
+    // 2 වෙනි මෙනු එක
     @SuppressLint("InflateParams")
     private void showOrangeBottomSheet() {
         BottomSheetDialog orangeSheetDialog = new BottomSheetDialog(this);
@@ -126,33 +127,72 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> orangeSheetDialog.dismiss());
 
-        // මෙතනින් තමයි Real-time Location එක ඇත්තටම Share වෙන්නේ!
+        // My Location Share කිරීම
         btnFinalShareMyLoc.setOnClickListener(v -> {
             orangeSheetDialog.dismiss();
-
-            if (myCurrentLocation != null) {
-                // ඔයා ඉන්න තැනට Google Maps ලින්ක් එකක් හදනවා
-                String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
-                String message = "Here is my current location: \n" + locationLink;
-
-                // Share කරන්න ෆෝන් එකේ ඇප්ස් වලට (WhatsApp, MSG) යවනවා
-                Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                shareIntent.setType("text/plain");
-                shareIntent.putExtra(Intent.EXTRA_SUBJECT, "My Location");
-                shareIntent.putExtra(Intent.EXTRA_TEXT, message);
-                startActivity(Intent.createChooser(shareIntent, "Share Location via"));
-            } else {
-                Toast.makeText(this, "Location not found yet. Searching...", Toast.LENGTH_SHORT).show();
-                getDeviceLocation();
-            }
+            shareLocationLink("my current location");
         });
 
+        // Device Location Share කිරීමේ බටන් එක එබුවම 3 වෙනි මෙනු එකට යනවා
         btnFinalShareDeviceLoc.setOnClickListener(v -> {
             orangeSheetDialog.dismiss();
-            Toast.makeText(this, "Select a device to share its location.", Toast.LENGTH_SHORT).show();
+            showShareDeviceBottomSheet(); // අලුත් මෙනු එක ලෝඩ් කරනවා
         });
 
         orangeSheetDialog.show();
+    }
+
+    // 3 වෙනි මෙනු එක (ඔයා අන්තිමට එවපු පින්තූරේ මෙනු එක)
+    @SuppressLint("InflateParams")
+    private void showShareDeviceBottomSheet() {
+        BottomSheetDialog deviceSheetDialog = new BottomSheetDialog(this);
+        View deviceView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_share_device, null);
+        deviceSheetDialog.setContentView(deviceView);
+
+        ImageView btnClose = deviceView.findViewById(R.id.btnCloseDeviceSheet);
+        Spinner spinnerDevices = deviceView.findViewById(R.id.spinnerDevices);
+        MaterialButton btnFinalShareDevice = deviceView.findViewById(R.id.btnFinalShareDevice);
+
+        btnClose.setOnClickListener(v -> deviceSheetDialog.dismiss());
+
+        // Spinner එකට දාන්න Devices ලිස්ට් එකක් හදනවා
+        String[] devices = {"Select device", "Nissan GT-R R35", "Tecno Camon 40 Pro", "iPhone 13 Pro"};
+
+        // ඒ ලිස්ට් එක Spinner එකට සෙට් කරනවා
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, devices);
+        spinnerDevices.setAdapter(adapter);
+
+        // Share බටන් එක එබුවම
+        btnFinalShareDevice.setOnClickListener(v -> {
+            String selectedDevice = spinnerDevices.getSelectedItem().toString();
+
+            if (selectedDevice.equals("Select device")) {
+                Toast.makeText(this, "Please select a device first!", Toast.LENGTH_SHORT).show();
+            } else {
+                deviceSheetDialog.dismiss();
+                // තෝරපු Device එකේ නමත් එක්කම ලොකේෂන් එක Share කරනවා
+                shareLocationLink("the location of " + selectedDevice);
+            }
+        });
+
+        deviceSheetDialog.show();
+    }
+
+    // ලොකේෂන් එක Share කරන්න පාවිච්චි කරන පොදු ෆන්ක්ෂන් එක
+    private void shareLocationLink(String entityName) {
+        if (myCurrentLocation != null) {
+            String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
+            String message = "Here is " + entityName + ": \n" + locationLink;
+
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Live Location");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, message);
+            startActivity(Intent.createChooser(shareIntent, "Share Location via"));
+        } else {
+            Toast.makeText(this, "Location not found yet. Searching...", Toast.LENGTH_SHORT).show();
+            getDeviceLocation();
+        }
     }
 
     private void changeMapType(int mapType, MaterialCardView selectedCard) {
