@@ -39,10 +39,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FusedLocationProviderClient fusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
-    // Map Cards
     private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
-
-    // ඔයා ඉන්න තැන ලොකේෂන් එක සේව් කරගන්න Variable එකක්
     private LatLng myCurrentLocation;
 
     @Override
@@ -59,12 +56,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
-        // Warning එක නැති කරන්න මේක Local Variable එකක් විදිහට හැදුවා
         BottomSheetBehavior<NestedScrollView> bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
         mapTypeMenu = findViewById(R.id.mapTypeMenu);
-
         cardDefault = findViewById(R.id.cardDefault);
         cardTerrain = findViewById(R.id.cardTerrain);
         cardSatellite = findViewById(R.id.cardSatellite);
@@ -88,14 +83,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         fabLocation.setOnClickListener(v -> getDeviceLocation());
 
         MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
-        btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
+        btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet()); // 1 වෙනි මෙනු එක ලෝඩ් කරනවා
     }
 
-    // null Warning එක අයින් කරන්න @SuppressLint එක දැම්මා
+    // 1 වෙනි මෙනු එක (නිල් පාට බටන් තියෙන එක)
     @SuppressLint("InflateParams")
     private void showSendLocationBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_send_location, null);
         bottomSheetDialog.setContentView(sheetView);
 
@@ -105,50 +99,71 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> bottomSheetDialog.dismiss());
 
-        // --- Current Location Share කරන කෑල්ල ---
+        // නිල් පාට "Share Your Current Location" එබුවම 2 වෙනි මෙනු එකට යනවා
         btnShareCurrent.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
+            showOrangeBottomSheet(); // තැඹිලි පාට මෙනු එක ඕපන් කරනවා
+        });
+
+        btnShareLive.setOnClickListener(v -> {
+            bottomSheetDialog.dismiss();
+            Toast.makeText(this, "Sharing Live Location...", Toast.LENGTH_SHORT).show();
+        });
+
+        bottomSheetDialog.show();
+    }
+
+    // 2 වෙනි මෙනු එක (තැඹිලි පාට බටන් තියෙන එක - පින්තූරේ විදිහට)
+    @SuppressLint("InflateParams")
+    private void showOrangeBottomSheet() {
+        BottomSheetDialog orangeSheetDialog = new BottomSheetDialog(this);
+        View orangeView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_share_current, null);
+        orangeSheetDialog.setContentView(orangeView);
+
+        ImageView btnClose = orangeView.findViewById(R.id.btnCloseOrangeSheet);
+        LinearLayout btnFinalShareMyLoc = orangeView.findViewById(R.id.btnFinalShareMyLoc);
+        LinearLayout btnFinalShareDeviceLoc = orangeView.findViewById(R.id.btnFinalShareDeviceLoc);
+
+        btnClose.setOnClickListener(v -> orangeSheetDialog.dismiss());
+
+        // මෙතනින් තමයි Real-time Location එක ඇත්තටම Share වෙන්නේ!
+        btnFinalShareMyLoc.setOnClickListener(v -> {
+            orangeSheetDialog.dismiss();
 
             if (myCurrentLocation != null) {
-                // Google Maps ලින්ක් එක හදනවා
-                String locationLink = "https://maps.google.com/?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
+                // ඔයා ඉන්න තැනට Google Maps ලින්ක් එකක් හදනවා
+                String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
                 String message = "Here is my current location: \n" + locationLink;
 
-                // Share කරන්න ෆෝන් එකේ ඇප්ස් වලට යවනවා
+                // Share කරන්න ෆෝන් එකේ ඇප්ස් වලට (WhatsApp, MSG) යවනවා
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("text/plain");
                 shareIntent.putExtra(Intent.EXTRA_SUBJECT, "My Location");
                 shareIntent.putExtra(Intent.EXTRA_TEXT, message);
                 startActivity(Intent.createChooser(shareIntent, "Share Location via"));
             } else {
-                Toast.makeText(this, "Location not found yet. Please try again.", Toast.LENGTH_SHORT).show();
-                getDeviceLocation(); // ලොකේෂන් එක අරන් නැත්නම් ආයෙත් ගන්න ට්‍රයි කරනවා
+                Toast.makeText(this, "Location not found yet. Searching...", Toast.LENGTH_SHORT).show();
+                getDeviceLocation();
             }
         });
 
-        // --- Live Location Share කරන කෑල්ල ---
-        btnShareLive.setOnClickListener(v -> {
-            bottomSheetDialog.dismiss();
-
-            // Firebase හරහා Live Location යවන්න Database එකක් ඕනේ නිසා, දැනට පණිවිඩයක් පෙන්වනවා
-            Toast.makeText(this, "Live Location sharing will be available soon!", Toast.LENGTH_SHORT).show();
+        btnFinalShareDeviceLoc.setOnClickListener(v -> {
+            orangeSheetDialog.dismiss();
+            Toast.makeText(this, "Select a device to share its location.", Toast.LENGTH_SHORT).show();
         });
 
-        bottomSheetDialog.show();
+        orangeSheetDialog.show();
     }
 
     private void changeMapType(int mapType, MaterialCardView selectedCard) {
         if (mMap != null) {
             mMap.setMapType(mapType);
-
             cardDefault.setStrokeWidth(0);
             cardTerrain.setStrokeWidth(0);
             cardSatellite.setStrokeWidth(0);
             cardHybrid.setStrokeWidth(0);
-
             selectedCard.setStrokeWidth(8);
             selectedCard.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-
             mapTypeMenu.setVisibility(View.GONE);
         }
     }
@@ -173,12 +188,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
                 if (location != null && mMap != null) {
-                    // ලොකේෂන් එක හම්බුණාම ඒක myCurrentLocation කියන variable එකේ සේව් කරගන්නවා
                     myCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myCurrentLocation, 15f));
-                } else {
-                    Toast.makeText(this, "Unable to find location. Is GPS turned on?", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -187,12 +198,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                enableMyLocation();
-            } else {
-                Toast.makeText(this, "Permission denied. Real-time location will not work.", Toast.LENGTH_SHORT).show();
-            }
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            enableMyLocation();
         }
     }
 }
