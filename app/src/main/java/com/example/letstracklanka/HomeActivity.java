@@ -87,15 +87,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
         btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
 
-        // --- මෙන්න අලුතින් දැම්ම SOS බටන් එකේ කේතය ---
-        MaterialButton btnHomeSOS = findViewById(R.id.btnSOS); // ඔයාගේ XML එකේ රතු බටන් එකේ ID එක මේක වෙන්න ඕනේ
+        MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
         if (btnHomeSOS != null) {
             btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
         }
     }
 
-    // --- SOS මෙනුව පෙන්වන අලුත් ෆන්ක්ෂන් එක ---
-    // --- SOS මෙනුව පෙන්වන අලුත් ෆන්ක්ෂන් එක (Animation එකත් එක්ක) ---
     @SuppressLint("InflateParams")
     private void showSOSBottomSheet() {
         BottomSheetDialog sosDialog = new BottomSheetDialog(this);
@@ -107,17 +104,14 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         MaterialButton btnAddContacts = sosView.findViewById(R.id.btnAddContacts);
         LinearLayout btnUpgradeCallCenter = sosView.findViewById(R.id.btnUpgradeCallCenter);
 
-        // --- මෙන්න මේ කෑල්ල තමයි Animation එක වැඩ කරවන්නේ ---
         View bgPulseCircle = sosView.findViewById(R.id.bgPulseCircle);
         if (bgPulseCircle != null) {
             android.view.animation.Animation pulseAnim = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.pulse_animation);
             bgPulseCircle.startAnimation(pulseAnim);
         }
-        // --------------------------------------------------------
 
         btnClose.setOnClickListener(v -> sosDialog.dismiss());
 
-        // SOS රවුම එබුවම
         btnTapSOS.setOnClickListener(v -> {
             sosDialog.dismiss();
 
@@ -143,14 +137,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnUpgradeCallCenter.setOnClickListener(v -> {
             sosDialog.dismiss();
-            Toast.makeText(this, "Opening Call Center Upgrades...", Toast.LENGTH_SHORT).show();
+            showCallCenterBottomSheet();
         });
 
         sosDialog.show();
     }
 
-
-    // --- ප්‍රධාන මෙනුව (නිල් පාට - Send Location) ---
     @SuppressLint("InflateParams")
     private void showSendLocationBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
@@ -176,7 +168,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetDialog.show();
     }
 
-    // --- Live Location ප්‍රධාන මෙනුව ---
     @SuppressLint("InflateParams")
     private void showLiveMenuBottomSheet() {
         BottomSheetDialog liveMenuDialog = new BottomSheetDialog(this);
@@ -202,7 +193,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         liveMenuDialog.show();
     }
 
-    // --- My Location එකට කාලය තෝරන මෙනුව ---
     @SuppressLint("InflateParams")
     private void showLiveDurationBottomSheet() {
         BottomSheetDialog durationDialog = new BottomSheetDialog(this);
@@ -245,7 +235,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         durationDialog.show();
     }
 
-    // --- Device Location එකට කාලය තෝරන මෙනුව ---
     @SuppressLint("InflateParams")
     private void showLiveDeviceDurationBottomSheet() {
         BottomSheetDialog devDurDialog = new BottomSheetDialog(this);
@@ -296,7 +285,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         devDurDialog.show();
     }
 
-    // --- Call Center Monitoring මෙනුව පෙන්වන ෆන්ක්ෂන් එක ---
     @SuppressLint("InflateParams")
     private void showCallCenterBottomSheet() {
         BottomSheetDialog callCenterDialog = new BottomSheetDialog(this);
@@ -310,15 +298,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         androidx.viewpager2.widget.ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
         LinearLayout layoutDots = view.findViewById(R.id.layoutDotsCallCenter);
 
-        // Adapter එක සෙට් කිරීම
         CallCenterPagerAdapter adapter = new CallCenterPagerAdapter();
         viewPager.setAdapter(adapter);
 
-        // තිත් ටික (Dots) හදන කෑල්ල
         ImageView[] dots = new ImageView[adapter.getItemCount()];
         for (int i = 0; i < adapter.getItemCount(); i++) {
             dots[i] = new ImageView(this);
-            dots[i].setImageDrawable(androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.presence_invisible)); // අළු පාට තිත
+            dots[i].setImageDrawable(androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.presence_invisible));
             dots[i].setColorFilter(Color.parseColor("#CCCCCC"));
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -327,9 +313,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             params.setMargins(8, 0, 8, 0);
             layoutDots.addView(dots[i], params);
         }
-        dots[0].setColorFilter(Color.parseColor("#1877F2")); // පළවෙනි එක නිල් පාට කරනවා
+        dots[0].setColorFilter(Color.parseColor("#1877F2"));
 
-        // ස්ලයිඩ් කරද්දී තිත් වල පාට මාරු වෙන කෑල්ල
         viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -350,7 +335,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         callCenterDialog.show();
     }
 
-    // --- පරණ තැඹිලි මෙනු ---
     @SuppressLint("InflateParams")
     private void showOrangeBottomSheet() {
         BottomSheetDialog orangeSheetDialog = new BottomSheetDialog(this);
@@ -405,7 +389,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         deviceSheetDialog.show();
     }
 
-    // --- පොදු ලොකේෂන් යවන ෆන්ක්ෂන් එක ---
     private void shareLocationLink(String entityName) {
         if (myCurrentLocation != null) {
             String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
