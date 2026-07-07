@@ -11,10 +11,10 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 
-// අලුතින් එකතු කළ Firebase Imports
+// අලුතින් එකතු කළ Firebase Imports (Debug Provider එක)
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.FirebaseAppCheck;
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
 
 public class WelcomeActivity extends AppCompatActivity {
 
@@ -56,11 +56,13 @@ public class WelcomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
 
-        // --- Firebase සහ App Check ආරම්භ කිරීම (මෙතනයි අලුතින් එකතු වුණේ) ---
+        // --- Firebase සහ App Check ආරම්භ කිරීම ---
         FirebaseApp.initializeApp(this);
         FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
+
+        // මෙතන Play Integrity වෙනුවට Debug Provider එක දැම්මා
         firebaseAppCheck.installAppCheckProviderFactory(
-                PlayIntegrityAppCheckProviderFactory.getInstance()
+                DebugAppCheckProviderFactory.getInstance()
         );
         // -------------------------------------------------------------
 
