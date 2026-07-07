@@ -296,6 +296,60 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         devDurDialog.show();
     }
 
+    // --- Call Center Monitoring මෙනුව පෙන්වන ෆන්ක්ෂන් එක ---
+    @SuppressLint("InflateParams")
+    private void showCallCenterBottomSheet() {
+        BottomSheetDialog callCenterDialog = new BottomSheetDialog(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_call_center, null);
+        callCenterDialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
+        MaterialButton btnCloseBottom = view.findViewById(R.id.btnCallCenterClose);
+        MaterialButton btnUnavailable = view.findViewById(R.id.btnCallCenterUnavailable);
+
+        androidx.viewpager2.widget.ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
+        LinearLayout layoutDots = view.findViewById(R.id.layoutDotsCallCenter);
+
+        // Adapter එක සෙට් කිරීම
+        CallCenterPagerAdapter adapter = new CallCenterPagerAdapter();
+        viewPager.setAdapter(adapter);
+
+        // තිත් ටික (Dots) හදන කෑල්ල
+        ImageView[] dots = new ImageView[adapter.getItemCount()];
+        for (int i = 0; i < adapter.getItemCount(); i++) {
+            dots[i] = new ImageView(this);
+            dots[i].setImageDrawable(androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.presence_invisible)); // අළු පාට තිත
+            dots[i].setColorFilter(Color.parseColor("#CCCCCC"));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            params.setMargins(8, 0, 8, 0);
+            layoutDots.addView(dots[i], params);
+        }
+        dots[0].setColorFilter(Color.parseColor("#1877F2")); // පළවෙනි එක නිල් පාට කරනවා
+
+        // ස්ලයිඩ් කරද්දී තිත් වල පාට මාරු වෙන කෑල්ල
+        viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                for (int i = 0; i < adapter.getItemCount(); i++) {
+                    dots[i].setColorFilter(Color.parseColor("#CCCCCC"));
+                }
+                dots[position].setColorFilter(Color.parseColor("#1877F2"));
+            }
+        });
+
+        btnClose.setOnClickListener(v -> callCenterDialog.dismiss());
+        btnCloseBottom.setOnClickListener(v -> callCenterDialog.dismiss());
+
+        btnUnavailable.setOnClickListener(v -> {
+            Toast.makeText(this, "Feature not available in your region yet.", Toast.LENGTH_SHORT).show();
+        });
+
+        callCenterDialog.show();
+    }
+
     // --- පරණ තැඹිලි මෙනු ---
     @SuppressLint("InflateParams")
     private void showOrangeBottomSheet() {
