@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="20dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Send SOS"
+                android:textColor="#000000"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="8dp"
+                android:src="@android:drawable/ic_dialog_info"
+                app:tint="#555555" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnCloseSOS"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_gray"
+            android:padding="10dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="#555555" />
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="40dp">
+
+        <View
+            android:id="@+id/bgPulseCircle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_circle_gray"
+            android:backgroundTint="#E3F2FD" />
+
+        <LinearLayout
+            android:id="@+id/btnTapSOS"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_sos_ripple"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap to\nsend SOS"
+                android:textAlignment="center"
+                android:textColor="#FFFFFF"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="(or press and hold)"
+                android:textColor="#E0E0E0"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAddContacts"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Add Emergency Contacts"
+        android:textAllCaps="false"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        app:backgroundTint="#E3F2FD"
+        app:cornerRadius="12dp"
+        app:elevation="0dp" />
+
+    <LinearLayout
+        android:id="@+id/btnUpgradeCallCenter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="#FFCDD2"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_dialog_dialer"
+            app:tint="#D32F2F" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:text="Upgrade to add a 24/7\nemergency call center"
+            android:textColor="#000000"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_media_next"
+            app:tint="#000000" />
+    </LinearLayout>
+</LinearLayout>

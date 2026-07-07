@@ -86,7 +86,69 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
         btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
+
+        // --- මෙන්න අලුතින් දැම්ම SOS බටන් එකේ කේතය ---
+        MaterialButton btnHomeSOS = findViewById(R.id.btnSOS); // ඔයාගේ XML එකේ රතු බටන් එකේ ID එක මේක වෙන්න ඕනේ
+        if (btnHomeSOS != null) {
+            btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
+        }
     }
+
+    // --- SOS මෙනුව පෙන්වන අලුත් ෆන්ක්ෂන් එක ---
+    // --- SOS මෙනුව පෙන්වන අලුත් ෆන්ක්ෂන් එක (Animation එකත් එක්ක) ---
+    @SuppressLint("InflateParams")
+    private void showSOSBottomSheet() {
+        BottomSheetDialog sosDialog = new BottomSheetDialog(this);
+        View sosView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_sos, null);
+        sosDialog.setContentView(sosView);
+
+        ImageView btnClose = sosView.findViewById(R.id.btnCloseSOS);
+        LinearLayout btnTapSOS = sosView.findViewById(R.id.btnTapSOS);
+        MaterialButton btnAddContacts = sosView.findViewById(R.id.btnAddContacts);
+        LinearLayout btnUpgradeCallCenter = sosView.findViewById(R.id.btnUpgradeCallCenter);
+
+        // --- මෙන්න මේ කෑල්ල තමයි Animation එක වැඩ කරවන්නේ ---
+        View bgPulseCircle = sosView.findViewById(R.id.bgPulseCircle);
+        if (bgPulseCircle != null) {
+            android.view.animation.Animation pulseAnim = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.pulse_animation);
+            bgPulseCircle.startAnimation(pulseAnim);
+        }
+        // --------------------------------------------------------
+
+        btnClose.setOnClickListener(v -> sosDialog.dismiss());
+
+        // SOS රවුම එබුවම
+        btnTapSOS.setOnClickListener(v -> {
+            sosDialog.dismiss();
+
+            if (myCurrentLocation != null) {
+                String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
+                String message = "EMERGENCY SOS!\nI need help. Here is my current location:\n" + locationLink;
+
+                Intent smsIntent = new Intent(Intent.ACTION_VIEW);
+                smsIntent.setType("vnd.android-dir/mms-sms");
+                smsIntent.putExtra("sms_body", message);
+                startActivity(smsIntent);
+
+                Toast.makeText(this, "Opening SMS to send SOS...", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Trying to find your location...", Toast.LENGTH_SHORT).show();
+                getDeviceLocation();
+            }
+        });
+
+        btnAddContacts.setOnClickListener(v -> {
+            Toast.makeText(this, "Contacts feature coming soon!", Toast.LENGTH_SHORT).show();
+        });
+
+        btnUpgradeCallCenter.setOnClickListener(v -> {
+            sosDialog.dismiss();
+            Toast.makeText(this, "Opening Call Center Upgrades...", Toast.LENGTH_SHORT).show();
+        });
+
+        sosDialog.show();
+    }
+
 
     // --- ප්‍රධාන මෙනුව (නිල් පාට - Send Location) ---
     @SuppressLint("InflateParams")
@@ -101,13 +163,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> bottomSheetDialog.dismiss());
 
-        // 1. Current Location එබුවම තැඹිලි මෙනුවට යනවා
         btnShareCurrent.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             showOrangeBottomSheet();
         });
 
-        // 2. Live Location එබුවම අලුත් Live මෙනුවට යනවා
         btnShareLive.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
             showLiveMenuBottomSheet();
@@ -116,7 +176,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetDialog.show();
     }
 
-    // --- අලුතින් එකතු කළ Live Location ප්‍රධාන මෙනුව ---
+    // --- Live Location ප්‍රධාන මෙනුව ---
     @SuppressLint("InflateParams")
     private void showLiveMenuBottomSheet() {
         BottomSheetDialog liveMenuDialog = new BottomSheetDialog(this);
@@ -157,20 +217,18 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 durView.findViewById(R.id.btnDur8h), durView.findViewById(R.id.btnDur12h), durView.findViewById(R.id.btnDur24h)
         };
 
-        // තෝරපු කාලය සේව් කරගන්න Array එකක් (ඇතුළේ වෙනස් කරන්න පුළුවන් වෙන්න)
         final String[] selectedDuration = {""};
 
         btnClose.setOnClickListener(v -> durationDialog.dismiss());
 
-        // Button එබුවම පාට වෙනස් වෙන කෑල්ල
         for (MaterialButton btn : durButtons) {
             btn.setOnClickListener(v -> {
                 for (MaterialButton b : durButtons) {
                     b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F0F0F0")));
                     b.setTextColor(Color.BLACK);
                 }
-                btn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#E3F2FD"))); // ලා නිල්
-                btn.setTextColor(Color.parseColor("#1877F2")); // තද නිල්
+                btn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#E3F2FD")));
+                btn.setTextColor(Color.parseColor("#1877F2"));
                 selectedDuration[0] = btn.getText().toString();
             });
         }
