@@ -88,7 +88,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
     }
 
-    // 1 වෙනි මෙනු එක
+    // --- ප්‍රධාන මෙනුව (නිල් පාට - Send Location) ---
     @SuppressLint("InflateParams")
     private void showSendLocationBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
@@ -101,20 +101,144 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> bottomSheetDialog.dismiss());
 
+        // 1. Current Location එබුවම තැඹිලි මෙනුවට යනවා
         btnShareCurrent.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            showOrangeBottomSheet(); // 2 වෙනි මෙනු එක ඕපන් කරනවා
+            showOrangeBottomSheet();
         });
 
+        // 2. Live Location එබුවම අලුත් Live මෙනුවට යනවා
         btnShareLive.setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            Toast.makeText(this, "Sharing Live Location...", Toast.LENGTH_SHORT).show();
+            showLiveMenuBottomSheet();
         });
 
         bottomSheetDialog.show();
     }
 
-    // 2 වෙනි මෙනු එක
+    // --- අලුතින් එකතු කළ Live Location ප්‍රධාන මෙනුව ---
+    @SuppressLint("InflateParams")
+    private void showLiveMenuBottomSheet() {
+        BottomSheetDialog liveMenuDialog = new BottomSheetDialog(this);
+        View liveView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_share_live, null);
+        liveMenuDialog.setContentView(liveView);
+
+        ImageView btnClose = liveView.findViewById(R.id.btnCloseLiveSheet);
+        LinearLayout btnLiveShareMyLoc = liveView.findViewById(R.id.btnLiveShareMyLoc);
+        LinearLayout btnLiveShareDeviceLoc = liveView.findViewById(R.id.btnLiveShareDeviceLoc);
+
+        btnClose.setOnClickListener(v -> liveMenuDialog.dismiss());
+
+        btnLiveShareMyLoc.setOnClickListener(v -> {
+            liveMenuDialog.dismiss();
+            showLiveDurationBottomSheet();
+        });
+
+        btnLiveShareDeviceLoc.setOnClickListener(v -> {
+            liveMenuDialog.dismiss();
+            showLiveDeviceDurationBottomSheet();
+        });
+
+        liveMenuDialog.show();
+    }
+
+    // --- My Location එකට කාලය තෝරන මෙනුව ---
+    @SuppressLint("InflateParams")
+    private void showLiveDurationBottomSheet() {
+        BottomSheetDialog durationDialog = new BottomSheetDialog(this);
+        View durView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_live_duration, null);
+        durationDialog.setContentView(durView);
+
+        ImageView btnClose = durView.findViewById(R.id.btnCloseDurationSheet);
+        MaterialButton btnShare = durView.findViewById(R.id.btnFinalShareLiveMyLoc);
+
+        MaterialButton[] durButtons = {
+                durView.findViewById(R.id.btnDur15m), durView.findViewById(R.id.btnDur1h), durView.findViewById(R.id.btnDur3h),
+                durView.findViewById(R.id.btnDur8h), durView.findViewById(R.id.btnDur12h), durView.findViewById(R.id.btnDur24h)
+        };
+
+        // තෝරපු කාලය සේව් කරගන්න Array එකක් (ඇතුළේ වෙනස් කරන්න පුළුවන් වෙන්න)
+        final String[] selectedDuration = {""};
+
+        btnClose.setOnClickListener(v -> durationDialog.dismiss());
+
+        // Button එබුවම පාට වෙනස් වෙන කෑල්ල
+        for (MaterialButton btn : durButtons) {
+            btn.setOnClickListener(v -> {
+                for (MaterialButton b : durButtons) {
+                    b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F0F0F0")));
+                    b.setTextColor(Color.BLACK);
+                }
+                btn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#E3F2FD"))); // ලා නිල්
+                btn.setTextColor(Color.parseColor("#1877F2")); // තද නිල්
+                selectedDuration[0] = btn.getText().toString();
+            });
+        }
+
+        btnShare.setOnClickListener(v -> {
+            if (selectedDuration[0].isEmpty()) {
+                Toast.makeText(this, "Please select a duration!", Toast.LENGTH_SHORT).show();
+            } else {
+                durationDialog.dismiss();
+                shareLocationLink("my LIVE location for " + selectedDuration[0]);
+            }
+        });
+
+        durationDialog.show();
+    }
+
+    // --- Device Location එකට කාලය තෝරන මෙනුව ---
+    @SuppressLint("InflateParams")
+    private void showLiveDeviceDurationBottomSheet() {
+        BottomSheetDialog devDurDialog = new BottomSheetDialog(this);
+        View devView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_live_device_duration, null);
+        devDurDialog.setContentView(devView);
+
+        ImageView btnClose = devView.findViewById(R.id.btnCloseDeviceDurationSheet);
+        Spinner spinnerLiveDevices = devView.findViewById(R.id.spinnerLiveDevices);
+        MaterialButton btnShare = devView.findViewById(R.id.btnFinalShareDeviceLive);
+
+        String[] devices = {"Select device", "Nissan GT-R R35", "Tecno Camon 40 Pro", "iPhone 13 Pro"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, devices);
+        spinnerLiveDevices.setAdapter(adapter);
+
+        MaterialButton[] durButtons = {
+                devView.findViewById(R.id.btnDevDur15m), devView.findViewById(R.id.btnDevDur1h), devView.findViewById(R.id.btnDevDur3h),
+                devView.findViewById(R.id.btnDevDur8h), devView.findViewById(R.id.btnDevDur12h), devView.findViewById(R.id.btnDevDur24h)
+        };
+
+        final String[] selectedDuration = {""};
+
+        btnClose.setOnClickListener(v -> devDurDialog.dismiss());
+
+        for (MaterialButton btn : durButtons) {
+            btn.setOnClickListener(v -> {
+                for (MaterialButton b : durButtons) {
+                    b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F0F0F0")));
+                    b.setTextColor(Color.BLACK);
+                }
+                btn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#E3F2FD")));
+                btn.setTextColor(Color.parseColor("#1877F2"));
+                selectedDuration[0] = btn.getText().toString();
+            });
+        }
+
+        btnShare.setOnClickListener(v -> {
+            String selectedDevice = spinnerLiveDevices.getSelectedItem().toString();
+            if (selectedDevice.equals("Select device")) {
+                Toast.makeText(this, "Please select a device!", Toast.LENGTH_SHORT).show();
+            } else if (selectedDuration[0].isEmpty()) {
+                Toast.makeText(this, "Please select a duration!", Toast.LENGTH_SHORT).show();
+            } else {
+                devDurDialog.dismiss();
+                shareLocationLink("the LIVE location of " + selectedDevice + " for " + selectedDuration[0]);
+            }
+        });
+
+        devDurDialog.show();
+    }
+
+    // --- පරණ තැඹිලි මෙනු ---
     @SuppressLint("InflateParams")
     private void showOrangeBottomSheet() {
         BottomSheetDialog orangeSheetDialog = new BottomSheetDialog(this);
@@ -127,22 +251,19 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> orangeSheetDialog.dismiss());
 
-        // My Location Share කිරීම
         btnFinalShareMyLoc.setOnClickListener(v -> {
             orangeSheetDialog.dismiss();
             shareLocationLink("my current location");
         });
 
-        // Device Location Share කිරීමේ බටන් එක එබුවම 3 වෙනි මෙනු එකට යනවා
         btnFinalShareDeviceLoc.setOnClickListener(v -> {
             orangeSheetDialog.dismiss();
-            showShareDeviceBottomSheet(); // අලුත් මෙනු එක ලෝඩ් කරනවා
+            showShareDeviceBottomSheet();
         });
 
         orangeSheetDialog.show();
     }
 
-    // 3 වෙනි මෙනු එක (ඔයා අන්තිමට එවපු පින්තූරේ මෙනු එක)
     @SuppressLint("InflateParams")
     private void showShareDeviceBottomSheet() {
         BottomSheetDialog deviceSheetDialog = new BottomSheetDialog(this);
@@ -155,22 +276,16 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> deviceSheetDialog.dismiss());
 
-        // Spinner එකට දාන්න Devices ලිස්ට් එකක් හදනවා
         String[] devices = {"Select device", "Nissan GT-R R35", "Tecno Camon 40 Pro", "iPhone 13 Pro"};
-
-        // ඒ ලිස්ට් එක Spinner එකට සෙට් කරනවා
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, devices);
         spinnerDevices.setAdapter(adapter);
 
-        // Share බටන් එක එබුවම
         btnFinalShareDevice.setOnClickListener(v -> {
             String selectedDevice = spinnerDevices.getSelectedItem().toString();
-
             if (selectedDevice.equals("Select device")) {
                 Toast.makeText(this, "Please select a device first!", Toast.LENGTH_SHORT).show();
             } else {
                 deviceSheetDialog.dismiss();
-                // තෝරපු Device එකේ නමත් එක්කම ලොකේෂන් එක Share කරනවා
                 shareLocationLink("the location of " + selectedDevice);
             }
         });
@@ -178,7 +293,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         deviceSheetDialog.show();
     }
 
-    // ලොකේෂන් එක Share කරන්න පාවිච්චි කරන පොදු ෆන්ක්ෂන් එක
+    // --- පොදු ලොකේෂන් යවන ෆන්ක්ෂන් එක ---
     private void shareLocationLink(String entityName) {
         if (myCurrentLocation != null) {
             String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
@@ -186,7 +301,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             Intent shareIntent = new Intent(Intent.ACTION_SEND);
             shareIntent.setType("text/plain");
-            shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Live Location");
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Location Tracking");
             shareIntent.putExtra(Intent.EXTRA_TEXT, message);
             startActivity(Intent.createChooser(shareIntent, "Share Location via"));
         } else {
