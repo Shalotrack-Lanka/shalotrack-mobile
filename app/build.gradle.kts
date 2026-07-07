@@ -63,6 +63,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.2.0")
     implementation("io.github.jan-tennert.supabase:gotrue-kt:2.6.0")
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.6.0")
+
+    // App Check වලට අදාළ දේවල්
     implementation("com.google.firebase:firebase-appcheck-playintegrity:18.0.0")
     implementation("com.google.firebase:firebase-appcheck:18.0.0")
+    implementation("com.google.firebase:firebase-appcheck-debug:18.0.0") // අලුතින් එකතු කළ පේළිය
 }
