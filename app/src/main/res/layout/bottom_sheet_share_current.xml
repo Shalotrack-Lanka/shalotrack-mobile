@@ -44,8 +44,7 @@
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:layout_gravity="center"
-            android:src="@android:drawable/ic_menu_mylocation"
-            app:tint="#FFFFFF" />
+            android:src="@drawable/ic_custom_share_current"/>
         </androidx.cardview.widget.CardView>
 
         <TextView
@@ -83,8 +82,7 @@
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:layout_gravity="center"
-            android:src="@android:drawable/ic_menu_mylocation"
-            app:tint="#FFFFFF" />
+            android:src="@drawable/ic_custom_share_device" />
         </androidx.cardview.widget.CardView>
 
         <TextView
