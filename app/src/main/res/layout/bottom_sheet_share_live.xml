@@ -12,7 +12,8 @@
     </RelativeLayout>
 
     <LinearLayout android:id="@+id/btnLiveShareMyLoc" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:paddingVertical="12dp">
-        <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardBackgroundColor="#1877F2" app:cardCornerRadius="14dp" app:cardElevation="0dp"> <ImageView android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="center" android:src="@drawable/ic_custom_share_current" app:tint="#FFFFFF" />
+        <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardBackgroundColor="#1877F2" app:cardCornerRadius="14dp" app:cardElevation="0dp">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="center" android:src="@drawable/ic_custom_share_current" app:tint="#FFFFFF" />
         </androidx.cardview.widget.CardView>
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:text="Share Your Live Location" android:textColor="#000000" android:textSize="16sp" />
     </LinearLayout>
@@ -20,7 +21,8 @@
     <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginVertical="8dp" android:background="#EEEEEE" />
 
     <LinearLayout android:id="@+id/btnLiveShareDeviceLoc" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:paddingVertical="12dp">
-        <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardBackgroundColor="#00BFA5" app:cardCornerRadius="14dp" app:cardElevation="0dp"> <ImageView android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="center" android:src="@drawable/ic_custom_share_device" app:tint="#FFFFFF" />
+        <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardBackgroundColor="#00BFA5" app:cardCornerRadius="14dp" app:cardElevation="0dp">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="center" android:src="@drawable/ic_custom_share_device" app:tint="#FFFFFF" />
         </androidx.cardview.widget.CardView>
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:text="Share Device Live Location" android:textColor="#000000" android:textSize="16sp" />
     </LinearLayout>
