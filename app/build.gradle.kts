@@ -68,4 +68,7 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck-playintegrity:18.0.0")
     implementation("com.google.firebase:firebase-appcheck:18.0.0")
     implementation("com.google.firebase:firebase-appcheck-debug:18.0.0") // අලුතින් එකතු කළ පේළිය
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 }
