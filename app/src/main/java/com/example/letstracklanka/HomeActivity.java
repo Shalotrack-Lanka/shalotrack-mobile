@@ -34,6 +34,10 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
@@ -44,10 +48,16 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
     private LatLng myCurrentLocation;
 
+    // API කෝල් කරන්න හදන Service එක
+    private ShaloTrackApi apiService;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        // API Client එක හදාගන්නවා
+        apiService = ApiClient.getClient().create(ShaloTrackApi.class);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -91,6 +101,55 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (btnHomeSOS != null) {
             btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
         }
+
+        // --- පටන් ගත්තු ගමන් වාහනයේ විස්තර API එකෙන් ගන්නවා ---
+        // (මෙහි "DEV123" වෙනුවට ඔයාට ඕනේ හරියටම Device ID එක දෙන්න)
+        fetchVehicleDataFromAPI("DEV123");
+    }
+
+    // --- API එක කෝල් කරන අලුත් ෆන්ක්ෂන් එක ---
+    private void fetchVehicleDataFromAPI(String deviceId) {
+        // 1. Location එක ගැනීම
+        apiService.getCurrentLocation(deviceId).enqueue(new Callback<LocationResponse>() {
+            @Override
+            public void onResponse(Call<LocationResponse> call, Response<LocationResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    double lat = response.body().getLatitude();
+                    double lng = response.body().getLongitude();
+
+                    // API එකෙන් ආපු ලොකේෂන් එක Map එකේ පෙන්නන්න
+                    LatLng vehicleLocation = new LatLng(lat, lng);
+                    if (mMap != null) {
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(vehicleLocation, 15f));
+                    }
+                    Toast.makeText(HomeActivity.this, "Vehicle Found: " + lat + ", " + lng, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<LocationResponse> call, Throwable t) {
+                Toast.makeText(HomeActivity.this, "Failed to get location from API", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // 2. Speed සහ ACC Status එක ගැනීම
+        apiService.getDeviceStatus(deviceId).enqueue(new Callback<StatusResponse>() {
+            @Override
+            public void onResponse(Call<StatusResponse> call, Response<StatusResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    double speed = response.body().getSpeed();
+                    boolean isAccOn = response.body().isAccStatus();
+
+                    String status = isAccOn ? "Engine ON" : "Engine OFF";
+                    Toast.makeText(HomeActivity.this, status + " | Speed: " + speed + "km/h", Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<StatusResponse> call, Throwable t) {
+                // Error handling
+            }
+        });
     }
 
     @SuppressLint("InflateParams")
