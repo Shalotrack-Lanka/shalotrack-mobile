@@ -29,7 +29,7 @@ public class SignUpActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
-        // Firebase ආරම්භ කිරීම
+        // Initialize Firebase
         FirebaseApp.initializeApp(this);
         mAuth = FirebaseAuth.getInstance();
 
@@ -54,23 +54,16 @@ public class SignUpActivity extends AppCompatActivity {
                 return;
             }
 
-            // Test Mode Bypass
-            if (number.equals("758381698") || number.equals("0758381698")) {
-                Toast.makeText(this, "Test Mode: Moving to OTP Screen", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
-                intent.putExtra("verificationId", "test_id_123");
-                startActivity(intent);
-                return;
-            }
-
+            // Correctly format the Sri Lankan number
             if (number.length() == 10 && number.startsWith("0")) {
                 number = number.substring(1);
             }
             String fullPhoneNumber = "+94" + number;
 
             Toast.makeText(this, "Sending OTP...", Toast.LENGTH_SHORT).show();
-            findViewById(R.id.btnSendCode).setEnabled(false); // බටන් එක තාවකාලිකව Disable කරනවා
+            findViewById(R.id.btnSendCode).setEnabled(false); // Temporarily disable button to prevent spam
 
+            // Firebase Phone Auth
             PhoneAuthOptions options =
                     PhoneAuthOptions.newBuilder(mAuth)
                             .setPhoneNumber(fullPhoneNumber)
@@ -81,14 +74,15 @@ public class SignUpActivity extends AppCompatActivity {
                                 @Override
                                 public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
                                     findViewById(R.id.btnSendCode).setEnabled(true);
+                                    // Optional: You could auto-sign-in the user here if Firebase instantly verifies them!
                                 }
 
                                 @Override
                                 public void onVerificationFailed(@NonNull FirebaseException e) {
                                     findViewById(R.id.btnSendCode).setEnabled(true);
 
-                                    // සම්පූර්ණ Error එක Logcat එකට යැවීම
-                                    Log.e("FirebaseError", "සම්පූර්ණ Error එක මෙන්න: ", e);
+                                    // Log the exact error to Logcat
+                                    Log.e("FirebaseError", "OTP Request Failed: ", e);
 
                                     Toast.makeText(SignUpActivity.this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                                 }
@@ -97,6 +91,8 @@ public class SignUpActivity extends AppCompatActivity {
                                 public void onCodeSent(@NonNull String verificationId,
                                                        @NonNull PhoneAuthProvider.ForceResendingToken token) {
                                     findViewById(R.id.btnSendCode).setEnabled(true);
+
+                                    // Move to OTP screen with the REAL verification ID
                                     Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
                                     intent.putExtra("verificationId", verificationId);
                                     startActivity(intent);

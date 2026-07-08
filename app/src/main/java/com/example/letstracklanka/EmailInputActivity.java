@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,12 +19,14 @@ import com.google.firebase.auth.FirebaseUser;
 
 public class EmailInputActivity extends AppCompatActivity {
 
+    private static final String TAG = "EmailVerification";
     private TextInputEditText etEmail;
+    private MaterialButton btnContinue;
     private CountDownTimer countDownTimer;
     private Dialog timerDialog;
     private FirebaseAuth mAuth;
 
-    // Background polling සඳහා
+    // Background polling variables
     private Handler verificationHandler;
     private Runnable verificationRunnable;
     private boolean isCheckingVerification = false;
@@ -35,18 +38,18 @@ public class EmailInputActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         etEmail = findViewById(R.id.etEmail);
-        MaterialButton btnContinue = findViewById(R.id.btnContinue);
+        btnContinue = findViewById(R.id.btnContinue);
         verificationHandler = new Handler(Looper.getMainLooper());
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
         btnContinue.setOnClickListener(v -> {
-            String email = etEmail.getText().toString().trim();
+            String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
 
             if (email.isEmpty()) {
-                Toast.makeText(EmailInputActivity.this, "Please enter your email", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please enter your email", Toast.LENGTH_SHORT).show();
             } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                Toast.makeText(EmailInputActivity.this, "Please enter a valid email address", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please enter a valid email address", Toast.LENGTH_SHORT).show();
             } else {
                 sendVerificationEmail(email);
             }
@@ -56,35 +59,42 @@ public class EmailInputActivity extends AppCompatActivity {
     private void sendVerificationEmail(String email) {
         FirebaseUser user = mAuth.getCurrentUser();
 
-        if (user != null) {
-            // ඇත්තම Firebase ක්‍රියාවලිය
-            Toast.makeText(this, "Sending verification email...", Toast.LENGTH_SHORT).show();
-            user.verifyBeforeUpdateEmail(email).addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    showVerificationDialog();
-                    startCheckingEmailVerification();
-                } else {
-                    Toast.makeText(EmailInputActivity.this, "Error: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
-                }
-            });
-        } else {
-            // Test Mode එක (Phone Auth Bypass කළා නම් මේක වැඩ කරයි)
-            Toast.makeText(this, "Test Mode: Simulating Verification...", Toast.LENGTH_SHORT).show();
-            showVerificationDialog();
-            simulateTestModeVerification();
+        // Safety check: The user MUST be logged in from the OTP step
+        if (user == null) {
+            Toast.makeText(this, "Authentication error. Please restart the app.", Toast.LENGTH_LONG).show();
+            return;
         }
+
+        btnContinue.setEnabled(false); // Prevent multiple clicks
+        Toast.makeText(this, "Sending verification email...", Toast.LENGTH_SHORT).show();
+
+        // Real Firebase Process
+        user.verifyBeforeUpdateEmail(email).addOnCompleteListener(task -> {
+            btnContinue.setEnabled(true);
+            if (task.isSuccessful()) {
+                showVerificationDialog();
+                startCheckingEmailVerification();
+            } else {
+                Log.e(TAG, "Email sending failed", task.getException());
+                String errorMsg = task.getException() != null ? task.getException().getMessage() : "Unknown error occurred";
+                Toast.makeText(this, "Error: " + errorMsg, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void showVerificationDialog() {
         timerDialog = new Dialog(this);
         timerDialog.setContentView(R.layout.dialog_email_verification);
-        timerDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        if (timerDialog.getWindow() != null) {
+            timerDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
         timerDialog.setCancelable(false);
 
         TextView txtTimer = timerDialog.findViewById(R.id.txtTimer);
         MaterialButton btnOpenEmail = timerDialog.findViewById(R.id.btnOpenEmail);
         TextView btnCancel = timerDialog.findViewById(R.id.btnCancel);
 
+        // 2 minutes and 54 seconds timer
         countDownTimer = new CountDownTimer(174000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
@@ -94,6 +104,8 @@ public class EmailInputActivity extends AppCompatActivity {
             public void onFinish() {
                 txtTimer.setText("0");
                 stopCheckingEmailVerification();
+                Toast.makeText(EmailInputActivity.this, "Verification timed out.", Toast.LENGTH_SHORT).show();
+                if (timerDialog.isShowing()) timerDialog.dismiss();
             }
         }.start();
 
@@ -104,7 +116,7 @@ public class EmailInputActivity extends AppCompatActivity {
             try {
                 startActivity(intent);
             } catch (Exception e) {
-                Toast.makeText(EmailInputActivity.this, "No email app found", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "No email app found", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -117,7 +129,6 @@ public class EmailInputActivity extends AppCompatActivity {
         timerDialog.show();
     }
 
-    // Real-time අදින්න (Polling) ලියපු කේතය
     private void startCheckingEmailVerification() {
         isCheckingVerification = true;
         verificationRunnable = new Runnable() {
@@ -125,22 +136,22 @@ public class EmailInputActivity extends AppCompatActivity {
             public void run() {
                 FirebaseUser user = mAuth.getCurrentUser();
                 if (user != null && isCheckingVerification) {
+                    // Reload is mandatory to fetch the latest verification status from Firebase servers
                     user.reload().addOnCompleteListener(task -> {
-                        if (user.isEmailVerified()) {
-                            // යූසර් ලින්ක් එක ක්ලික් කරලා!
+                        if (task.isSuccessful() && user.isEmailVerified()) {
+                            // User clicked the link!
                             stopCheckingEmailVerification();
                             if (timerDialog != null && timerDialog.isShowing()) timerDialog.dismiss();
                             if (countDownTimer != null) countDownTimer.cancel();
                             showSuccessDialog();
                         } else {
-                            // තාම ක්ලික් කරලා නෑ, තව තත්පර 3කින් ආයෙත් අහනවා
+                            // Not verified yet, check again in 3 seconds
                             verificationHandler.postDelayed(this, 3000);
                         }
                     });
                 }
             }
         };
-        // පළවෙනි පරීක්ෂාව තත්පර 3කින් පටන් ගන්නවා
         verificationHandler.postDelayed(verificationRunnable, 3000);
     }
 
@@ -151,26 +162,17 @@ public class EmailInputActivity extends AppCompatActivity {
         }
     }
 
-    // Test mode එකේදී තත්පර 10කින් ඉබේම Verify වෙන්න හැදුවා
-    private void simulateTestModeVerification() {
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (timerDialog != null && timerDialog.isShowing()) {
-                timerDialog.dismiss();
-                if (countDownTimer != null) countDownTimer.cancel();
-                showSuccessDialog();
-            }
-        }, 10000); // තත්පර 10යි
-    }
-
     private void showSuccessDialog() {
         Dialog successDialog = new Dialog(this);
         successDialog.setContentView(R.layout.dialog_email_success);
-        successDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        if (successDialog.getWindow() != null) {
+            successDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
         successDialog.setCancelable(false);
         successDialog.show();
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            successDialog.dismiss();
+            if (successDialog.isShowing()) successDialog.dismiss();
             Intent intent = new Intent(EmailInputActivity.this, ProcessingActivity.class);
             startActivity(intent);
             finish();
@@ -183,6 +185,9 @@ public class EmailInputActivity extends AppCompatActivity {
         stopCheckingEmailVerification();
         if (countDownTimer != null) {
             countDownTimer.cancel();
+        }
+        if (timerDialog != null && timerDialog.isShowing()) {
+            timerDialog.dismiss();
         }
     }
 }
