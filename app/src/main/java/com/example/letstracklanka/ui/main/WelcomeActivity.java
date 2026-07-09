@@ -10,15 +10,15 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
+
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.ui.auth.LoginActivity;
 import com.example.letstracklanka.ui.auth.SignUpActivity;
 import com.google.android.material.button.MaterialButton;
 
-// අලුතින් එකතු කළ Firebase Imports (Debug Provider එක)
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.appcheck.FirebaseAppCheck;
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class WelcomeActivity extends AppCompatActivity {
 
@@ -29,7 +29,7 @@ public class WelcomeActivity extends AppCompatActivity {
     private View[] dots;
 
     private int currentIndex = 0;
-    private Handler sliderHandler = new Handler(Looper.getMainLooper());
+    private final Handler sliderHandler = new Handler(Looper.getMainLooper());
 
     private final String[] descriptions = {
             "Track your family in real-time",
@@ -58,17 +58,19 @@ public class WelcomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // --- 1. FIREBASE SESSION CHECK ---
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
+        // --- 2. LOAD WELCOME UI ---
         setContentView(R.layout.activity_welcome);
-
-        // --- Firebase සහ App Check ආරම්භ කිරීම ---
         FirebaseApp.initializeApp(this);
-        FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
-
-        // මෙතන Play Integrity වෙනුවට Debug Provider එක දැම්මා
-        firebaseAppCheck.installAppCheckProviderFactory(
-                DebugAppCheckProviderFactory.getInstance()
-        );
-        // -------------------------------------------------------------
 
         imgBackground   = findViewById(R.id.imgBackground);
         txtDescription  = findViewById(R.id.txtDescription);
@@ -142,7 +144,7 @@ public class WelcomeActivity extends AppCompatActivity {
         }
     }
 
-    private Runnable sliderRunnable = new Runnable() {
+    private final Runnable sliderRunnable = new Runnable() {
         @Override
         public void run() {
             currentIndex = (currentIndex + 1) % descriptions.length;
