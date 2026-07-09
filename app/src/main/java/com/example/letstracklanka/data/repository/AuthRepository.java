@@ -12,6 +12,7 @@ import retrofit2.Response;
 public class AuthRepository {
     private final ApiService apiService = ApiClient.getClient().create(ApiService.class);
 
+    // Existing Registration Logic
     public MutableLiveData<Boolean> registerCustomer(CustomerRequest request) {
         MutableLiveData<Boolean> status = new MutableLiveData<>();
         apiService.createCustomer(request).enqueue(new Callback<>() {
@@ -25,5 +26,10 @@ public class AuthRepository {
             }
         });
         return status;
+    }
+
+    // New Verification Logic for Login
+    public void verifyCustomerBackend(String email, Callback<ResponseBody> callback) {
+        apiService.getCustomerByEmail(email).enqueue(callback);
     }
 }
