@@ -1,7 +1,6 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.data.remote;
 
 import com.example.letstracklanka.data.model.CustomerRequest;
-
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
