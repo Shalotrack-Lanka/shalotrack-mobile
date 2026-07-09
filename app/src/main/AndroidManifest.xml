@@ -16,41 +16,54 @@
         android:theme="@style/Theme.LetsTrackLanka">
 
         <activity
+            android:name=".ui.vehicles.VehiclesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
+        <activity
             android:name=".ui.main.HomeActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
         <activity
             android:name=".ui.auth.ProcessingActivity"
             android:exported="false" />
+
         <activity
             android:name=".ui.auth.EmailInputActivity"
             android:launchMode="singleTask"
             android:exported="false" />
+
         <activity
             android:name=".ui.main.WelcomeActivity"
             android:exported="true"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".ui.auth.SignUpActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
         <activity
             android:name=".ui.auth.OtpVerificationActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
         <activity
             android:name=".ui.main.SplashActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="false" />

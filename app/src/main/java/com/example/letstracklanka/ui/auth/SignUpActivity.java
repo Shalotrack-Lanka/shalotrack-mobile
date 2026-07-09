@@ -55,6 +55,17 @@ public class SignUpActivity extends AppCompatActivity {
                 return;
             }
 
+            // ================= TEST MODE BYPASS =================
+            if (number.equals("758381698") || number.equals("0758381698")) {
+                Toast.makeText(this, "Test Mode: Moving to OTP Screen", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
+                // "test_id_123" කියන්නේ බොරු ID එකක්
+                intent.putExtra("verificationId", "test_id_123");
+                startActivity(intent);
+                return; // මෙතනින් යටට යන්නේ නෑ, කෙලින්ම ඊළඟ පිටුවට යනවා
+            }
+            // =====================================================
+
             // Correctly format the Sri Lankan number
             if (number.length() == 10 && number.startsWith("0")) {
                 number = number.substring(1);

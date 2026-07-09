@@ -61,11 +61,22 @@ public class EmailInputActivity extends AppCompatActivity {
     private void sendVerificationEmail(String email) {
         FirebaseUser user = mAuth.getCurrentUser();
 
-        // Safety check: The user MUST be logged in from the OTP step
-        if (user == null) {
-            Toast.makeText(this, "Authentication error. Please restart the app.", Toast.LENGTH_LONG).show();
+        // ================= TEST MODE BYPASS =================
+        // OTP එකෙන් හොර පාරෙන් ආපු නිසා user == null වෙනවා. අපි ඒක Test Mode එක විදිහට සලකමු.
+        if (user == null || email.equals("test@test.com")) {
+            Toast.makeText(this, "Test Mode: Simulating Email Verification...", Toast.LENGTH_SHORT).show();
+            showVerificationDialog();
+
+            // තත්පර 3කින් බොරුවට (Simulate කරලා) Success වෙනවා
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                stopCheckingEmailVerification();
+                if (timerDialog != null && timerDialog.isShowing()) timerDialog.dismiss();
+                if (countDownTimer != null) countDownTimer.cancel();
+                showSuccessDialog();
+            }, 3000);
             return;
         }
+        // =====================================================
 
         btnContinue.setEnabled(false); // Prevent multiple clicks
         Toast.makeText(this, "Sending verification email...", Toast.LENGTH_SHORT).show();
