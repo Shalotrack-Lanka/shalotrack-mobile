@@ -16,17 +16,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
 
-        <!-- මෙන්න මේ පේළිය තමයි අඩුවෙලා තිබුණේ -->
         <activity
             android:name=".VehiclesActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
         <activity
             android:name=".PhoneInputActivity"
             android:exported="false" />
+
         <activity
             android:name=".HomeActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
         <activity
             android:name=".ProcessingActivity"
             android:exported="false" />
@@ -39,7 +42,6 @@
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

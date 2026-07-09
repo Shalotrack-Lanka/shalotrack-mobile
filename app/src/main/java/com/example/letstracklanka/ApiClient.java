@@ -4,8 +4,8 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-    // ඔයාගේ API එකේ ප්‍රධාන ලින්ක් එක
-    private static final String BASE_URL = "https://api.shalotrack.com/swagger";
+    // අනිවාර්යයෙන්ම අගට '/' එකක් තියෙන්න ඕනේ!
+    private static final String BASE_URL = "https://api.shalotrack.com/";
     private static Retrofit retrofit = null;
 
     public static Retrofit getClient() {

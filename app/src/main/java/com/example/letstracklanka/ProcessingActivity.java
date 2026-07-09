@@ -12,9 +12,9 @@ public class ProcessingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_processing);
 
-        // Wait for 4 seconds and go to MainActivity
+        // තත්පර 4ක් ඉඳලා කෙලින්ම HomeActivity එකට යනවා
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent intent = new Intent(ProcessingActivity.this, MainActivity.class);
+            Intent intent = new Intent(ProcessingActivity.this, HomeActivity.class); // MainActivity වෙනුවට HomeActivity දැම්මා
             startActivity(intent);
             finish();
         }, 4000);
