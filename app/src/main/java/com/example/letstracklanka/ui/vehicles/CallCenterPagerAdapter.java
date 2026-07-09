@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.ui.vehicles;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,6 +7,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.letstracklanka.R;
 
 public class CallCenterPagerAdapter extends RecyclerView.Adapter<CallCenterPagerAdapter.SlideViewHolder> {
 

@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.ui.vehicles;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -15,6 +15,12 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
+import com.example.letstracklanka.R;
+import com.example.letstracklanka.data.model.LocationResponse;
+import com.example.letstracklanka.data.model.StatusResponse;
+import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.data.remote.ShaloTrackApi;
+import com.example.letstracklanka.ui.main.HomeActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;

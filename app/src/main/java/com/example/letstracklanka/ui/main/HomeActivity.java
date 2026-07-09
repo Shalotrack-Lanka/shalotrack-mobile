@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.ui.main;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -23,6 +23,13 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.widget.NestedScrollView;
 
+import com.example.letstracklanka.ui.vehicles.CallCenterPagerAdapter;
+import com.example.letstracklanka.R;
+import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
+import com.example.letstracklanka.data.model.LocationResponse;
+import com.example.letstracklanka.data.model.StatusResponse;
+import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
