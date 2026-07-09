@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_home"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="Home" />
+
+    <item
+        android:id="@+id/menu_vehicles"
+        android:icon="@android:drawable/ic_menu_directions"
+        android:title="Vehicles" />
+
+    <item
+        android:id="@+id/menu_tags"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="Tags" />
+
+    <item
+        android:id="@+id/menu_alerts"
+        android:icon="@android:drawable/ic_popup_reminder"
+        android:title="Alerts" />
+
+    <item
+        android:id="@+id/menu_more"
+        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:title="Menu" />
+</menu>

@@ -15,6 +15,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
+
+        <!-- මෙන්න මේ පේළිය තමයි අඩුවෙලා තිබුණේ -->
+        <activity
+            android:name=".VehiclesActivity"
+            android:exported="false" />
+
         <activity
             android:name=".PhoneInputActivity"
             android:exported="false" />
