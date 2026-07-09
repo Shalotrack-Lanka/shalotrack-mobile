@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.ui.main;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,6 +9,10 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.letstracklanka.R;
+import com.example.letstracklanka.ui.auth.LoginActivity;
+import com.example.letstracklanka.ui.auth.SignUpActivity;
 import com.google.android.material.button.MaterialButton;
 
 // අලුතින් එකතු කළ Firebase Imports (Debug Provider එක)

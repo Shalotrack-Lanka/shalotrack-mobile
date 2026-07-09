@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.data.model;
 
 public class CustomerRequest {
     private String fullName;

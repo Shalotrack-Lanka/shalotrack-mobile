@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.data.model;
 
 import com.google.gson.annotations.SerializedName;
 

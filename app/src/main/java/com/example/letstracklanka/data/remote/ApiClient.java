@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.data.remote;
 
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;

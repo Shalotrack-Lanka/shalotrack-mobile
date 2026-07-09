@@ -1,4 +1,4 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.ui.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -6,6 +6,12 @@ import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.letstracklanka.ApiService;
+import com.example.letstracklanka.R;
+import com.example.letstracklanka.data.model.CustomerRequest;
+import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.ui.main.MainActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import okhttp3.ResponseBody;

@@ -1,4 +1,7 @@
-package com.example.letstracklanka;
+package com.example.letstracklanka.data.remote;
+
+import com.example.letstracklanka.data.model.LocationResponse;
+import com.example.letstracklanka.data.model.StatusResponse;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
