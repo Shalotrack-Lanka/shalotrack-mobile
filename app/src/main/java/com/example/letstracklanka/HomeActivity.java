@@ -7,12 +7,14 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -28,6 +30,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
@@ -48,18 +51,34 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
     private LatLng myCurrentLocation;
 
-    // API කෝල් කරන්න හදන Service එක
+    // API සහ Real-time Variables
     private ShaloTrackApi apiService;
+    private Handler handler = new Handler();
+    private Runnable runnable;
+    private final int UPDATE_INTERVAL = 10000; // තත්පර 10කට වරක්
+    private String selectedDeviceId = "DEMO_DEVICE_001"; // ඔයාගේ Device ID එක
+
+    // යටින් එන වාහනේ කාඩ් එකේ කොටස්
+    private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName, tvDeviceTime;
+    private ImageView imgDeviceIcon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        // API Client එක හදාගන්නවා
         apiService = ApiClient.getClient().create(ShaloTrackApi.class);
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        // යටින් එන වාහනේ කාඩ් එකේ (Included Layout) අයිතම අල්ලගැනීම
+        View bottomSheetView = findViewById(R.id.bottomSheet); // අලුත් XML එකට අනුව NestedScrollView එකේ ID එක
+        if(bottomSheetView != null) {
+            tvDeviceName = bottomSheetView.findViewById(R.id.tvDeviceName);
+            tvDeviceStatus = bottomSheetView.findViewById(R.id.tvDeviceStatus);
+            tvDeviceTime = bottomSheetView.findViewById(R.id.tvDeviceTime);
+            tvDeviceAddress = bottomSheetView.findViewById(R.id.tvDeviceAddress);
+            imgDeviceIcon = bottomSheetView.findViewById(R.id.imgDeviceIcon);
+        }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -67,9 +86,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             mapFragment.getMapAsync(this);
         }
 
+        // --- පරණ මෙනු සහ SOS බටන් සෙට් කිරීම ---
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
-        BottomSheetBehavior<NestedScrollView> bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        if(bottomSheet != null) {
+            BottomSheetBehavior<NestedScrollView> bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
 
         mapTypeMenu = findViewById(R.id.mapTypeMenu);
         cardDefault = findViewById(R.id.cardDefault);
@@ -95,62 +117,141 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         fabLocation.setOnClickListener(v -> getDeviceLocation());
 
         MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
-        btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
+        if(btnSendLocation != null) btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
 
         MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
-        if (btnHomeSOS != null) {
-            btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
-        }
+        if (btnHomeSOS != null) btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
 
-        // --- පටන් ගත්තු ගමන් වාහනයේ විස්තර API එකෙන් ගන්නවා ---
-        // (මෙහි "DEV123" වෙනුවට ඔයාට ඕනේ හරියටම Device ID එක දෙන්න)
-        fetchVehicleDataFromAPI("DEV123");
+        // --- මෙන්න අලුතින් වෙනස් කළ Custom Bottom Navigation කේතය ---
+        LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
+        if (navVehicles != null) {
+            navVehicles.setOnClickListener(v -> {
+                Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
+                startActivity(intent);
+                overridePendingTransition(0, 0); // ඇනිමේෂන් එකක් නැතිව යනවා
+            });
+        }
+        // -----------------------------------------------------------
     }
 
-    // --- API එක කෝල් කරන අලුත් ෆන්ක්ෂන් එක ---
-    private void fetchVehicleDataFromAPI(String deviceId) {
-        // 1. Location එක ගැනීම
-        apiService.getCurrentLocation(deviceId).enqueue(new Callback<LocationResponse>() {
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        mMap = googleMap;
+        enableMyLocation();
+        startRealTimeTracking();
+    }
+
+    // --- Real Time Tracking කේතය ---
+    private void startRealTimeTracking() {
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                fetchRealTimeVehicleData();
+                handler.postDelayed(this, UPDATE_INTERVAL);
+            }
+        };
+        handler.post(runnable);
+    }
+
+    private void fetchRealTimeVehicleData() {
+        if (apiService == null || mMap == null) return;
+
+        apiService.getCurrentLocation(selectedDeviceId).enqueue(new Callback<LocationResponse>() {
             @Override
             public void onResponse(Call<LocationResponse> call, Response<LocationResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     double lat = response.body().getLatitude();
                     double lng = response.body().getLongitude();
+                    LatLng carLocation = new LatLng(lat, lng);
 
-                    // API එකෙන් ආපු ලොකේෂන් එක Map එකේ පෙන්නන්න
-                    LatLng vehicleLocation = new LatLng(lat, lng);
-                    if (mMap != null) {
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(vehicleLocation, 15f));
-                    }
-                    Toast.makeText(HomeActivity.this, "Vehicle Found: " + lat + ", " + lng, Toast.LENGTH_SHORT).show();
+                    mMap.clear();
+                    mMap.addMarker(new MarkerOptions().position(carLocation).title("LT Demo Device"));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(carLocation, 16f));
+
+                    if(tvDeviceAddress != null) tvDeviceAddress.setText("Location: " + lat + ", " + lng);
                 }
             }
-
             @Override
-            public void onFailure(Call<LocationResponse> call, Throwable t) {
-                Toast.makeText(HomeActivity.this, "Failed to get location from API", Toast.LENGTH_SHORT).show();
-            }
+            public void onFailure(Call<LocationResponse> call, Throwable t) { }
         });
 
-        // 2. Speed සහ ACC Status එක ගැනීම
-        apiService.getDeviceStatus(deviceId).enqueue(new Callback<StatusResponse>() {
+        apiService.getDeviceStatus(selectedDeviceId).enqueue(new Callback<StatusResponse>() {
             @Override
             public void onResponse(Call<StatusResponse> call, Response<StatusResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     double speed = response.body().getSpeed();
                     boolean isAccOn = response.body().isAccStatus();
 
-                    String status = isAccOn ? "Engine ON" : "Engine OFF";
-                    Toast.makeText(HomeActivity.this, status + " | Speed: " + speed + "km/h", Toast.LENGTH_LONG).show();
+                    if(tvDeviceStatus != null && imgDeviceIcon != null) {
+                        if (speed > 0) {
+                            tvDeviceStatus.setText("Moving (" + (int)speed + " km/h)");
+                            tvDeviceStatus.setTextColor(Color.parseColor("#00BFA5"));
+                            imgDeviceIcon.setColorFilter(Color.parseColor("#00BFA5"));
+                        } else {
+                            tvDeviceStatus.setText(isAccOn ? "Idle (Engine ON)" : "Parked");
+                            tvDeviceStatus.setTextColor(Color.parseColor("#1877F2"));
+                            imgDeviceIcon.setColorFilter(Color.parseColor("#1877F2"));
+                        }
+                    }
+                    if(tvDeviceTime != null) tvDeviceTime.setText("(Updated Just now)");
                 }
             }
-
             @Override
-            public void onFailure(Call<StatusResponse> call, Throwable t) {
-                // Error handling
-            }
+            public void onFailure(Call<StatusResponse> call, Throwable t) { }
         });
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (handler != null && runnable != null) {
+            handler.removeCallbacks(runnable);
+        }
+    }
+
+    // --- පරණ ෆන්ක්ෂන් ටික (SOS, Location) ---
+    private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
+            mMap.getUiSettings().setMyLocationButtonEnabled(false);
+            getDeviceLocation();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void getDeviceLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+                if (location != null) {
+                    myCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            enableMyLocation();
+        }
+    }
+
+    private void changeMapType(int mapType, MaterialCardView selectedCard) {
+        if (mMap != null) {
+            mMap.setMapType(mapType);
+            cardDefault.setStrokeWidth(0);
+            cardTerrain.setStrokeWidth(0);
+            cardSatellite.setStrokeWidth(0);
+            cardHybrid.setStrokeWidth(0);
+            selectedCard.setStrokeWidth(8);
+            selectedCard.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+            mapTypeMenu.setVisibility(View.GONE);
+        }
+    }
+
+    // ... (ShowSOSBottomSheet, ShareLocationBottomSheet වගේ පරණ ෆන්ක්ෂන් ටික ඔයාගේ කලින් කේතයේ තියෙන විදිහටම තියාගන්න)
 
     @SuppressLint("InflateParams")
     private void showSOSBottomSheet() {
@@ -203,6 +304,56 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @SuppressLint("InflateParams")
+    private void showCallCenterBottomSheet() {
+        BottomSheetDialog callCenterDialog = new BottomSheetDialog(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_call_center, null);
+        callCenterDialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
+        MaterialButton btnCloseBottom = view.findViewById(R.id.btnCallCenterClose);
+        MaterialButton btnUnavailable = view.findViewById(R.id.btnCallCenterUnavailable);
+
+        androidx.viewpager2.widget.ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
+        LinearLayout layoutDots = view.findViewById(R.id.layoutDotsCallCenter);
+
+        CallCenterPagerAdapter adapter = new CallCenterPagerAdapter();
+        viewPager.setAdapter(adapter);
+
+        ImageView[] dots = new ImageView[adapter.getItemCount()];
+        for (int i = 0; i < adapter.getItemCount(); i++) {
+            dots[i] = new ImageView(this);
+            dots[i].setImageDrawable(androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.presence_invisible));
+            dots[i].setColorFilter(Color.parseColor("#CCCCCC"));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            params.setMargins(8, 0, 8, 0);
+            layoutDots.addView(dots[i], params);
+        }
+        dots[0].setColorFilter(Color.parseColor("#1877F2"));
+
+        viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                for (int i = 0; i < adapter.getItemCount(); i++) {
+                    dots[i].setColorFilter(Color.parseColor("#CCCCCC"));
+                }
+                dots[position].setColorFilter(Color.parseColor("#1877F2"));
+            }
+        });
+
+        btnClose.setOnClickListener(v -> callCenterDialog.dismiss());
+        btnCloseBottom.setOnClickListener(v -> callCenterDialog.dismiss());
+
+        btnUnavailable.setOnClickListener(v -> {
+            Toast.makeText(this, "Feature not available in your region yet.", Toast.LENGTH_SHORT).show();
+        });
+
+        callCenterDialog.show();
+    }
+
+    @SuppressLint("InflateParams")
     private void showSendLocationBottomSheet() {
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_send_location, null);
@@ -225,6 +376,60 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         bottomSheetDialog.show();
+    }
+
+    @SuppressLint("InflateParams")
+    private void showOrangeBottomSheet() {
+        BottomSheetDialog orangeSheetDialog = new BottomSheetDialog(this);
+        View orangeView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_share_current, null);
+        orangeSheetDialog.setContentView(orangeView);
+
+        ImageView btnClose = orangeView.findViewById(R.id.btnCloseOrangeSheet);
+        LinearLayout btnFinalShareMyLoc = orangeView.findViewById(R.id.btnFinalShareMyLoc);
+        LinearLayout btnFinalShareDeviceLoc = orangeView.findViewById(R.id.btnFinalShareDeviceLoc);
+
+        btnClose.setOnClickListener(v -> orangeSheetDialog.dismiss());
+
+        btnFinalShareMyLoc.setOnClickListener(v -> {
+            orangeSheetDialog.dismiss();
+            shareLocationLink("my current location");
+        });
+
+        btnFinalShareDeviceLoc.setOnClickListener(v -> {
+            orangeSheetDialog.dismiss();
+            showShareDeviceBottomSheet();
+        });
+
+        orangeSheetDialog.show();
+    }
+
+    @SuppressLint("InflateParams")
+    private void showShareDeviceBottomSheet() {
+        BottomSheetDialog deviceSheetDialog = new BottomSheetDialog(this);
+        View deviceView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_share_device, null);
+        deviceSheetDialog.setContentView(deviceView);
+
+        ImageView btnClose = deviceView.findViewById(R.id.btnCloseDeviceSheet);
+        Spinner spinnerDevices = deviceView.findViewById(R.id.spinnerDevices);
+        MaterialButton btnFinalShareDevice = deviceView.findViewById(R.id.btnFinalShareDevice);
+
+        btnClose.setOnClickListener(v -> deviceSheetDialog.dismiss());
+
+        String[] devices = {"Select device", "Nissan GT-R R35", "Tecno Camon 40 Pro", "iPhone 13 Pro"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, devices);
+        spinnerDevices.setAdapter(adapter);
+
+        btnFinalShareDevice.setOnClickListener(v -> {
+            String selectedDevice = spinnerDevices.getSelectedItem().toString();
+            if (selectedDevice.equals("Select device")) {
+                Toast.makeText(this, "Please select a device first!", Toast.LENGTH_SHORT).show();
+            } else {
+                deviceSheetDialog.dismiss();
+                shareLocationLink("the location of " + selectedDevice);
+            }
+        });
+
+        deviceSheetDialog.show();
     }
 
     @SuppressLint("InflateParams")
@@ -344,110 +549,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         devDurDialog.show();
     }
 
-    @SuppressLint("InflateParams")
-    private void showCallCenterBottomSheet() {
-        BottomSheetDialog callCenterDialog = new BottomSheetDialog(this);
-        View view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_call_center, null);
-        callCenterDialog.setContentView(view);
-
-        ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
-        MaterialButton btnCloseBottom = view.findViewById(R.id.btnCallCenterClose);
-        MaterialButton btnUnavailable = view.findViewById(R.id.btnCallCenterUnavailable);
-
-        androidx.viewpager2.widget.ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
-        LinearLayout layoutDots = view.findViewById(R.id.layoutDotsCallCenter);
-
-        CallCenterPagerAdapter adapter = new CallCenterPagerAdapter();
-        viewPager.setAdapter(adapter);
-
-        ImageView[] dots = new ImageView[adapter.getItemCount()];
-        for (int i = 0; i < adapter.getItemCount(); i++) {
-            dots[i] = new ImageView(this);
-            dots[i].setImageDrawable(androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.presence_invisible));
-            dots[i].setColorFilter(Color.parseColor("#CCCCCC"));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            params.setMargins(8, 0, 8, 0);
-            layoutDots.addView(dots[i], params);
-        }
-        dots[0].setColorFilter(Color.parseColor("#1877F2"));
-
-        viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                for (int i = 0; i < adapter.getItemCount(); i++) {
-                    dots[i].setColorFilter(Color.parseColor("#CCCCCC"));
-                }
-                dots[position].setColorFilter(Color.parseColor("#1877F2"));
-            }
-        });
-
-        btnClose.setOnClickListener(v -> callCenterDialog.dismiss());
-        btnCloseBottom.setOnClickListener(v -> callCenterDialog.dismiss());
-
-        btnUnavailable.setOnClickListener(v -> {
-            Toast.makeText(this, "Feature not available in your region yet.", Toast.LENGTH_SHORT).show();
-        });
-
-        callCenterDialog.show();
-    }
-
-    @SuppressLint("InflateParams")
-    private void showOrangeBottomSheet() {
-        BottomSheetDialog orangeSheetDialog = new BottomSheetDialog(this);
-        View orangeView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_share_current, null);
-        orangeSheetDialog.setContentView(orangeView);
-
-        ImageView btnClose = orangeView.findViewById(R.id.btnCloseOrangeSheet);
-        LinearLayout btnFinalShareMyLoc = orangeView.findViewById(R.id.btnFinalShareMyLoc);
-        LinearLayout btnFinalShareDeviceLoc = orangeView.findViewById(R.id.btnFinalShareDeviceLoc);
-
-        btnClose.setOnClickListener(v -> orangeSheetDialog.dismiss());
-
-        btnFinalShareMyLoc.setOnClickListener(v -> {
-            orangeSheetDialog.dismiss();
-            shareLocationLink("my current location");
-        });
-
-        btnFinalShareDeviceLoc.setOnClickListener(v -> {
-            orangeSheetDialog.dismiss();
-            showShareDeviceBottomSheet();
-        });
-
-        orangeSheetDialog.show();
-    }
-
-    @SuppressLint("InflateParams")
-    private void showShareDeviceBottomSheet() {
-        BottomSheetDialog deviceSheetDialog = new BottomSheetDialog(this);
-        View deviceView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_share_device, null);
-        deviceSheetDialog.setContentView(deviceView);
-
-        ImageView btnClose = deviceView.findViewById(R.id.btnCloseDeviceSheet);
-        Spinner spinnerDevices = deviceView.findViewById(R.id.spinnerDevices);
-        MaterialButton btnFinalShareDevice = deviceView.findViewById(R.id.btnFinalShareDevice);
-
-        btnClose.setOnClickListener(v -> deviceSheetDialog.dismiss());
-
-        String[] devices = {"Select device", "Nissan GT-R R35", "Tecno Camon 40 Pro", "iPhone 13 Pro"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, devices);
-        spinnerDevices.setAdapter(adapter);
-
-        btnFinalShareDevice.setOnClickListener(v -> {
-            String selectedDevice = spinnerDevices.getSelectedItem().toString();
-            if (selectedDevice.equals("Select device")) {
-                Toast.makeText(this, "Please select a device first!", Toast.LENGTH_SHORT).show();
-            } else {
-                deviceSheetDialog.dismiss();
-                shareLocationLink("the location of " + selectedDevice);
-            }
-        });
-
-        deviceSheetDialog.show();
-    }
-
     private void shareLocationLink(String entityName) {
         if (myCurrentLocation != null) {
             String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
@@ -461,54 +562,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             Toast.makeText(this, "Location not found yet. Searching...", Toast.LENGTH_SHORT).show();
             getDeviceLocation();
-        }
-    }
-
-    private void changeMapType(int mapType, MaterialCardView selectedCard) {
-        if (mMap != null) {
-            mMap.setMapType(mapType);
-            cardDefault.setStrokeWidth(0);
-            cardTerrain.setStrokeWidth(0);
-            cardSatellite.setStrokeWidth(0);
-            cardHybrid.setStrokeWidth(0);
-            selectedCard.setStrokeWidth(8);
-            selectedCard.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-            mapTypeMenu.setVisibility(View.GONE);
-        }
-    }
-
-    @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) {
-        mMap = googleMap;
-        enableMyLocation();
-    }
-
-    private void enableMyLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-            mMap.getUiSettings().setMyLocationButtonEnabled(false);
-            getDeviceLocation();
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-        }
-    }
-
-    private void getDeviceLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-                if (location != null && mMap != null) {
-                    myCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myCurrentLocation, 15f));
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            enableMyLocation();
         }
     }
 }

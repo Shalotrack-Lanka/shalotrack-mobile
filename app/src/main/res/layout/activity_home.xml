@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
     android:background="#F0F0F0">
+
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -240,6 +241,7 @@
                         app:cardElevation="0dp">
 
                         <ImageView
+                            android:id="@+id/imgDeviceIcon"
                             android:layout_width="45dp"
                             android:layout_height="45dp"
                             android:layout_gravity="center"
@@ -254,6 +256,7 @@
                         android:layout_marginStart="16dp">
 
                         <TextView
+                            android:id="@+id/tvDeviceName"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="LT Demo Device"
@@ -267,12 +270,14 @@
                             android:orientation="horizontal"
                             android:layout_marginTop="2dp">
                             <TextView
+                                android:id="@+id/tvDeviceStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Parked "
                                 android:textColor="#1976D2"
                                 android:textSize="14sp" />
                             <TextView
+                                android:id="@+id/tvDeviceTime"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="(14h 21m ago)"
@@ -281,6 +286,7 @@
                         </LinearLayout>
 
                         <TextView
+                            android:id="@+id/tvDeviceAddress"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="QCJ8+88X, Lokaipur, Uttar Pra..."
@@ -486,7 +492,9 @@
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout
+            android:id="@+id/nav_vehicles"
+            android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>

@@ -1,13 +1,19 @@
 package com.example.letstracklanka;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.View;
+import android.widget.GridLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -15,6 +21,13 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -24,41 +37,137 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private GoogleMap mMap;
     private ShaloTrackApi apiService;
-    private TextView tvDeviceStatus, tvDeviceAddress;
 
-    // Real-time අප්ඩේට් කරන්න ඕනේ කරන දේවල්
+    // UI කොටස්
+    private LinearLayout layoutCollapsed, layoutExpanded, layoutLeftFabs;
+    private GridLayout gridMenu;
+    private FloatingActionButton fabAdd, fabHistory;
+    private ImageView btnCloseExpanded;
+
+    // Data පෙන්වන කොටස්
+    private TextView tvCollapsedStatus, tvCollapsedAddress;
+    private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated;
+    private CardView dotIgnition, dotAC;
+    private MaterialButton btnRefresh;
+
     private Handler handler = new Handler();
     private Runnable runnable;
-    private final int UPDATE_INTERVAL = 10000; // තත්පර 10කට වරක් අප්ඩේට් වේ
-    private String selectedDeviceId = "DEMO_DEVICE_001"; // ඔයාගේ Device ID එක
+    private final int UPDATE_INTERVAL = 10000;
+    private String selectedDeviceId = "DEMO_DEVICE_001";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vehicles);
 
-        // UI කොටස් හොයාගැනීම
-        tvDeviceStatus = findViewById(R.id.tvDeviceStatus);
-        tvDeviceAddress = findViewById(R.id.tvDeviceAddress);
+        try {
+            // Layouts සහ FABs අල්ලගැනීම
+            layoutCollapsed = findViewById(R.id.layoutCollapsed);
+            layoutExpanded = findViewById(R.id.layoutExpanded);
+            layoutLeftFabs = findViewById(R.id.layoutLeftFabs);
+            gridMenu = findViewById(R.id.gridMenu);
+            fabAdd = findViewById(R.id.fabAdd);
+            fabHistory = findViewById(R.id.fabHistory);
 
-        // API සේවාව පටන් ගැනීම
+            // Text Views සහ Buttons අල්ලගැනීම
+            tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
+            tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
+            tvExpandedStatus = findViewById(R.id.tvExpandedStatus);
+            tvExpandedAddress = findViewById(R.id.tvExpandedAddress);
+            tvLastUpdated = findViewById(R.id.tvLastUpdated);
+            dotIgnition = findViewById(R.id.dotIgnition);
+            dotAC = findViewById(R.id.dotAC);
+
+            btnCloseExpanded = findViewById(R.id.btnCloseExpanded);
+            btnRefresh = findViewById(R.id.btnRefresh);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         apiService = ApiClient.getClient().create(ShaloTrackApi.class);
 
-        // Map එක ලෝඩ් කිරීම
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mapVehicles);
         if (mapFragment != null) {
             mapFragment.getMapAsync(this);
         }
 
-        // Real-time Update එක පටන් ගන්නවා
+        // --- Bottom Sheet Toggling Logic ---
+        View bottomSheet = findViewById(R.id.bottomSheetVehicleDetails);
+        BottomSheetBehavior<View> bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+
+        bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    // Fully Expanded (උඩටම ඇද්දම)
+                    gridMenu.setVisibility(View.VISIBLE);
+                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    // Collapsed (පල්ලෙහාට ගියාම)
+                    layoutExpanded.setVisibility(View.GONE);
+                    gridMenu.setVisibility(View.GONE);
+
+                    layoutCollapsed.setVisibility(View.VISIBLE);
+                    fabAdd.setVisibility(View.VISIBLE);
+
+                    fabHistory.setVisibility(View.GONE);
+                    layoutLeftFabs.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
+        });
+
+        // පොඩි කාඩ් එක ක්ලික් කරද්දී Half-Expanded වෙනවා
+        if (layoutCollapsed != null) {
+            layoutCollapsed.setOnClickListener(v -> {
+                layoutCollapsed.setVisibility(View.GONE);
+                fabAdd.setVisibility(View.GONE);
+
+                layoutExpanded.setVisibility(View.VISIBLE);
+                gridMenu.setVisibility(View.GONE); // තාම ග්‍රිඩ් එක පේන්නේ නෑ
+
+                fabHistory.setVisibility(View.VISIBLE);
+                layoutLeftFabs.setVisibility(View.VISIBLE);
+
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+            });
+        }
+
+        // 'X' බටන් එක ක්ලික් කරද්දී ආපහු Collapsed වෙනවා
+        if (btnCloseExpanded != null) {
+            btnCloseExpanded.setOnClickListener(v -> {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            });
+        }
+
+        // Home බටන් එක
+        LinearLayout navHome = findViewById(R.id.nav_home);
+        if (navHome != null) {
+            navHome.setOnClickListener(v -> {
+                Intent intent = new Intent(VehiclesActivity.this, HomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                finish();
+            });
+        }
+
+        // Refresh බටන් එක
+        if (btnRefresh != null) {
+            btnRefresh.setOnClickListener(v -> {
+                Toast.makeText(this, "Refreshing location...", Toast.LENGTH_SHORT).show();
+                fetchRealTimeVehicleData();
+            });
+        }
+
         startRealTimeTracking();
     }
 
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
-        // මුලින්ම Map එක ආවම එක පාරක් දත්ත ගන්නවා
         fetchRealTimeVehicleData();
     }
 
@@ -67,7 +176,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             @Override
             public void run() {
                 fetchRealTimeVehicleData();
-                handler.postDelayed(this, UPDATE_INTERVAL); // ආයේ තත්පර 10කින් දුවනවා
+                handler.postDelayed(this, UPDATE_INTERVAL);
             }
         };
         handler.post(runnable);
@@ -76,7 +185,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private void fetchRealTimeVehicleData() {
         if (apiService == null || mMap == null) return;
 
-        // 1. ලොකේෂන් එක අරන් Map එක අප්ඩේට් කරනවා
         apiService.getCurrentLocation(selectedDeviceId).enqueue(new Callback<LocationResponse>() {
             @Override
             public void onResponse(Call<LocationResponse> call, Response<LocationResponse> response) {
@@ -85,37 +193,57 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     double lng = response.body().getLongitude();
                     LatLng carLocation = new LatLng(lat, lng);
 
-                    mMap.clear(); // පරණ මාකර් මකනවා
+                    mMap.clear();
                     mMap.addMarker(new MarkerOptions().position(carLocation).title("LT Demo Device"));
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(carLocation, 16f)); // වාහනේ දිහාට Map එක Zoom වෙනවා
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(carLocation, 16f));
 
-                    tvDeviceAddress.setText("Location updated: " + lat + ", " + lng); // දැනට අක්ෂාංශ/දේශාංශ පෙන්වමු
+                    String addressText = lat + ", " + lng;
+                    if (tvCollapsedAddress != null) tvCollapsedAddress.setText(addressText);
+                    if (tvExpandedAddress != null) tvExpandedAddress.setText(addressText);
+
+                    if(tvLastUpdated != null) {
+                        String currentTime = new SimpleDateFormat("dd MMM yyyy hh:mm a", Locale.getDefault()).format(new Date());
+                        tvLastUpdated.setText("Updated: " + currentTime);
+                    }
                 }
             }
-
             @Override
-            public void onFailure(Call<LocationResponse> call, Throwable t) {
-                // Error එකක් ආවොත්
-            }
+            public void onFailure(Call<LocationResponse> call, Throwable t) { }
         });
 
-        // 2. වාහනේ යනවාද නවත්වලාද (Speed) බලනවා
         apiService.getDeviceStatus(selectedDeviceId).enqueue(new Callback<StatusResponse>() {
             @Override
             public void onResponse(Call<StatusResponse> call, Response<StatusResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     double speed = response.body().getSpeed();
+                    boolean isAccOn = response.body().isAccStatus();
 
-                    if (speed > 0) {
-                        tvDeviceStatus.setText("Moving (" + speed + " km/h)");
-                        tvDeviceStatus.setTextColor(Color.parseColor("#00BFA5")); // යනවා නම් කොළ පාට
-                    } else {
-                        tvDeviceStatus.setText("Parked ");
-                        tvDeviceStatus.setTextColor(Color.parseColor("#1877F2")); // නවත්වලා නම් නිල් පාට
+                    if (tvCollapsedStatus != null && tvExpandedStatus != null) {
+                        if (speed > 0) {
+                            String movingText = "Moving (" + (int)speed + " km/h)";
+                            tvCollapsedStatus.setText(movingText);
+                            tvCollapsedStatus.setTextColor(Color.parseColor("#00BFA5"));
+                            tvExpandedStatus.setText(movingText);
+                            tvExpandedStatus.setTextColor(Color.parseColor("#00BFA5"));
+                        } else {
+                            tvCollapsedStatus.setText("Parked ");
+                            tvCollapsedStatus.setTextColor(Color.parseColor("#1976D2"));
+                            tvExpandedStatus.setText("Parked ");
+                            tvExpandedStatus.setTextColor(Color.parseColor("#1976D2"));
+                        }
+                    }
+
+                    if (dotIgnition != null && dotAC != null) {
+                        if(isAccOn) {
+                            dotIgnition.setCardBackgroundColor(Color.parseColor("#4CAF50"));
+                            dotAC.setCardBackgroundColor(Color.parseColor("#4CAF50"));
+                        } else {
+                            dotIgnition.setCardBackgroundColor(Color.parseColor("#E53935"));
+                            dotAC.setCardBackgroundColor(Color.parseColor("#E53935"));
+                        }
                     }
                 }
             }
-
             @Override
             public void onFailure(Call<StatusResponse> call, Throwable t) { }
         });
@@ -124,7 +252,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // ඇප් එකෙන් එළියට යද්දී Real-time අප්ඩේට් වෙන එක නවත්තනවා (බැටරිය බේරගන්න)
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
         }

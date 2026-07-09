@@ -74,7 +74,19 @@ public class SignUpActivity extends AppCompatActivity {
                                 @Override
                                 public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
                                     findViewById(R.id.btnSendCode).setEnabled(true);
-                                    // Optional: You could auto-sign-in the user here if Firebase instantly verifies them!
+
+                                    // Auto-Verify වුණොත් කෙලින්ම Sign-in කරලා ඊළඟ පිටුවට යවනවා
+                                    mAuth.signInWithCredential(credential)
+                                            .addOnCompleteListener(SignUpActivity.this, task -> {
+                                                if (task.isSuccessful()) {
+                                                    Toast.makeText(SignUpActivity.this, "Auto-Verification Successful!", Toast.LENGTH_SHORT).show();
+                                                    Intent intent = new Intent(SignUpActivity.this, EmailInputActivity.class); // හරි පිටුවට යවන්න
+                                                    startActivity(intent);
+                                                    finish();
+                                                } else {
+                                                    Toast.makeText(SignUpActivity.this, "Auto-Verification Failed", Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
                                 }
 
                                 @Override
