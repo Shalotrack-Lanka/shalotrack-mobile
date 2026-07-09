@@ -10,7 +10,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
-// This is the only import needed from your main package
+
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.ui.auth.LoginActivity;
 import com.example.letstracklanka.ui.auth.SignUpActivity;
