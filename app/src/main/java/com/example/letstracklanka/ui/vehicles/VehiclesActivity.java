@@ -21,7 +21,8 @@ import com.example.letstracklanka.data.model.StatusResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.main.HomeActivity;
-import com.example.letstracklanka.ui.main.TagsActivity; // TagsActivity එක Import කළා
+import com.example.letstracklanka.ui.main.TagsActivity;
+import com.example.letstracklanka.ui.main.CirclesActivity; // CirclesActivity එක Import කළා
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -163,15 +164,25 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Tags බටන් එකට අදාළ අලුත් කේතය
+        // Tags සහ Circles බටන් වලට අදාළ අලුත් කේතය
         LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
-        if (bottomNavBar != null && bottomNavBar.getChildCount() > 2) {
-            View navTags = bottomNavBar.getChildAt(2); // 3 වැනි අයිතමය Tags
-            navTags.setOnClickListener(v -> {
-                Intent intent = new Intent(VehiclesActivity.this, TagsActivity.class);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
+        if (bottomNavBar != null) {
+            if (bottomNavBar.getChildCount() > 2) {
+                View navTags = bottomNavBar.getChildAt(2); // 3 වැනි අයිතමය Tags
+                navTags.setOnClickListener(v -> {
+                    Intent intent = new Intent(VehiclesActivity.this, TagsActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
+            if (bottomNavBar.getChildCount() > 3) {
+                View navCircles = bottomNavBar.getChildAt(3); // 4 වැනි අයිතමය Circles
+                navCircles.setOnClickListener(v -> {
+                    Intent intent = new Intent(VehiclesActivity.this, CirclesActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
         }
 
         // Refresh බටන් එක
