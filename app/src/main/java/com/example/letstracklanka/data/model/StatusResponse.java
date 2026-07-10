@@ -7,7 +7,7 @@ public class StatusResponse {
     @SerializedName("speed")
     private double speed;
 
-    @SerializedName("accStatus") // Ignition on/off ද කියන එක
+    @SerializedName("accStatus")
     private boolean accStatus;
 
     // Getters
