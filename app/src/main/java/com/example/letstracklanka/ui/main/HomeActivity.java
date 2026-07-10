@@ -58,14 +58,14 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
     private LatLng myCurrentLocation;
 
-    // API සහ Real-time Variables
+    // API and Real-time Variables
     private ShaloTrackApi apiService;
     private Handler handler = new Handler();
     private Runnable runnable;
-    private final int UPDATE_INTERVAL = 10000; // තත්පර 10කට වරක්
-    private String selectedDeviceId = "DEMO_DEVICE_001"; // ඔයාගේ Device ID එක
+    private final int UPDATE_INTERVAL = 10000; // 10 seconds
+    private String selectedDeviceId = "DEMO_DEVICE_001";
 
-    // යටින් එන වාහනේ කාඩ් එකේ කොටස්
+    // Bottom sheet vehicle card items
     private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName, tvDeviceTime;
     private ImageView imgDeviceIcon;
 
@@ -77,8 +77,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         apiService = ApiClient.getClient().create(ShaloTrackApi.class);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // යටින් එන වාහනේ කාඩ් එකේ (Included Layout) අයිතම අල්ලගැනීම
-        View bottomSheetView = findViewById(R.id.bottomSheet); // අලුත් XML එකට අනුව NestedScrollView එකේ ID එක
+        // Find items in the included Bottom Sheet layout
+        View bottomSheetView = findViewById(R.id.bottomSheet);
         if(bottomSheetView != null) {
             tvDeviceName = bottomSheetView.findViewById(R.id.tvDeviceName);
             tvDeviceStatus = bottomSheetView.findViewById(R.id.tvDeviceStatus);
@@ -93,7 +93,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             mapFragment.getMapAsync(this);
         }
 
-        // --- පරණ මෙනු සහ SOS බටන් සෙට් කිරීම ---
+        // Setup bottom sheet behavior
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
         if(bottomSheet != null) {
             BottomSheetBehavior<NestedScrollView> bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
@@ -129,16 +129,28 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
         if (btnHomeSOS != null) btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
 
-        // --- මෙන්න අලුතින් වෙනස් කළ Custom Bottom Navigation කේතය ---
+        // --- Bottom Navigation Setup ---
+
+        // Go to Vehicles Screen
         LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
                 Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
                 startActivity(intent);
-                overridePendingTransition(0, 0); // ඇනිමේෂන් එකක් නැතිව යනවා
+                overridePendingTransition(0, 0); // No animation
             });
         }
-        // -----------------------------------------------------------
+
+        // Go to Tags Screen
+        LinearLayout navTags = findViewById(R.id.nav_tags);
+        if (navTags != null) {
+            navTags.setOnClickListener(v -> {
+                Intent intent = new Intent(HomeActivity.this, TagsActivity.class);
+                startActivity(intent);
+                overridePendingTransition(0, 0); // No animation
+            });
+        }
+        // --------------------------------
     }
 
     @Override
@@ -148,7 +160,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         startRealTimeTracking();
     }
 
-    // --- Real Time Tracking කේතය ---
+    // --- Real Time Tracking Code ---
     private void startRealTimeTracking() {
         runnable = new Runnable() {
             @Override
@@ -216,7 +228,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    // --- පරණ ෆන්ක්ෂන් ටික (SOS, Location) ---
+    // --- Permissions and Location Setup ---
     private void enableMyLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
@@ -258,7 +270,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    // ... (ShowSOSBottomSheet, ShareLocationBottomSheet වගේ පරණ ෆන්ක්ෂන් ටික ඔයාගේ කලින් කේතයේ තියෙන විදිහටම තියාගන්න)
+    // --- Bottom Sheets and Dialogs ---
 
     @SuppressLint("InflateParams")
     private void showSOSBottomSheet() {
