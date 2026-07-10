@@ -1,9 +1,12 @@
 package com.example.letstracklanka.ui.main;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -41,6 +44,28 @@ public class TagsActivity extends AppCompatActivity {
         fabScan.setOnClickListener(v -> Toast.makeText(this, "Open QR Scanner", Toast.LENGTH_SHORT).show());
         fabAdd.setOnClickListener(v -> Toast.makeText(this, "Add new item", Toast.LENGTH_SHORT).show());
 
-        // TODO: Find your bottom navigation bar items here and set up Intents to navigate between Home, Vehicles, Tags, etc.
+        // --- Bottom Navigation Bar Setup ---
+
+        // Home Button
+        LinearLayout navHome = findViewById(R.id.nav_home);
+        if (navHome != null) {
+            navHome.setOnClickListener(v -> {
+                Intent intent = new Intent(TagsActivity.this, HomeActivity.class);
+                // පරණ Home එකක් ඇරලා තියෙනවා නම් ඒකටම යනවා (අලුතින් ඕපන් කරන්නේ නෑ)
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0); // ඇනිමේෂන් නැතිව සුමටව මාරු වෙන්න
+            });
+        }
+
+        // Vehicles Button
+        LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
+        if (navVehicles != null) {
+            navVehicles.setOnClickListener(v -> {
+                Intent intent = new Intent(TagsActivity.this, VehiclesActivity.class);
+                startActivity(intent);
+                overridePendingTransition(0, 0); // ඇනිමේෂන් නැතිව සුමටව මාරු වෙන්න
+            });
+        }
     }
 }
