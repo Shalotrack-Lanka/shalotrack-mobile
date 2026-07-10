@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="24dp"
         android:layout_marginTop="32dp"
-        android:text="What's your email?"
+        android:text="Enter your details"
         android:textColor="#0A2463"
         android:textSize="28sp"
         android:textStyle="bold"
@@ -36,20 +36,73 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="We will use this to secure your account and send important updates about your vehicles."
+        android:text="We need this information to secure your account and verify your identity."
         android:textColor="#757575"
         android:textSize="15sp"
         app:layout_constraintEnd_toEndOf="@+id/txtEmailTitle"
         app:layout_constraintStart_toStartOf="@+id/txtEmailTitle"
         app:layout_constraintTop_toBottomOf="@+id/txtEmailTitle" />
 
+    <!-- 1. Full Name Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutFullName"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="32dp"
+        android:hint="Full Name"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxStrokeColor="#0A2463"
+        app:hintTextColor="#0A2463"
+        app:layout_constraintTop_toBottomOf="@+id/txtEmailSubtitle">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etFullName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName"
+            android:textColor="#333333"
+            android:textSize="16sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- 2. NIC Number Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutNicNumber"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="16dp"
+        android:hint="NIC Number"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxStrokeColor="#0A2463"
+        app:hintTextColor="#0A2463"
+        app:layout_constraintTop_toBottomOf="@+id/layoutFullName">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etNicNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:textColor="#333333"
+            android:textSize="16sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- 3. Email Input -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/layoutEmailInput"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="24dp"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="16dp"
         android:hint="Email Address"
         app:boxCornerRadiusBottomEnd="12dp"
         app:boxCornerRadiusBottomStart="12dp"
@@ -59,7 +112,7 @@
         app:hintTextColor="#0A2463"
         app:startIconDrawable="@android:drawable/ic_dialog_email"
         app:startIconTint="#757575"
-        app:layout_constraintTop_toBottomOf="@+id/txtEmailSubtitle">
+        app:layout_constraintTop_toBottomOf="@+id/layoutNicNumber">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etEmail"

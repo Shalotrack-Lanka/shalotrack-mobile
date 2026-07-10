@@ -2,6 +2,7 @@ package com.example.letstracklanka.data.model;
 
 import com.google.gson.annotations.SerializedName;
 
+@SuppressWarnings("unused")
 public class StatusResponse {
     @SerializedName("speed")
     private double speed;

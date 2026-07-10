@@ -136,7 +136,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Didn't receive the code? Resend"
+        android:text="Didn\'t receive the code? Resend"
         android:textColor="#1877F2"
         android:textSize="14sp"
         android:textStyle="bold"

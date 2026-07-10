@@ -1,11 +1,16 @@
 package com.example.letstracklanka.ui.auth;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+
+import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.repository.AuthRepository;
 import com.google.firebase.auth.FirebaseAuth;
-import okhttp3.ResponseBody;
+
+import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -25,9 +30,11 @@ public class LoginViewModel extends ViewModel {
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         // Step 2: Backend API Verification
-                        repository.verifyCustomerBackend(email, new Callback<>() {
+                        // Explicitly use List<CustomerResponse> to match the repository signature
+                        repository.verifyCustomerBackend(email, new Callback<List<CustomerResponse>>() {
                             @Override
-                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                            public void onResponse(@NonNull Call<List<CustomerResponse>> call,
+                                                   @NonNull Response<List<CustomerResponse>> response) {
                                 isLoading.setValue(false);
                                 if (response.isSuccessful()) {
                                     authResult.setValue("SUCCESS");
@@ -37,14 +44,17 @@ public class LoginViewModel extends ViewModel {
                             }
 
                             @Override
-                            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                            public void onFailure(@NonNull Call<List<CustomerResponse>> call,
+                                                  @NonNull Throwable t) {
                                 isLoading.setValue(false);
-                                authResult.setValue("Error: Network failure connecting to ShaloTrack.");
+                                String error = t.getMessage() != null ? t.getMessage() : "Unknown network error";
+                                authResult.setValue("Error: " + error);
                             }
                         });
                     } else {
                         isLoading.setValue(false);
-                        authResult.setValue("Error: " + task.getException().getMessage());
+                        String error = task.getException() != null ? task.getException().getMessage() : "Authentication failed";
+                        authResult.setValue("Error: " + error);
                     }
                 });
     }

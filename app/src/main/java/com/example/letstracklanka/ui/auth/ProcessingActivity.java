@@ -19,41 +19,55 @@ public class ProcessingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_processing);
 
-        // 1. Get real data passed from previous activity
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (currentUser == null) {
+            Toast.makeText(this, "Session expired. Please restart.", Toast.LENGTH_LONG).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        // 1. Get real data passed from the previous activity's Intent
         String name = getIntent().getStringExtra("EXTRA_NAME");
         String nic = getIntent().getStringExtra("EXTRA_NIC");
         String address = getIntent().getStringExtra("EXTRA_ADDRESS");
 
-        // 2. Safely check for the Firebase User
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-
-        if (currentUser == null) {
-            // If the user is null, bounce them back to login to prevent a crash
-            Toast.makeText(this, "Session expired. Please restart registration.", Toast.LENGTH_LONG).show();
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-            return; // Stop running any code below this line
+        // CRITICAL FIX: Extract the email from the Intent, fallback to Firebase if missing
+        String email = getIntent().getStringExtra("EXTRA_EMAIL");
+        if (email == null || email.trim().isEmpty()) {
+            email = currentUser.getEmail();
         }
 
-        // 3. Get verified data from Firebase safely (No NPE possible here now)
-        String email = currentUser.getEmail();
-        String phone = currentUser.getPhoneNumber();
+        // Get phone from Intent first, fallback to Firebase
+        String phone = getIntent().getStringExtra("EXTRA_PHONE");
+        if (phone == null || phone.trim().isEmpty()) {
+            phone = currentUser.getPhoneNumber();
+        }
+
+        // 2. Final safety check before calling the API
+        if (email == null || email.trim().isEmpty() || phone == null || phone.trim().isEmpty()) {
+            Toast.makeText(this, "Error: Email and Phone are strictly required.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
 
         ProgressBar progressBar = findViewById(R.id.progressBar);
         AuthViewModel viewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
-        // 4. Execute registration
+        // 3. Execute registration
         progressBar.setVisibility(View.VISIBLE);
         viewModel.performRegistration(name, email, phone, nic, address)
                 .observe(this, success -> {
                     progressBar.setVisibility(View.GONE);
                     if (success) {
                         Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(this, MainActivity.class));
+                        finish();
                     } else {
-                        Toast.makeText(this, "Sync complete, entering app...", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Registration Failed. Check API.", Toast.LENGTH_LONG).show();
+                        // Do not proceed to MainActivity if registration fails
                     }
-                    startActivity(new Intent(this, MainActivity.class));
-                    finish();
                 });
     }
 }

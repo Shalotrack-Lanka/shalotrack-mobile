@@ -22,16 +22,25 @@ import com.google.firebase.auth.FirebaseUser;
 public class EmailInputActivity extends AppCompatActivity {
 
     private static final String TAG = "EmailVerification";
+
+    // UI Elements
+    private TextInputEditText etFullName;
+    private TextInputEditText etNicNumber;
     private TextInputEditText etEmail;
     private MaterialButton btnContinue;
+
+    // Timer & Verification
     private CountDownTimer countDownTimer;
     private Dialog timerDialog;
     private FirebaseAuth mAuth;
-
-    // Background polling variables
     private Handler verificationHandler;
     private Runnable verificationRunnable;
     private boolean isCheckingVerification = false;
+
+    // Variables to hold verified data before sending to ProcessingActivity
+    private String verifiedName = "";
+    private String verifiedNic = "";
+    private String verifiedEmail = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +48,10 @@ public class EmailInputActivity extends AppCompatActivity {
         setContentView(R.layout.activity_email_input);
 
         mAuth = FirebaseAuth.getInstance();
+
+        // Initialize all input fields
+        etFullName = findViewById(R.id.etFullName);
+        etNicNumber = findViewById(R.id.etNicNumber);
         etEmail = findViewById(R.id.etEmail);
         btnContinue = findViewById(R.id.btnContinue);
         verificationHandler = new Handler(Looper.getMainLooper());
@@ -46,51 +59,70 @@ public class EmailInputActivity extends AppCompatActivity {
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
         btnContinue.setOnClickListener(v -> {
+            // 1. Read values securely
+            String name = etFullName.getText() != null ? etFullName.getText().toString().trim() : "";
+            String nic = etNicNumber.getText() != null ? etNicNumber.getText().toString().trim() : "";
             String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
 
-            if (email.isEmpty()) {
-                Toast.makeText(this, "Please enter your email", Toast.LENGTH_SHORT).show();
-            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                Toast.makeText(this, "Please enter a valid email address", Toast.LENGTH_SHORT).show();
-            } else {
-                sendVerificationEmail(email);
+            // 2. Validate all fields
+            if (name.isEmpty()) {
+                etFullName.setError("Full Name is required");
+                etFullName.requestFocus();
+                return;
             }
+            if (nic.isEmpty()) {
+                etNicNumber.setError("NIC is required");
+                etNicNumber.requestFocus();
+                return;
+            }
+            if (email.isEmpty()) {
+                etEmail.setError("Email is required");
+                etEmail.requestFocus();
+                return;
+            }
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                etEmail.setError("Please enter a valid email address");
+                etEmail.requestFocus();
+                return;
+            }
+
+            // 3. Save to variables so we can pass them later
+            verifiedName = name;
+            verifiedNic = nic;
+            verifiedEmail = email;
+
+            // 4. Proceed to Firebase Verification
+            sendVerificationEmail(verifiedEmail);
         });
     }
 
     private void sendVerificationEmail(String email) {
         FirebaseUser user = mAuth.getCurrentUser();
 
-        // ================= TEST MODE BYPASS =================
-        // OTP එකෙන් හොර පාරෙන් ආපු නිසා user == null වෙනවා. අපි ඒක Test Mode එක විදිහට සලකමු.
-        if (user == null || email.equals("test@test.com")) {
+        // TEST MODE
+        if (user == null) {
             Toast.makeText(this, "Test Mode: Simulating Email Verification...", Toast.LENGTH_SHORT).show();
             showVerificationDialog();
-
-            // තත්පර 3කින් බොරුවට (Simulate කරලා) Success වෙනවා
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                stopCheckingEmailVerification();
-                if (timerDialog != null && timerDialog.isShowing()) timerDialog.dismiss();
-                if (countDownTimer != null) countDownTimer.cancel();
-                showSuccessDialog();
-            }, 3000);
+            new Handler(Looper.getMainLooper()).postDelayed(this::showSuccessDialog, 3000);
             return;
         }
-        // =====================================================
 
-        btnContinue.setEnabled(false); // Prevent multiple clicks
+        btnContinue.setEnabled(false);
         Toast.makeText(this, "Sending verification email...", Toast.LENGTH_SHORT).show();
 
-        // Real Firebase Process
+        // FIX: Use verifyBeforeUpdateEmail (replaces the deprecated updateEmail method).
+        // This securely updates the profile AND sends the verification email in one single step!
         user.verifyBeforeUpdateEmail(email).addOnCompleteListener(task -> {
             btnContinue.setEnabled(true);
             if (task.isSuccessful()) {
                 showVerificationDialog();
                 startCheckingEmailVerification();
             } else {
-                Log.e(TAG, "Email sending failed", task.getException());
-                String errorMsg = task.getException() != null ? task.getException().getMessage() : "Unknown error occurred";
-                Toast.makeText(this, "Error: " + errorMsg, Toast.LENGTH_LONG).show();
+                // FIX: Safely check if the exception is null to avoid NullPointerException
+                String errorMessage = task.getException() != null ? task.getException().getMessage() : "Unknown error occurred.";
+
+                Log.e(TAG, "Email verification process failed", task.getException());
+                Toast.makeText(this, "Error: " + errorMessage, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -107,7 +139,6 @@ public class EmailInputActivity extends AppCompatActivity {
         MaterialButton btnOpenEmail = timerDialog.findViewById(R.id.btnOpenEmail);
         TextView btnCancel = timerDialog.findViewById(R.id.btnCancel);
 
-        // 2 minutes and 54 seconds timer
         countDownTimer = new CountDownTimer(174000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
@@ -117,8 +148,8 @@ public class EmailInputActivity extends AppCompatActivity {
             public void onFinish() {
                 txtTimer.setText("0");
                 stopCheckingEmailVerification();
-                Toast.makeText(EmailInputActivity.this, "Verification timed out.", Toast.LENGTH_SHORT).show();
                 if (timerDialog.isShowing()) timerDialog.dismiss();
+                Toast.makeText(EmailInputActivity.this, "Verification timed out.", Toast.LENGTH_SHORT).show();
             }
         }.start();
 
@@ -149,16 +180,14 @@ public class EmailInputActivity extends AppCompatActivity {
             public void run() {
                 FirebaseUser user = mAuth.getCurrentUser();
                 if (user != null && isCheckingVerification) {
-                    // Reload is mandatory to fetch the latest verification status from Firebase servers
+                    // Mandatory reload to fetch fresh status from server
                     user.reload().addOnCompleteListener(task -> {
-                        if (task.isSuccessful() && user.isEmailVerified()) {
-                            // User clicked the link!
+                        if (user.isEmailVerified()) {
                             stopCheckingEmailVerification();
                             if (timerDialog != null && timerDialog.isShowing()) timerDialog.dismiss();
                             if (countDownTimer != null) countDownTimer.cancel();
                             showSuccessDialog();
                         } else {
-                            // Not verified yet, check again in 3 seconds
                             verificationHandler.postDelayed(this, 3000);
                         }
                     });
@@ -186,7 +215,14 @@ public class EmailInputActivity extends AppCompatActivity {
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (successDialog.isShowing()) successDialog.dismiss();
+
+            // Pass all the collected data to ProcessingActivity securely!
             Intent intent = new Intent(EmailInputActivity.this, ProcessingActivity.class);
+            intent.putExtra("EXTRA_NAME", verifiedName);
+            intent.putExtra("EXTRA_NIC", verifiedNic);
+            intent.putExtra("EXTRA_EMAIL", verifiedEmail);
+            intent.putExtra("EXTRA_ADDRESS", ""); // Blank as your API allows null
+
             startActivity(intent);
             finish();
         }, 2000);
@@ -196,11 +232,7 @@ public class EmailInputActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         stopCheckingEmailVerification();
-        if (countDownTimer != null) {
-            countDownTimer.cancel();
-        }
-        if (timerDialog != null && timerDialog.isShowing()) {
-            timerDialog.dismiss();
-        }
+        if (countDownTimer != null) countDownTimer.cancel();
+        if (timerDialog != null && timerDialog.isShowing()) timerDialog.dismiss();
     }
 }

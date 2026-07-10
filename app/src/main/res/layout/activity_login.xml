@@ -1,40 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="24dp"
     android:gravity="center">
 
-  <com.google.android.material.textfield.TextInputLayout
-      android:id="@+id/emailInput"
+  <TextView
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:hint="Email">
-    <com.google.android.material.textfield.TextInputEditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textEmailAddress" />
-  </com.google.android.material.textfield.TextInputLayout>
+      android:text="Welcome Back"
+      android:textSize="28sp"
+      android:textStyle="bold"
+      android:textColor="#0A2463"
+      android:gravity="center"
+      android:layout_marginBottom="8dp"/>
+
+  <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Enter your phone number to receive a secure login code."
+      android:textSize="15sp"
+      android:textColor="#757575"
+      android:gravity="center"
+      android:layout_marginBottom="32dp"/>
 
   <com.google.android.material.textfield.TextInputLayout
-      android:id="@+id/passwordInput"
+      android:id="@+id/phoneInput"
+      style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:layout_marginTop="16dp"
-      android:hint="Password">
+      android:hint="@string/hint_phone">
+
     <com.google.android.material.textfield.TextInputEditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="textPassword" />
+        android:inputType="phone"
+        android:maxLength="10" />
   </com.google.android.material.textfield.TextInputLayout>
 
   <com.google.android.material.button.MaterialButton
-      android:id="@+id/btnLogin"
+      android:id="@+id/btnSendCode"
       android:layout_width="match_parent"
-      android:layout_height="wrap_content"
+      android:layout_height="65dp"
       android:layout_marginTop="24dp"
-      android:text="Login" />
+      android:text="@string/btn_send_code"
+      android:textSize="18sp"
+      android:textStyle="bold" />
 
   <ProgressBar
       android:id="@+id/progressBar"

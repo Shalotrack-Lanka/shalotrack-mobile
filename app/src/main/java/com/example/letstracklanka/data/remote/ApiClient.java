@@ -19,6 +19,7 @@ public class ApiClient {
 
             // 2. Build the client with the logger and 30-second timeouts
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                    .addInterceptor(new AuthInterceptor())
                     .addInterceptor(logging)
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(30, TimeUnit.SECONDS)

@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
+    implementation(libs.firebase.messaging)
     implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
