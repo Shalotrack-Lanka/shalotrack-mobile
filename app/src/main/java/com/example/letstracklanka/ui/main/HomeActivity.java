@@ -141,15 +141,25 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Go to Tags Screen (Finding the button by its position in XML)
+        // Go to Tags & Circles Screen (Finding the buttons by their position in XML)
         LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
-        if (bottomNavBar != null && bottomNavBar.getChildCount() > 2) {
-            View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
-            navTags.setOnClickListener(v -> {
-                Intent intent = new Intent(HomeActivity.this, TagsActivity.class);
-                startActivity(intent);
-                overridePendingTransition(0, 0); // No animation
-            });
+        if (bottomNavBar != null) {
+            if (bottomNavBar.getChildCount() > 2) {
+                View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
+                navTags.setOnClickListener(v -> {
+                    Intent intent = new Intent(HomeActivity.this, TagsActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
+            if (bottomNavBar.getChildCount() > 3) {
+                View navCircles = bottomNavBar.getChildAt(3); // 4th item is Circles
+                navCircles.setOnClickListener(v -> {
+                    Intent intent = new Intent(HomeActivity.this, CirclesActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
         }
         // --------------------------------
     }
