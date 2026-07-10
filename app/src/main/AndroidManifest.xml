@@ -16,12 +16,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
 
+        <!-- අලුතින් හදපු TagsActivity එක මෙතනට එකතු කළා -->
+        <activity
+            android:name=".ui.main.TagsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
         <activity
             android:name=".ui.vehicles.VehiclesActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
-        <!-- කෙලින්ම Home එකට යන්න මේක වෙනස් කළා (exported="true" කරලා intent-filter එක දැම්මා) -->
+        <!-- කෙලින්ම Home එකට යන්න මේක වෙනස් කළා -->
         <activity
             android:name=".ui.main.HomeActivity"
             android:exported="true"
@@ -41,7 +47,6 @@
             android:launchMode="singleTask"
             android:exported="false" />
 
-        <!-- මෙතන තිබුණ Launcher කෑල්ල අයින් කරලා exported="false" කළා -->
         <activity
             android:name=".ui.main.WelcomeActivity"
             android:exported="false"

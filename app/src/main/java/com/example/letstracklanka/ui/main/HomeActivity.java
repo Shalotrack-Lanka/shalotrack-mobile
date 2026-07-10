@@ -129,9 +129,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
         if (btnHomeSOS != null) btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
 
-        // --- Bottom Navigation Setup ---
+        // --- Bottom Navigation Setup (Without changing XML IDs) ---
 
-        // Go to Vehicles Screen
+        // Go to Vehicles Screen (XML has this ID)
         LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
@@ -141,9 +141,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Go to Tags Screen
-        LinearLayout navTags = findViewById(R.id.nav_tags);
-        if (navTags != null) {
+        // Go to Tags Screen (Finding the button by its position in XML)
+        LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
+        if (bottomNavBar != null && bottomNavBar.getChildCount() > 2) {
+            View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
             navTags.setOnClickListener(v -> {
                 Intent intent = new Intent(HomeActivity.this, TagsActivity.class);
                 startActivity(intent);
