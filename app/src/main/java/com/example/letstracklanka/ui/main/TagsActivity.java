@@ -2,6 +2,7 @@ package com.example.letstracklanka.ui.main;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -66,6 +67,17 @@ public class TagsActivity extends AppCompatActivity {
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
                 Intent intent = new Intent(TagsActivity.this, VehiclesActivity.class);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
+        }
+
+        // Circles Button
+        LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
+        if (bottomNavBar != null && bottomNavBar.getChildCount() > 3) {
+            View navCircles = bottomNavBar.getChildAt(3);
+            navCircles.setOnClickListener(v -> {
+                Intent intent = new Intent(TagsActivity.this, CirclesActivity.class);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
             });
