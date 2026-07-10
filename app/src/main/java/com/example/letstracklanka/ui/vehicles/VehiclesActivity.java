@@ -22,7 +22,7 @@ import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.main.HomeActivity;
 import com.example.letstracklanka.ui.main.TagsActivity;
-import com.example.letstracklanka.ui.main.CirclesActivity; // CirclesActivity එක Import කළා
+import com.example.letstracklanka.ui.main.CirclesActivity; // Imported CirclesActivity
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -46,13 +46,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private GoogleMap mMap;
     private ShaloTrackApi apiService;
 
-    // UI කොටස්
+    // UI components
     private LinearLayout layoutCollapsed, layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
     private FloatingActionButton fabAdd, fabHistory;
     private ImageView btnCloseExpanded;
 
-    // Data පෙන්වන කොටස්
+    // Data display components
     private TextView tvCollapsedStatus, tvCollapsedAddress;
     private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated;
     private CardView dotIgnition, dotAC;
@@ -69,7 +69,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         setContentView(R.layout.activity_vehicles);
 
         try {
-            // Layouts සහ FABs අල්ලගැනීම
+            // Find Layouts and FABs
             layoutCollapsed = findViewById(R.id.layoutCollapsed);
             layoutExpanded = findViewById(R.id.layoutExpanded);
             layoutLeftFabs = findViewById(R.id.layoutLeftFabs);
@@ -77,7 +77,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             fabAdd = findViewById(R.id.fabAdd);
             fabHistory = findViewById(R.id.fabHistory);
 
-            // Text Views සහ Buttons අල්ලගැනීම
+            // Find Text Views and Buttons
             tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
             tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
             tvExpandedStatus = findViewById(R.id.tvExpandedStatus);
@@ -108,10 +108,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    // Fully Expanded (උඩටම ඇද්දම)
+                    // Fully Expanded state
                     gridMenu.setVisibility(View.VISIBLE);
                 } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    // Collapsed (පල්ලෙහාට ගියාම)
+                    // Collapsed state
                     layoutExpanded.setVisibility(View.GONE);
                     gridMenu.setVisibility(View.GONE);
 
@@ -127,14 +127,14 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
         });
 
-        // පොඩි කාඩ් එක ක්ලික් කරද්දී Half-Expanded වෙනවා
+        // Half-expand when collapsed card is clicked
         if (layoutCollapsed != null) {
             layoutCollapsed.setOnClickListener(v -> {
                 layoutCollapsed.setVisibility(View.GONE);
                 fabAdd.setVisibility(View.GONE);
 
                 layoutExpanded.setVisibility(View.VISIBLE);
-                gridMenu.setVisibility(View.GONE); // තාම ග්‍රිඩ් එක පේන්නේ නෑ
+                gridMenu.setVisibility(View.GONE); // Grid is not visible yet
 
                 fabHistory.setVisibility(View.VISIBLE);
                 layoutLeftFabs.setVisibility(View.VISIBLE);
@@ -143,7 +143,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // 'X' බටන් එක ක්ලික් කරද්දී ආපහු Collapsed වෙනවා
+        // Collapse when close button is clicked
         if (btnCloseExpanded != null) {
             btnCloseExpanded.setOnClickListener(v -> {
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
@@ -152,7 +152,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         // --- Bottom Navigation Setup ---
 
-        // Home බටන් එක
+        // Home button setup
         LinearLayout navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
@@ -164,11 +164,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Tags සහ Circles බටන් වලට අදාළ අලුත් කේතය
+        // Setup Tags and Circles buttons
         LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
         if (bottomNavBar != null) {
             if (bottomNavBar.getChildCount() > 2) {
-                View navTags = bottomNavBar.getChildAt(2); // 3 වැනි අයිතමය Tags
+                View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
                 navTags.setOnClickListener(v -> {
                     Intent intent = new Intent(VehiclesActivity.this, TagsActivity.class);
                     startActivity(intent);
@@ -176,7 +176,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 });
             }
             if (bottomNavBar.getChildCount() > 3) {
-                View navCircles = bottomNavBar.getChildAt(3); // 4 වැනි අයිතමය Circles
+                View navCircles = bottomNavBar.getChildAt(3); // 4th item is Circles
                 navCircles.setOnClickListener(v -> {
                     Intent intent = new Intent(VehiclesActivity.this, CirclesActivity.class);
                     startActivity(intent);
@@ -185,7 +185,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             }
         }
 
-        // Refresh බටන් එක
+        // Refresh button setup
         if (btnRefresh != null) {
             btnRefresh.setOnClickListener(v -> {
                 Toast.makeText(this, "Refreshing location...", Toast.LENGTH_SHORT).show();
