@@ -26,6 +26,7 @@ public class EmailInputActivity extends AppCompatActivity {
     // UI Elements
     private TextInputEditText etFullName;
     private TextInputEditText etNicNumber;
+    private TextInputEditText etAddress;
     private TextInputEditText etEmail;
     private MaterialButton btnContinue;
 
@@ -40,6 +41,7 @@ public class EmailInputActivity extends AppCompatActivity {
     // Variables to hold verified data before sending to ProcessingActivity
     private String verifiedName = "";
     private String verifiedNic = "";
+    private String verifiedAddress = "";
     private String verifiedEmail = "";
 
     @Override
@@ -52,6 +54,7 @@ public class EmailInputActivity extends AppCompatActivity {
         // Initialize all input fields
         etFullName = findViewById(R.id.etFullName);
         etNicNumber = findViewById(R.id.etNicNumber);
+        etAddress = findViewById(R.id.etAddress);
         etEmail = findViewById(R.id.etEmail);
         btnContinue = findViewById(R.id.btnContinue);
         verificationHandler = new Handler(Looper.getMainLooper());
@@ -62,6 +65,7 @@ public class EmailInputActivity extends AppCompatActivity {
             // 1. Read values securely
             String name = etFullName.getText() != null ? etFullName.getText().toString().trim() : "";
             String nic = etNicNumber.getText() != null ? etNicNumber.getText().toString().trim() : "";
+            String address = etAddress.getText() != null ? etAddress.getText().toString().trim() : "";
             String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
 
             // 2. Validate all fields
@@ -73,6 +77,11 @@ public class EmailInputActivity extends AppCompatActivity {
             if (nic.isEmpty()) {
                 etNicNumber.setError("NIC is required");
                 etNicNumber.requestFocus();
+                return;
+            }
+            if (address.isEmpty()) {
+                etAddress.setError("Address is required");
+                etAddress.requestFocus();
                 return;
             }
             if (email.isEmpty()) {
@@ -89,6 +98,7 @@ public class EmailInputActivity extends AppCompatActivity {
             // 3. Save to variables so we can pass them later
             verifiedName = name;
             verifiedNic = nic;
+            verifiedAddress = address;
             verifiedEmail = email;
 
             // 4. Proceed to Firebase Verification
@@ -99,9 +109,9 @@ public class EmailInputActivity extends AppCompatActivity {
     private void sendVerificationEmail(String email) {
         FirebaseUser user = mAuth.getCurrentUser();
 
-        // TEST MODE
+        // TEST MODE (for local testing without Firebase)
         if (user == null) {
-            Toast.makeText(this, "Test Mode: Simulating Email Verification...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Simulating Email Verification...", Toast.LENGTH_SHORT).show();
             showVerificationDialog();
             new Handler(Looper.getMainLooper()).postDelayed(this::showSuccessDialog, 3000);
             return;
@@ -110,17 +120,13 @@ public class EmailInputActivity extends AppCompatActivity {
         btnContinue.setEnabled(false);
         Toast.makeText(this, "Sending verification email...", Toast.LENGTH_SHORT).show();
 
-        // FIX: Use verifyBeforeUpdateEmail (replaces the deprecated updateEmail method).
-        // This securely updates the profile AND sends the verification email in one single step!
         user.verifyBeforeUpdateEmail(email).addOnCompleteListener(task -> {
             btnContinue.setEnabled(true);
             if (task.isSuccessful()) {
                 showVerificationDialog();
                 startCheckingEmailVerification();
             } else {
-                // FIX: Safely check if the exception is null to avoid NullPointerException
                 String errorMessage = task.getException() != null ? task.getException().getMessage() : "Unknown error occurred.";
-
                 Log.e(TAG, "Email verification process failed", task.getException());
                 Toast.makeText(this, "Error: " + errorMessage, Toast.LENGTH_LONG).show();
             }
@@ -180,7 +186,6 @@ public class EmailInputActivity extends AppCompatActivity {
             public void run() {
                 FirebaseUser user = mAuth.getCurrentUser();
                 if (user != null && isCheckingVerification) {
-                    // Mandatory reload to fetch fresh status from server
                     user.reload().addOnCompleteListener(task -> {
                         if (user.isEmailVerified()) {
                             stopCheckingEmailVerification();
@@ -216,12 +221,11 @@ public class EmailInputActivity extends AppCompatActivity {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (successDialog.isShowing()) successDialog.dismiss();
 
-            // Pass all the collected data to ProcessingActivity securely!
             Intent intent = new Intent(EmailInputActivity.this, ProcessingActivity.class);
             intent.putExtra("EXTRA_NAME", verifiedName);
             intent.putExtra("EXTRA_NIC", verifiedNic);
             intent.putExtra("EXTRA_EMAIL", verifiedEmail);
-            intent.putExtra("EXTRA_ADDRESS", ""); // Blank as your API allows null
+            intent.putExtra("EXTRA_ADDRESS", verifiedAddress);
 
             startActivity(intent);
             finish();

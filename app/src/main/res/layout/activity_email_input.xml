@@ -95,7 +95,33 @@
             android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- 3. Email Input -->
+    <!-- 3. Address Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutAddress"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="16dp"
+        android:hint="Home Address"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxStrokeColor="#0A2463"
+        app:hintTextColor="#0A2463"
+        app:layout_constraintTop_toBottomOf="@+id/layoutNicNumber">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPostalAddress"
+            android:textColor="#333333"
+            android:textSize="16sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- 4. Email Input -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/layoutEmailInput"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -112,7 +138,7 @@
         app:hintTextColor="#0A2463"
         app:startIconDrawable="@android:drawable/ic_dialog_email"
         app:startIconTint="#757575"
-        app:layout_constraintTop_toBottomOf="@+id/layoutNicNumber">
+        app:layout_constraintTop_toBottomOf="@+id/layoutAddress">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etEmail"
