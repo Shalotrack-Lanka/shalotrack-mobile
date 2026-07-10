@@ -2,6 +2,7 @@ package com.example.letstracklanka.ui.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -22,51 +23,50 @@ public class ProcessingActivity extends AppCompatActivity {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
         if (currentUser == null) {
-            Toast.makeText(this, "Session expired. Please restart.", Toast.LENGTH_LONG).show();
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         }
 
-        // 1. Get real data passed from the previous activity's Intent
         String name = getIntent().getStringExtra("EXTRA_NAME");
         String nic = getIntent().getStringExtra("EXTRA_NIC");
         String address = getIntent().getStringExtra("EXTRA_ADDRESS");
-
-        // CRITICAL FIX: Extract the email from the Intent, fallback to Firebase if missing
         String email = getIntent().getStringExtra("EXTRA_EMAIL");
-        if (email == null || email.trim().isEmpty()) {
-            email = currentUser.getEmail();
-        }
 
-        // Get phone from Intent first, fallback to Firebase
-        String phone = getIntent().getStringExtra("EXTRA_PHONE");
-        if (phone == null || phone.trim().isEmpty()) {
-            phone = currentUser.getPhoneNumber();
-        }
-
-        // 2. Final safety check before calling the API
-        if (email == null || email.trim().isEmpty() || phone == null || phone.trim().isEmpty()) {
-            Toast.makeText(this, "Error: Email and Phone are strictly required.", Toast.LENGTH_LONG).show();
-            finish();
-            return;
+        // Use Firebase phone number (it's verified)
+        String phone = currentUser.getPhoneNumber();
+        if (phone != null) {
+            phone = phone.replace("+", ""); // Clean for API
         }
 
         ProgressBar progressBar = findViewById(R.id.progressBar);
         AuthViewModel viewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
-        // 3. Execute registration
         progressBar.setVisibility(View.VISIBLE);
+        
+        // Final Registration Call
         viewModel.performRegistration(name, email, phone, nic, address)
-                .observe(this, success -> {
+                .observe(this, result -> {
                     progressBar.setVisibility(View.GONE);
-                    if (success) {
-                        Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
-                        startActivity(new Intent(this, MainActivity.class));
+                    if ("SUCCESS".equals(result)) {
+                        Toast.makeText(this, "Welcome to ShaloTrack!", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(this, MainActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
                         finish();
                     } else {
-                        Toast.makeText(this, "Registration Failed. Check API.", Toast.LENGTH_LONG).show();
-                        // Do not proceed to MainActivity if registration fails
+                        // If registration fails (e.g., user already exists in DB), 
+                        // we still let them in because they passed Firebase Phone Auth.
+                        Log.e("REG_ERROR", "API Error: " + result);
+                        
+                        // If it's a conflict (user already exists), we should proceed.
+                        if (result.contains("409") || result.contains("exists")) {
+                             startActivity(new Intent(this, MainActivity.class));
+                             finish();
+                        } else {
+                             Toast.makeText(this, "Database Sync Failed. Please try again.", Toast.LENGTH_LONG).show();
+                             finish(); // Go back and try again
+                        }
                     }
                 });
     }

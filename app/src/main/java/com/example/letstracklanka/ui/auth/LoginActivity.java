@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.ui.main.MainActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.FirebaseException;
@@ -98,7 +99,7 @@ public class LoginActivity extends AppCompatActivity {
                 mAuth.signInWithCredential(credential).addOnCompleteListener(LoginActivity.this, task -> {
                     if (task.isSuccessful()) {
                         // Success! Go straight to EmailInputActivity (skipping the OTP screen)
-                        Intent intent = new Intent(LoginActivity.this, EmailInputActivity.class);
+                        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                     } else {

@@ -2,23 +2,23 @@ package com.example.letstracklanka.data.model;
 
 import com.google.gson.annotations.SerializedName;
 
-@SuppressWarnings("unused") // Ignores the "Method is never used" warning
+@SuppressWarnings("unused")
 public class CustomerRequest {
 
-    @SerializedName("FullName")
-    private final String fullName; // Added 'final'
+    @SerializedName("fullName")
+    private final String fullName;
 
-    @SerializedName("Email")
-    private final String email; // Added 'final'
+    @SerializedName("email")
+    private final String email;
 
-    @SerializedName("PhoneNumber")
-    private final String phoneNumber; // Added 'final'
+    @SerializedName("phoneNumber")
+    private final String phoneNumber;
 
-    @SerializedName("NicNumber")
-    private final String nicNumber; // Added 'final'
+    @SerializedName("nicNumber")
+    private final String nicNumber;
 
-    @SerializedName("Address")
-    private final String address; // Added 'final'
+    @SerializedName("address")
+    private final String address;
 
     public CustomerRequest(String fullName, String email, String phoneNumber, String nicNumber, String address) {
         this.fullName = fullName;
@@ -28,7 +28,6 @@ public class CustomerRequest {
         this.address = address;
     }
 
-    // Getters
     public String getFullName() { return fullName; }
     public String getEmail() { return email; }
     public String getPhoneNumber() { return phoneNumber; }

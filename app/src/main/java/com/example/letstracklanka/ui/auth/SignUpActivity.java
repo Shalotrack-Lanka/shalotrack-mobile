@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.ShaloTrackApp;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.FirebaseAuth;
@@ -30,18 +31,11 @@ public class SignUpActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
 
-        // Initialize Firebase
-        FirebaseApp.initializeApp(this);
         mAuth = FirebaseAuth.getInstance();
-
         etPhoneNumber = findViewById(R.id.etPhoneNumber);
 
         String[] languages = {"English (US)", "Sinhala (LK)", "Tamil (LK)"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_dropdown_item_1line,
-                languages
-        );
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, languages);
         AutoCompleteTextView dropdownLanguage = findViewById(R.id.dropdownLanguage);
         dropdownLanguage.setAdapter(adapter);
 
@@ -49,80 +43,51 @@ public class SignUpActivity extends AppCompatActivity {
 
         findViewById(R.id.btnSendCode).setOnClickListener(v -> {
             String number = etPhoneNumber.getText().toString().trim();
-
             if (number.isEmpty() || number.length() < 9) {
                 Toast.makeText(this, "Enter a valid phone number", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // ================= TEST MODE BYPASS =================
-            if (number.equals("758381698") || number.equals("0758381698")) {
-                Toast.makeText(this, "Test Mode: Moving to OTP Screen", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
-                // "test_id_123" කියන්නේ බොරු ID එකක්
-                intent.putExtra("verificationId", "test_id_123");
+            // TEST MODE BYPASS
+            if (ShaloTrackApp.TEST_MODE) {
+                Intent intent = new Intent(this, OtpVerificationActivity.class);
+                intent.putExtra("backend_verification_id", "test_id");
                 startActivity(intent);
-                return; // මෙතනින් යටට යන්නේ නෑ, කෙලින්ම ඊළඟ පිටුවට යනවා
+                return;
             }
-            // =====================================================
 
-            // Correctly format the Sri Lankan number
-            if (number.length() == 10 && number.startsWith("0")) {
-                number = number.substring(1);
-            }
+            if (number.startsWith("0")) number = number.substring(1);
             String fullPhoneNumber = "+94" + number;
 
             Toast.makeText(this, "Sending OTP...", Toast.LENGTH_SHORT).show();
-            findViewById(R.id.btnSendCode).setEnabled(false); // Temporarily disable button to prevent spam
-
-            // Firebase Phone Auth
-            PhoneAuthOptions options =
-                    PhoneAuthOptions.newBuilder(mAuth)
-                            .setPhoneNumber(fullPhoneNumber)
-                            .setTimeout(60L, TimeUnit.SECONDS)
-                            .setActivity(this)
-                            .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-
-                                @Override
-                                public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-                                    findViewById(R.id.btnSendCode).setEnabled(true);
-
-                                    // Auto-Verify වුණොත් කෙලින්ම Sign-in කරලා ඊළඟ පිටුවට යවනවා
-                                    mAuth.signInWithCredential(credential)
-                                            .addOnCompleteListener(SignUpActivity.this, task -> {
-                                                if (task.isSuccessful()) {
-                                                    Toast.makeText(SignUpActivity.this, "Auto-Verification Successful!", Toast.LENGTH_SHORT).show();
-                                                    Intent intent = new Intent(SignUpActivity.this, EmailInputActivity.class); // හරි පිටුවට යවන්න
-                                                    startActivity(intent);
-                                                    finish();
-                                                } else {
-                                                    Toast.makeText(SignUpActivity.this, "Auto-Verification Failed", Toast.LENGTH_SHORT).show();
-                                                }
-                                            });
+            
+            PhoneAuthOptions options = PhoneAuthOptions.newBuilder(mAuth)
+                    .setPhoneNumber(fullPhoneNumber)
+                    .setTimeout(60L, TimeUnit.SECONDS)
+                    .setActivity(this)
+                    .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                        @Override
+                        public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
+                            mAuth.signInWithCredential(credential).addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    startActivity(new Intent(SignUpActivity.this, EmailInputActivity.class));
+                                    finish();
                                 }
+                            });
+                        }
 
-                                @Override
-                                public void onVerificationFailed(@NonNull FirebaseException e) {
-                                    findViewById(R.id.btnSendCode).setEnabled(true);
+                        @Override
+                        public void onVerificationFailed(@NonNull FirebaseException e) {
+                            Toast.makeText(SignUpActivity.this, "Error: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        }
 
-                                    // Log the exact error to Logcat
-                                    Log.e("FirebaseError", "OTP Request Failed: ", e);
-
-                                    Toast.makeText(SignUpActivity.this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                                }
-
-                                @Override
-                                public void onCodeSent(@NonNull String verificationId,
-                                                       @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                                    findViewById(R.id.btnSendCode).setEnabled(true);
-
-                                    // Move to OTP screen with the REAL verification ID
-                                    Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
-                                    intent.putExtra("verificationId", verificationId);
-                                    startActivity(intent);
-                                }
-                            })
-                            .build();
+                        @Override
+                        public void onCodeSent(@NonNull String verificationId, @NonNull PhoneAuthProvider.ForceResendingToken token) {
+                            Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
+                            intent.putExtra("backend_verification_id", verificationId);
+                            startActivity(intent);
+                        }
+                    }).build();
             PhoneAuthProvider.verifyPhoneNumber(options);
         });
     }

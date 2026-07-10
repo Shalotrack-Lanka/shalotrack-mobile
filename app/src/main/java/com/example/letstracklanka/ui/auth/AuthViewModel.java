@@ -1,6 +1,6 @@
 package com.example.letstracklanka.ui.auth;
 
-import android.util.Log; // Required for tracking the error
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
@@ -8,49 +8,52 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.letstracklanka.data.model.CustomerRequest;
-import com.example.letstracklanka.data.model.StatusResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
+import com.google.gson.Gson;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class AuthViewModel extends ViewModel {
 
-    // Initialize the API service using your ApiClient
     private final ApiService apiService = ApiClient.getClient().create(ApiService.class);
 
-    public LiveData<Boolean> performRegistration(String name, String email, String phone, String nic, String address) {
-        MutableLiveData<Boolean> result = new MutableLiveData<>();
-
-        // 1. THIS WILL SHOW YOU EXACTLY WHAT IS BEING SENT
-        Log.d("API_TRACKING", "Attempting to register -> Name: " + name + " | Email: " + email + " | Phone: " + phone);
+    public LiveData<String> performRegistration(String name, String email, String phone, String nic, String address) {
+        MutableLiveData<String> result = new MutableLiveData<>();
 
         // Create the Request Object
         CustomerRequest request = new CustomerRequest(name, email, phone, nic, address);
+        
+        // LOG THE JSON SO YOU CAN CHECK IT MANUALLY IN POSTMAN IF IT FAILS
+        String jsonPayload = new Gson().toJson(request);
+        Log.d("API_TRACKING", "POSTing to /api/Customers: " + jsonPayload);
 
-        // Call your Retrofit API
-        apiService.createCustomer(request).enqueue(new Callback<StatusResponse>() {
+        apiService.createCustomer(request).enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(@NonNull Call<StatusResponse> call, @NonNull Response<StatusResponse> response) {
-
-                // 2. THIS WILL PRINT THE EXACT C# BACKEND ERROR TO YOUR LOGCAT
-                if (!response.isSuccessful()) {
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (response.isSuccessful()) {
+                    Log.d("API_TRACKING", "Registration SUCCESS (200/201)");
+                    result.setValue("SUCCESS");
+                } else {
+                    String errorMsg = "Registration Failed (Code: " + response.code() + ")";
                     try {
-                        Log.e("API_TRACKING", "Backend rejected request. Error: " + response.errorBody().string());
+                        if (response.errorBody() != null) {
+                            String serverError = response.errorBody().string();
+                            Log.e("API_TRACKING", "Backend Error Body: " + serverError);
+                            errorMsg = "Server Error: " + serverError;
+                        }
                     } catch (Exception ignored) {}
+                    result.setValue(errorMsg);
                 }
-
-                // Check if API returned 200/201 Success
-                result.setValue(response.isSuccessful());
             }
 
             @Override
-            public void onFailure(@NonNull Call<StatusResponse> call, @NonNull Throwable t) {
-                // 3. THIS WILL PRINT IF THE SERVER IS DOWN
-                Log.e("API_TRACKING", "Network Request Failed: " + t.getMessage());
-                result.setValue(false);
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("API_TRACKING", "Network Failure: " + t.getMessage());
+                result.setValue("Network Error: " + t.getMessage());
             }
         });
 
