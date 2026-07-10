@@ -16,7 +16,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
 
-        <!-- අලුතින් හදපු TagsActivity එක මෙතනට එකතු කළා -->
+        <!-- අලුතින් හදපු CirclesActivity එක මෙතනට එකතු කළා -->
+        <activity
+            android:name=".ui.main.CirclesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+
+        <!-- අලුතින් හදපු TagsActivity එක -->
         <activity
             android:name=".ui.main.TagsActivity"
             android:exported="false"
