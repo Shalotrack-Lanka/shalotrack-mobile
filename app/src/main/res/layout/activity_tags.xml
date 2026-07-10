@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#333333"> <!-- Placeholder for your Map Background -->
+
+    <!-- Main Content in the center -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="150dp">
+
+        <!-- Top Tag Icon -->
+        <ImageView
+            android:id="@+id/imgTagIcon"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginTop="60dp"
+            android:src="@android:drawable/ic_menu_gallery" <!-- Replace with your Tag icon -->
+        app:tint="@color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Main Title -->
+        <TextView
+            android:id="@+id/tvMainTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="There are no tags added to your account."
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/imgTagIcon"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Add Tag Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddTag"
+            android:layout_width="200dp"
+            android:layout_height="55dp"
+            android:text="Add TAG"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            app:backgroundTint="#EBF0FF"
+            app:cornerRadius="20dp"
+            app:layout_constraintTop_toBottomOf="@id/tvMainTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- 'or' text -->
+        <TextView
+            android:id="@+id/tvOr"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="or"
+            android:textColor="@color/white"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/btnAddTag"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Watch Help Videos Text -->
+        <TextView
+            android:id="@+id/tvWatchHelp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Watch Help Videos"
+            android:textColor="@color/white"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/tvOr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Video Buttons Grid -->
+        <GridLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:columnCount="2"
+            android:rowCount="2"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/tvWatchHelp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTouchTag"
+                android:layout_width="160dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:text="Touch TAG"
+                android:textColor="#000000"
+                app:icon="@android:drawable/ic_media_play"
+                app:iconTint="#000000"
+                app:backgroundTint="#F5F5F5"
+                app:cornerRadius="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStickerTag"
+                android:layout_width="160dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:text="Sticker TAG"
+                android:textColor="#000000"
+                app:icon="@android:drawable/ic_media_play"
+                app:iconTint="#000000"
+                app:backgroundTint="#F5F5F5"
+                app:cornerRadius="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBluetoothTag"
+                android:layout_width="160dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:text="Bluetooth TAG"
+                android:textColor="#000000"
+                app:icon="@android:drawable/ic_media_play"
+                app:iconTint="#000000"
+                app:backgroundTint="#F5F5F5"
+                app:cornerRadius="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnParkingTag"
+                android:layout_width="160dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:text="Parking TAG"
+                android:textColor="#000000"
+                app:icon="@android:drawable/ic_media_play"
+                app:iconTint="#000000"
+                app:backgroundTint="#F5F5F5"
+                app:cornerRadius="20dp" />
+        </GridLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Floating Action Buttons -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabScan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="24dp"
+        android:layout_marginBottom="120dp"
+        app:backgroundTint="@color/white"
+        app:tint="#1877F2"
+        android:src="@android:drawable/ic_menu_camera" /> <!-- Replace with QR Scan Icon -->
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:layout_marginBottom="120dp"
+        app:backgroundTint="@color/white"
+        app:tint="#1877F2"
+        android:src="@android:drawable/ic_input_add" />
+
+    <!-- Bottom White Panel -->
+    <LinearLayout
+        android:id="@+id/bottomSheetTags"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:orientation="vertical"
+        android:background="@drawable/bg_bottom_sheet_rounded"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+        app:behavior_hideable="false"
+        app:behavior_peekHeight="120dp">
+
+        <!-- Small Drag Handle -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:background="#CCCCCC" />
+
+        <!-- Bottom Text -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="30dp"
+            android:text="There are no tags added to your account."
+            android:textColor="#888888"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <!-- NOTE: You will need to <include> your Bottom Navigation Bar XML here at the very bottom -->
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

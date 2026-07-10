@@ -21,10 +21,16 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
+        <!-- කෙලින්ම Home එකට යන්න මේක වෙනස් කළා (exported="true" කරලා intent-filter එක දැම්මා) -->
         <activity
             android:name=".ui.main.HomeActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:exported="true"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.auth.ProcessingActivity"
@@ -35,15 +41,11 @@
             android:launchMode="singleTask"
             android:exported="false" />
 
+        <!-- මෙතන තිබුණ Launcher කෑල්ල අයින් කරලා exported="false" කළා -->
         <activity
             android:name=".ui.main.WelcomeActivity"
-            android:exported="true"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
         <activity
             android:name=".ui.auth.SignUpActivity"

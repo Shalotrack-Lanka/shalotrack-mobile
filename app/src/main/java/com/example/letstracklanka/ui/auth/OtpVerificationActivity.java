@@ -44,7 +44,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
         setupOtpInputs();
         btnBack.setOnClickListener(v -> finish());
-        
+
         btnVerifyCode.setOnClickListener(v -> {
             String code = getOtpString();
             if (code.length() < 6) {
@@ -85,13 +85,23 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void verifyOtp(String code) {
+        // ================= TEST MODE BYPASS =================
+        if ("test_id_123".equals(verificationId) && "123456".equals(code)) {
+            Toast.makeText(this, "Test Mode: Verification Success", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, EmailInputActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return;
+        }
+        // =====================================================
+
         btnVerifyCode.setEnabled(false);
         btnVerifyCode.setText("Verifying...");
-        
+
         PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
         mAuth.signInWithCredential(credential).addOnCompleteListener(this, task -> {
             if (task.isSuccessful()) {
-                // Success: Move to Details screen to ensure they are in your DB
                 Intent intent = new Intent(this, EmailInputActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
