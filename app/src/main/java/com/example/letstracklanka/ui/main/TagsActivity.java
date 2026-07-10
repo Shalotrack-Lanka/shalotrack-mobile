@@ -23,7 +23,7 @@ public class TagsActivity extends AppCompatActivity {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) {
             mapFragment.getMapAsync(googleMap -> {
-                // මැප් එක ලෝඩ් වුණාම මොකුත් කරන්න ඕනේ නෑ, නිකන් Background එකේ පෙනෙයි
+                // No action needed when map loads, it will just show in the background
             });
         }
 
