@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
@@ -17,11 +18,13 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <fragment
+            <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/mapVehicles"
                 android:name="com.google.android.gms.maps.SupportMapFragment"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent"
+                android:contentDescription="@string/desc_map"
+                tools:context=".ui.vehicles.VehiclesActivity" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -29,12 +32,14 @@
                 android:orientation="vertical"
                 android:layout_marginTop="40dp"
                 android:layout_marginEnd="16dp"
+                android:baselineAligned="false"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
+                    android:contentDescription="@string/desc_map_layers"
                     app:backgroundTint="#FFFFFF"
                     app:fabSize="mini"
                     app:tint="#1877F2"
@@ -42,6 +47,7 @@
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:contentDescription="@string/desc_my_location"
                     app:backgroundTint="#FFFFFF"
                     app:fabSize="mini"
                     app:tint="#1877F2"
@@ -54,6 +60,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="160dp"
+                android:contentDescription="@string/desc_add_vehicle"
                 app:backgroundTint="#FFFFFF"
                 app:fabSize="normal"
                 app:tint="#1877F2"
@@ -68,6 +75,7 @@
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="270dp"
                 android:visibility="gone"
+                android:contentDescription="@string/desc_history"
                 app:backgroundTint="#FFFFFF"
                 app:fabSize="normal"
                 app:tint="#1877F2"
@@ -83,12 +91,14 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginBottom="270dp"
                 android:visibility="gone"
+                android:baselineAligned="false"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent">
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
+                    android:contentDescription="@string/desc_places"
                     app:backgroundTint="#FFFFFF"
                     app:fabSize="normal"
                     app:tint="#BDBDBD"
@@ -96,6 +106,7 @@
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:contentDescription="@string/desc_menu"
                     app:backgroundTint="#FFFFFF"
                     app:fabSize="normal"
                     app:tint="#BDBDBD"
@@ -118,7 +129,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingBottom="20dp">
+                android:paddingBottom="20dp"
+                android:baselineAligned="false">
 
                 <View
                     android:layout_width="40dp"
@@ -128,16 +140,15 @@
                     android:layout_marginTop="12dp"
                     android:layout_marginBottom="12dp"/>
 
-                <LinearLayout
+                <RelativeLayout
                     android:id="@+id/layoutCollapsed"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
                     android:paddingHorizontal="20dp"
-                    android:paddingBottom="12dp"
-                    android:gravity="center_vertical">
+                    android:paddingBottom="12dp">
 
                     <androidx.cardview.widget.CardView
+                        android:id="@+id/cardVehicleIcon"
                         android:layout_width="56dp"
                         android:layout_height="56dp"
                         app:cardCornerRadius="12dp"
@@ -148,21 +159,25 @@
                             android:layout_height="32dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_car"
+                            android:contentDescription="@string/desc_car_icon"
                             app:tint="#1976D2"/>
                     </androidx.cardview.widget.CardView>
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:id="@+id/layoutCollapsedInfo"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:orientation="vertical"
-                        android:layout_marginStart="16dp">
+                        android:layout_marginStart="16dp"
+                        android:layout_toEndOf="@id/cardVehicleIcon"
+                        android:layout_toStartOf="@+id/imgFavorite"
+                        android:baselineAligned="false">
 
                         <TextView
                             android:id="@+id/tvVehicleNameCollapsed"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Loading..."
+                            android:text="@string/loading"
                             android:textColor="#000000"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -171,19 +186,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:layout_marginTop="2dp">
+                            android:layout_marginTop="2dp"
+                            android:baselineAligned="false">
                             <TextView
                                 android:id="@+id/tvCollapsedStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Syncing..."
+                                android:text="@string/syncing"
                                 android:textColor="#1976D2"
-                                android:textSize="14sp" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text=""
-                                android:textColor="#333333"
                                 android:textSize="14sp" />
                         </LinearLayout>
 
@@ -191,7 +201,7 @@
                             android:id="@+id/tvCollapsedAddress"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Locating..."
+                            android:text="@string/locating"
                             android:textColor="#888888"
                             android:textSize="13sp"
                             android:layout_marginTop="2dp"
@@ -200,11 +210,15 @@
                     </LinearLayout>
 
                     <ImageView
+                        android:id="@+id/imgFavorite"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/btn_star_big_off"
+                        android:contentDescription="@string/desc_favorite"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
                         app:tint="#BDBDBD" />
-                </LinearLayout>
+                </RelativeLayout>
 
                 <LinearLayout
                     android:id="@+id/layoutExpanded"
@@ -212,20 +226,12 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:paddingHorizontal="20dp"
-                    android:visibility="gone">
+                    android:visibility="gone"
+                    android:baselineAligned="false">
 
                     <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                        <TextView
-                            android:id="@+id/tvVehicleNameExpanded"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Loading..."
-                            android:textColor="#000000"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:layout_centerVertical="true"/>
-
                         <androidx.cardview.widget.CardView
+                            android:id="@+id/cardCloseExpanded"
                             android:layout_width="32dp"
                             android:layout_height="32dp"
                             app:cardCornerRadius="16dp"
@@ -239,40 +245,49 @@
                                 android:layout_height="match_parent"
                                 android:padding="6dp"
                                 android:src="@android:drawable/ic_menu_close_clear_cancel"
+                                android:contentDescription="@string/desc_close"
                                 app:tint="#555555"/>
                         </androidx.cardview.widget.CardView>
+                        <TextView
+                            android:id="@+id/tvVehicleNameExpanded"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/loading"
+                            android:textColor="#000000"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/cardCloseExpanded"
+                            android:layout_marginEnd="8dp"/>
                     </RelativeLayout>
 
                     <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
-                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_centerVertical="true">
-                            <TextView
-                                android:id="@+id/tvExpandedStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Connecting..."
-                                android:textColor="#1976D2"
-                                android:textSize="16sp"
-                                android:textStyle="bold"/>
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text=""
-                                android:textColor="#000000"
-                                android:textSize="16sp" />
-                        </LinearLayout>
                         <ImageView
+                            android:id="@+id/imgExpandedPlaces"
                             android:layout_width="30dp"
                             android:layout_height="30dp"
                             android:layout_alignParentEnd="true"
                             android:src="@android:drawable/ic_menu_myplaces"
+                            android:contentDescription="@string/desc_places"
                             app:tint="#1976D2" />
+                        <TextView
+                            android:id="@+id/tvExpandedStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/connecting"
+                            android:textColor="#1976D2"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/imgExpandedPlaces"
+                            android:layout_marginEnd="8dp"/>
                     </RelativeLayout>
 
                     <TextView
                         android:id="@+id/tvExpandedAddress"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Loading address..."
+                        android:text="@string/loading_address"
                         android:textColor="#757575"
                         android:textSize="14sp"
                         android:layout_marginTop="12dp"
@@ -283,9 +298,10 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:layout_marginTop="12dp"
-                        android:gravity="center_vertical">
+                        android:gravity="center_vertical"
+                        android:baselineAligned="false">
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ignition" android:textColor="#757575" android:textSize="13sp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ignition" android:textColor="#757575" android:textSize="13sp"/>
                         <androidx.cardview.widget.CardView
                             android:id="@+id/dotIgnition"
                             android:layout_width="10dp"
@@ -294,7 +310,7 @@
                             app:cardBackgroundColor="#E53935"
                             android:layout_marginStart="6dp"/>
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="AC" android:textColor="#757575" android:textSize="13sp" android:layout_marginStart="20dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ac" android:textColor="#757575" android:textSize="13sp" android:layout_marginStart="20dp"/>
                         <androidx.cardview.widget.CardView
                             android:id="@+id/dotAC"
                             android:layout_width="10dp"
@@ -303,35 +319,37 @@
                             app:cardBackgroundColor="#E53935"
                             android:layout_marginStart="6dp"/>
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100%" android:textColor="#757575" android:textSize="13sp" android:layout_marginStart="20dp" android:layout_marginEnd="4dp"/>
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_lock_idle_charging" app:tint="#4CAF50"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/battery_full" android:textColor="#757575" android:textSize="13sp" android:layout_marginStart="20dp" android:layout_marginEnd="4dp"/>
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_lock_idle_charging" android:contentDescription="@string/desc_battery" app:tint="#4CAF50"/>
                     </LinearLayout>
 
                     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginTop="16dp" android:layout_marginBottom="12dp"/>
 
                     <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                        <TextView
-                            android:id="@+id/tvLastUpdated"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Updated: Just now"
-                            android:textColor="#000000"
-                            android:textSize="13sp"
-                            android:layout_centerVertical="true"/>
-
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnRefresh"
                             android:layout_width="wrap_content"
                             android:layout_height="40dp"
                             android:layout_alignParentEnd="true"
-                            android:text="Refresh"
+                            android:text="@string/refresh"
                             android:textAllCaps="false"
                             app:icon="@android:drawable/ic_popup_sync"
                             app:iconTint="#FFFFFF"
+                            app:iconPadding="8dp"
                             app:cornerRadius="8dp"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             app:backgroundTint="#1877F2"/>
+                        <TextView
+                            android:id="@+id/tvLastUpdated"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/last_updated"
+                            android:textColor="#000000"
+                            android:textSize="13sp"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/btnRefresh"
+                            android:layout_marginEnd="8dp"/>
                     </RelativeLayout>
 
                     <GridLayout
@@ -340,50 +358,134 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
                         android:columnCount="4"
-                        android:rowCount="3"
+                        android:rowCount="2"
                         android:alignmentMode="alignMargins"
                         android:columnOrderPreserved="false"
                         android:visibility="gone">
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_recent_history" app:tint="#1877F2"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="History" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuHistory"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/history"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_menu_recent_history"
+                            app:drawableTint="#1877F2" />
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_popup_reminder" app:tint="#1877F2"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuAlerts"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/alerts"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_popup_reminder"
+                            app:drawableTint="#1877F2" />
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#1877F2"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="VoiceTrack" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuVoiceTrack"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/voicetrack"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_btn_speak_now"
+                            app:drawableTint="#1877F2" />
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_myplaces" app:tint="#1877F2"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Value" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuValue"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/value"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_menu_myplaces"
+                            app:drawableTint="#1877F2" />
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp" android:layout_marginTop="16dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_mapmode" app:tint="#1877F2"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Places" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuPlaces"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:layout_marginTop="16dp"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/places"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_menu_mapmode"
+                            app:drawableTint="#1877F2" />
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp" android:layout_marginTop="16dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_lock_power_off" app:tint="#E53935"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Immobilize" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuImmobilize"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:layout_marginTop="16dp"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/immobilize"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_lock_power_off"
+                            app:drawableTint="#E53935" />
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp" android:layout_marginTop="16dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_directions" app:tint="#1877F2"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Nav" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuNav"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:layout_marginTop="16dp"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/nav"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_menu_directions"
+                            app:drawableTint="#1877F2" />
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:padding="8dp" android:layout_marginTop="16dp">
-                            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_menu_info_details" app:tint="#1877F2"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Details" android:textSize="12sp" android:textColor="#000000" android:layout_marginTop="4dp" android:textStyle="bold"/>
-                        </LinearLayout>
+                        <androidx.appcompat.widget.AppCompatTextView
+                            android:id="@+id/btnMenuDetails"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:layout_marginTop="16dp"
+                            android:gravity="center"
+                            android:padding="8dp"
+                            android:text="@string/details"
+                            android:textSize="12sp"
+                            android:textColor="#000000"
+                            android:textStyle="bold"
+                            android:drawablePadding="4dp"
+                            app:drawableTopCompat="@android:drawable/ic_menu_info_details"
+                            app:drawableTint="#1877F2" />
 
                     </GridLayout>
 
@@ -400,32 +502,99 @@
         android:orientation="horizontal"
         android:background="#FFFFFF"
         android:elevation="16dp"
+        android:baselineAligned="false"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-        <LinearLayout android:id="@+id/nav_vehicles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/nav_home"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/home"
+            android:textSize="11sp"
+            android:textColor="#757575"
+            android:paddingTop="12dp"
+            android:contentDescription="@string/desc_home"
+            app:drawableTopCompat="@drawable/ic_home"
+            app:drawableTint="#757575" />
+
+        <LinearLayout
+            android:id="@+id/nav_vehicles"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:baselineAligned="false">
             <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#1976D2"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
+            <androidx.appcompat.widget.AppCompatTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/vehicles"
+                android:textSize="11sp"
+                android:textColor="#1976D2"
+                android:textStyle="bold"
+                android:contentDescription="@string/desc_vehicles"
+                app:drawableTopCompat="@drawable/ic_car"
+                app:drawableTint="#1976D2" />
         </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_tag" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/nav_tags"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/tags"
+            android:textSize="11sp"
+            android:textColor="#757575"
+            android:paddingTop="12dp"
+            android:contentDescription="@string/desc_tags"
+            app:drawableTopCompat="@drawable/ic_tag"
+            app:drawableTint="#757575" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/nav_circles"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/circles"
+            android:textSize="11sp"
+            android:textColor="#757575"
+            android:paddingTop="12dp"
+            android:contentDescription="@string/desc_circles"
+            app:drawableTopCompat="@drawable/ic_radar"
+            app:drawableTint="#757575" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/nav_alerts"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/alerts"
+            android:textSize="11sp"
+            android:textColor="#757575"
+            android:paddingTop="12dp"
+            android:contentDescription="@string/desc_alerts"
+            app:drawableTopCompat="@drawable/ic_alert"
+            app:drawableTint="#757575" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/nav_menu"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/menu"
+            android:textSize="11sp"
+            android:textColor="#757575"
+            android:paddingTop="12dp"
+            android:contentDescription="@string/desc_menu"
+            app:drawableTopCompat="@drawable/ic_menu"
+            app:drawableTint="#757575" />
+
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

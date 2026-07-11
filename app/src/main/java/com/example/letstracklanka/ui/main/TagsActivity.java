@@ -50,9 +50,7 @@ public class TagsActivity extends AppCompatActivity {
         fabAdd.setOnClickListener(v -> Toast.makeText(this, "Add new item", Toast.LENGTH_SHORT).show());
 
         // --- Bottom Navigation Bar Setup ---
-
-        // Home Button
-        LinearLayout navHome = findViewById(R.id.nav_home);
+        View navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
                 Intent intent = new Intent(TagsActivity.this, HomeActivity.class);
@@ -62,25 +60,50 @@ public class TagsActivity extends AppCompatActivity {
             });
         }
 
-        // Vehicles Button
-        LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
+        View navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
-                Intent intent = new Intent(TagsActivity.this, VehiclesActivity.class);
+                Intent intent = new Intent(TagsActivity.this, com.example.letstracklanka.ui.vehicles.VehiclesActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
             });
         }
 
-        // Circles Button
-        LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
-        if (bottomNavBar != null && bottomNavBar.getChildCount() > 3) {
-            View navCircles = bottomNavBar.getChildAt(3);
+        View navCircles = findViewById(R.id.nav_circles);
+        if (navCircles != null) {
             navCircles.setOnClickListener(v -> {
                 Intent intent = new Intent(TagsActivity.this, CirclesActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
             });
         }
+
+        View navAlerts = findViewById(R.id.nav_alerts);
+        if (navAlerts != null) {
+            navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+        }
+
+        View navMenu = findViewById(R.id.nav_menu);
+        if (navMenu != null) {
+            navMenu.setOnClickListener(v -> {
+                View bs = findViewById(R.id.bottomSheetTags);
+                if (bs != null) {
+                    com.google.android.material.bottomsheet.BottomSheetBehavior.from(bs).setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
+                }
+            });
+        }
+    }
+
+    private void showCallCenterBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
+        dialog.setContentView(view);
+        androidx.viewpager2.widget.ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
+        if (viewPager != null) {
+            viewPager.setAdapter(new com.example.letstracklanka.ui.vehicles.CallCenterPagerAdapter());
+        }
+        dialog.show();
     }
 }

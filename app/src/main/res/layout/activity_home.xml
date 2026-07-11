@@ -486,7 +486,7 @@
         android:elevation="16dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#1976D2"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
@@ -494,27 +494,28 @@
 
         <LinearLayout
             android:id="@+id/nav_vehicles"
-            android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+            android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout android:id="@+id/nav_tags" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_tag" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout android:id="@+id/nav_circles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout android:id="@+id/nav_alerts" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout android:id="@+id/nav_menu" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>

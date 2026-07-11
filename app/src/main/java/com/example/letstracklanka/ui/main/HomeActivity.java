@@ -1,8 +1,10 @@
 package com.example.letstracklanka.ui.main;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,19 +22,20 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.widget.NestedScrollView;
+import androidx.viewpager2.widget.ViewPager2;
 
+import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.model.DashboardResponse;
 import com.example.letstracklanka.data.model.GpsDeviceResponse;
-import com.example.letstracklanka.data.model.VehicleResponse;
-import com.example.letstracklanka.data.remote.ApiService;
-import com.example.letstracklanka.R;
-import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.example.letstracklanka.data.model.LocationResponse;
+import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
+import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -43,6 +46,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
@@ -61,31 +68,25 @@ import retrofit2.Response;
 
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+    private static final String DEMO_VEHICLE_ID = "39019073-09b8-4dbc-b5f9-6d7ade5ec4df";
+    private static final int UPDATE_INTERVAL = 10000;
+
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
     private final Handler handler = new Handler();
     private Runnable trackingRunnable;
-    private final int UPDATE_INTERVAL = 5000;
-    
-    private static final String DEMO_VEHICLE_ID = "39019073-09b8-4dbc-b5f9-6d7ade5ec4df";
 
     private String currentCustomerId = null;
-    private final Map<String, String> myVehicles = new HashMap<>(); 
+    private final Map<String, String> myVehicles = new HashMap<>();
     private final Map<String, Marker> mapMarkers = new HashMap<>();
+    private LatLng myCurrentLocation = null;
 
     private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName;
-    // API and Real-time Variables
-    private ShaloTrackApi apiService;
-    private Handler handler = new Handler();
-    private Runnable runnable;
-    private final int UPDATE_INTERVAL = 10000; // 10 seconds
-    private String selectedDeviceId = "DEMO_DEVICE_001";
-
-    // Bottom sheet vehicle card items
-    private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName, tvDeviceTime;
-    private ImageView imgDeviceIcon;
+    private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
+    private View mapTypeMenu;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,16 +99,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         initViews();
         setupUI();
+        enableMyLocation();
         
-        // --- START TRACKING IMMEDIATELY ---
         startRealTimeTracking();
-        
-        // --- LOAD USER DATA ---
         loadUserData();
     }
 
     private void initViews() {
-        // Find items in the included Bottom Sheet layout
         View bottomSheetView = findViewById(R.id.bottomSheet);
         if(bottomSheetView != null) {
             tvDeviceName = bottomSheetView.findViewById(R.id.tvDeviceName);
@@ -115,75 +113,99 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             tvDeviceAddress = bottomSheetView.findViewById(R.id.tvDeviceAddress);
         }
 
+        cardDefault = findViewById(R.id.cardDefault);
+        cardTerrain = findViewById(R.id.cardTerrain);
+        cardSatellite = findViewById(R.id.cardSatellite);
+        cardHybrid = findViewById(R.id.cardHybrid);
+        mapTypeMenu = findViewById(R.id.mapTypeMenu);
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
     }
 
     private void setupUI() {
-        // Setup bottom sheet behavior
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
         if(bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
         
         findViewById(R.id.nav_vehicles).setOnClickListener(v -> {
-            startActivity(new Intent(HomeActivity.this, VehiclesActivity.class));
+            Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
             overridePendingTransition(0, 0);
         });
 
-        // RESTORED: Add Vehicle Button Logic
         View btnAddVehicle = findViewById(R.id.btnAddVehicle);
         if (btnAddVehicle != null) {
             btnAddVehicle.setOnClickListener(v -> showAddVehicleDialog());
         }
-        cardDefault.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_NORMAL, cardDefault));
-        cardTerrain.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_TERRAIN, cardTerrain));
-        cardSatellite.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_SATELLITE, cardSatellite));
-        cardHybrid.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_HYBRID, cardHybrid));
+
+        if (cardDefault != null) cardDefault.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_NORMAL, cardDefault));
+        if (cardTerrain != null) cardTerrain.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_TERRAIN, cardTerrain));
+        if (cardSatellite != null) cardSatellite.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_SATELLITE, cardSatellite));
+        if (cardHybrid != null) cardHybrid.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_HYBRID, cardHybrid));
 
         FloatingActionButton fabLocation = findViewById(R.id.fabLocation);
-        fabLocation.setOnClickListener(v -> getDeviceLocation());
-
-        MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
-        if(btnSendLocation != null) btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
+        if (fabLocation != null) fabLocation.setOnClickListener(v -> getPhoneLocation());
 
         MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
         if (btnHomeSOS != null) btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
 
-        // --- Bottom Navigation Setup (Without changing XML IDs) ---
-
-        // Go to Vehicles Screen (XML has this ID)
-        LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
-        if (navVehicles != null) {
-            navVehicles.setOnClickListener(v -> {
-                Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
-                startActivity(intent);
-                overridePendingTransition(0, 0); // No animation
-            });
-        }
-
-        // Go to Tags & Circles Screen (Finding the buttons by their position in XML)
         LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
         if (bottomNavBar != null) {
-            if (bottomNavBar.getChildCount() > 2) {
-                View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
+            View navTags = findViewById(R.id.nav_tags);
+            if (navTags != null) {
                 navTags.setOnClickListener(v -> {
                     Intent intent = new Intent(HomeActivity.this, TagsActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                     startActivity(intent);
                     overridePendingTransition(0, 0);
                 });
             }
-            if (bottomNavBar.getChildCount() > 3) {
-                View navCircles = bottomNavBar.getChildAt(3); // 4th item is Circles
+
+            View navCircles = findViewById(R.id.nav_circles);
+            if (navCircles != null) {
                 navCircles.setOnClickListener(v -> {
                     Intent intent = new Intent(HomeActivity.this, CirclesActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                     startActivity(intent);
                     overridePendingTransition(0, 0);
+                });
+            }
+
+            View navAlerts = findViewById(R.id.nav_alerts);
+            if (navAlerts != null) {
+                navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+            }
+
+            View navMenu = findViewById(R.id.nav_menu);
+            if (navMenu != null) {
+                navMenu.setOnClickListener(v -> {
+                    NestedScrollView bs = findViewById(R.id.bottomSheet);
+                    if (bs != null) {
+                        BottomSheetBehavior.from(bs).setState(BottomSheetBehavior.STATE_EXPANDED);
+                    }
                 });
             }
         }
-        // --------------------------------
     }
 
-        findViewById(R.id.fabLocation).setOnClickListener(v -> getPhoneLocation());
+    private void showCallCenterBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
+        dialog.setContentView(view);
+
+        ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
+        if (viewPager != null) {
+            viewPager.setAdapter(new com.example.letstracklanka.ui.vehicles.CallCenterPagerAdapter());
+        }
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        View btnCloseBottom = view.findViewById(R.id.btnCallCenterClose);
+        if (btnCloseBottom != null) btnCloseBottom.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void showAddVehicleDialog() {
@@ -225,16 +247,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
-    // --- Real Time Tracking Code ---
-    private void startRealTimeTracking() {
-        runnable = new Runnable() {
-            @Override
-            public void run() {
-                fetchRealTimeVehicleData();
-                handler.postDelayed(this, UPDATE_INTERVAL);
-            }
-        };
-        handler.post(runnable);
     }
 
     private void processVehicleAddition(String vNum, String chassis, String engine, String make, String model, 
@@ -278,59 +290,24 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (response.isSuccessful() && response.body() != null) {
                     assignDeviceToVehicle(response.body().getVehicleId(), deviceId);
                 }
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (handler != null && runnable != null) {
-            handler.removeCallbacks(runnable);
-        }
+            }
+            @Override public void onFailure(@NonNull Call<VehicleResponse> call, @NonNull Throwable t) { }
+        });
     }
 
-    // --- Permissions and Location Setup ---
-    private void enableMyLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-            mMap.getUiSettings().setMyLocationButtonEnabled(false);
-            getDeviceLocation();
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-        }
-    }
-
-    private void getDeviceLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-                if (location != null) {
-                    myCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+    private void assignDeviceToVehicle(String vehicleId, String deviceId) {
+        mainApiService.assignDevice(new CreateDeviceAssignmentRequest(vehicleId, deviceId)).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(HomeActivity.this, "Vehicle Linked to DB!", Toast.LENGTH_LONG).show();
+                    loadUserData(); 
                 }
-            });
-        }
+            }
+            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {}
+        });
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            enableMyLocation();
-        }
-    }
-
-    private void changeMapType(int mapType, MaterialCardView selectedCard) {
-        if (mMap != null) {
-            mMap.setMapType(mapType);
-            cardDefault.setStrokeWidth(0);
-            cardTerrain.setStrokeWidth(0);
-            cardSatellite.setStrokeWidth(0);
-            cardHybrid.setStrokeWidth(0);
-            selectedCard.setStrokeWidth(8);
-            selectedCard.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-            mapTypeMenu.setVisibility(View.GONE);
-        }
-    }
-
-    // --- Bottom Sheets and Dialogs ---
-
-    @SuppressLint("InflateParams")
     private void showSOSBottomSheet() {
         BottomSheetDialog sosDialog = new BottomSheetDialog(this);
         View sosView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_sos, null);
@@ -338,14 +315,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         ImageView btnClose = sosView.findViewById(R.id.btnCloseSOS);
         LinearLayout btnTapSOS = sosView.findViewById(R.id.btnTapSOS);
-        MaterialButton btnAddContacts = sosView.findViewById(R.id.btnAddContacts);
-        LinearLayout btnUpgradeCallCenter = sosView.findViewById(R.id.btnUpgradeCallCenter);
-
-        View bgPulseCircle = sosView.findViewById(R.id.bgPulseCircle);
-        if (bgPulseCircle != null) {
-            android.view.animation.Animation pulseAnim = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.pulse_animation);
-            bgPulseCircle.startAnimation(pulseAnim);
-        }
 
         btnClose.setOnClickListener(v -> sosDialog.dismiss());
 
@@ -366,65 +335,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(this, "Trying to find your location...", Toast.LENGTH_SHORT).show();
                 getDeviceLocation();
             }
-            @Override public void onFailure(@NonNull Call<VehicleResponse> call, @NonNull Throwable t) { }
         });
-    }
-
-    private void assignDeviceToVehicle(String vehicleId, String deviceId) {
-        mainApiService.assignDevice(new CreateDeviceAssignmentRequest(vehicleId, deviceId)).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(HomeActivity.this, "Vehicle Linked to DB!", Toast.LENGTH_LONG).show();
-                    loadUserData(); 
-                }
-            }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {}
-        });
-    }
-
-    private void loadUserData() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null || user.getEmail() == null) return;
-
-        mainApiService.getCustomerByEmail(user.getEmail()).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        String json = body.string();
-                        List<CustomerResponse> list = parseList(json, CustomerResponse.class);
-                        for (CustomerResponse c : list) {
-                            if (user.getEmail().equalsIgnoreCase(c.getEmail())) {
-                                currentCustomerId = c.getCustomerId();
-                                break;
-                            }
-                        }
-                        if (currentCustomerId != null) fetchMyVehicles();
-                    }
-                } catch (Exception e) { }
-            }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {}
-        });
-    }
-
-    private void fetchMyVehicles() {
-        if (currentCustomerId == null) return;
-        mainApiService.getVehiclesByCustomer(currentCustomerId).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
-                        myVehicles.clear();
-                        for (VehicleResponse v : list) {
-                            myVehicles.put(v.getVehicleId().toLowerCase(), v.getMake() + " " + v.getModel());
-                        }
-                    }
-                } catch (Exception e) { }
-            }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) { }
-        });
+        sosDialog.show();
     }
 
     private void startRealTimeTracking() {
@@ -511,16 +423,107 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    @Override public void onMapReady(@NonNull GoogleMap googleMap) { 
-        mMap = googleMap; 
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f)); 
+    private void loadUserData() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null || user.getEmail() == null) return;
+
+        mainApiService.getCustomerByEmail(user.getEmail()).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        String json = body.string();
+                        List<CustomerResponse> list = parseList(json, CustomerResponse.class);
+                        for (CustomerResponse c : list) {
+                            if (user.getEmail().equalsIgnoreCase(c.getEmail())) {
+                                currentCustomerId = c.getCustomerId();
+                                break;
+                            }
+                        }
+                        if (currentCustomerId != null) fetchMyVehicles();
+                    }
+                } catch (Exception e) { }
+            }
+            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {}
+        });
+    }
+
+    private void fetchMyVehicles() {
+        if (currentCustomerId == null) return;
+        mainApiService.getVehiclesByCustomer(currentCustomerId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
+                        myVehicles.clear();
+                        for (VehicleResponse v : list) {
+                            myVehicles.put(v.getVehicleId().toLowerCase(), v.getMake() + " " + v.getModel());
+                        }
+                    }
+                } catch (Exception e) { }
+            }
+            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) { }
+        });
+    }
+
+    private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            if (mMap != null) {
+                mMap.setMyLocationEnabled(true);
+                mMap.getUiSettings().setMyLocationButtonEnabled(false);
+            }
+            getDeviceLocation();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void getDeviceLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+                if (location != null) {
+                    myCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                }
+            });
+        }
     }
 
     private void getPhoneLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-                if (location != null) mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15f));
+                if (location != null) {
+                    LatLng pos = new LatLng(location.getLatitude(), location.getLongitude());
+                    if (mMap != null) mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+                }
             });
+        }
+    }
+
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) { 
+        mMap = googleMap; 
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f)); 
+    }
+
+    private void changeMapType(int mapType, MaterialCardView selectedCard) {
+        if (mMap != null) {
+            mMap.setMapType(mapType);
+            cardDefault.setStrokeWidth(0);
+            cardTerrain.setStrokeWidth(0);
+            cardSatellite.setStrokeWidth(0);
+            cardHybrid.setStrokeWidth(0);
+            selectedCard.setStrokeWidth(8);
+            selectedCard.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+            if (mapTypeMenu != null) mapTypeMenu.setVisibility(View.GONE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            enableMyLocation();
         }
     }
 
@@ -536,5 +539,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         return list;
     }
 
-    @Override protected void onDestroy() { super.onDestroy(); if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable); }
+    @Override protected void onDestroy() { 
+        super.onDestroy(); 
+        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable); 
+    }
 }
