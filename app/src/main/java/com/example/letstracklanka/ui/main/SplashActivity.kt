@@ -20,8 +20,8 @@ class SplashActivity : AppCompatActivity() {
             if (currentUser != null) {
                 // Check if the user has an email linked to their session
                 if (currentUser.email != null) {
-                    // SESSION OK: Go to Dashboard
-                    val intent = Intent(this, HomeActivity::class.java)
+                    // SESSION OK: Go to Animation (MainActivity) which leads to Home
+                    val intent = Intent(this, MainActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                 } else {

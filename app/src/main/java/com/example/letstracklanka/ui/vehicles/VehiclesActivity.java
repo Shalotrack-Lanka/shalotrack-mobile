@@ -8,11 +8,14 @@ import android.util.Log;
 import android.view.View;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CustomerResponse;
@@ -23,7 +26,7 @@ import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.ui.main.HomeActivity;
 import com.example.letstracklanka.ui.main.TagsActivity;
-import com.example.letstracklanka.ui.main.CirclesActivity; // Imported CirclesActivity
+import com.example.letstracklanka.ui.main.CirclesActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -31,6 +34,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
@@ -57,6 +61,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private LinearLayout layoutCollapsed, layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
+    private View fabAdd, fabHistory, btnRefresh;
+    private BottomSheetBehavior<View> bottomSheetBehavior;
 
     // Data display components
     private TextView tvCollapsedStatus, tvCollapsedAddress;
@@ -81,33 +87,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         mainApiService = ApiClient.getClient().create(ApiService.class);
-        try {
-            // Find Layouts and FABs
-            layoutCollapsed = findViewById(R.id.layoutCollapsed);
-            layoutExpanded = findViewById(R.id.layoutExpanded);
-            layoutLeftFabs = findViewById(R.id.layoutLeftFabs);
-            gridMenu = findViewById(R.id.gridMenu);
-            fabAdd = findViewById(R.id.fabAdd);
-            fabHistory = findViewById(R.id.fabHistory);
-
-            // Find Text Views and Buttons
-            tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
-            tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
-            tvExpandedStatus = findViewById(R.id.tvExpandedStatus);
-            tvExpandedAddress = findViewById(R.id.tvExpandedAddress);
-            tvLastUpdated = findViewById(R.id.tvLastUpdated);
-            dotIgnition = findViewById(R.id.dotIgnition);
-            dotAC = findViewById(R.id.dotAC);
-
-            btnCloseExpanded = findViewById(R.id.btnCloseExpanded);
-            btnRefresh = findViewById(R.id.btnRefresh);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         initViews();
         setupBottomSheet();
-        setupNavigation();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mapVehicles);
@@ -118,8 +100,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     }
 
     private void initViews() {
+        layoutCollapsed = findViewById(R.id.layoutCollapsed);
+        layoutExpanded = findViewById(R.id.layoutExpanded);
+        layoutLeftFabs = findViewById(R.id.layoutLeftFabs);
         gridMenu = findViewById(R.id.gridMenu);
-        btnCloseExpanded = findViewById(R.id.btnCloseExpanded);
+        fabAdd = findViewById(R.id.fabAdd);
+        fabHistory = findViewById(R.id.fabHistory);
+
         tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
         tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
         tvExpandedStatus = findViewById(R.id.tvExpandedStatus);
@@ -130,118 +117,133 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         dotIgnition = findViewById(R.id.dotIgnition);
         dotAC = findViewById(R.id.dotAC);
 
-        findViewById(R.id.btnRefresh).setOnClickListener(v -> fetchLocationData());
+        btnCloseExpanded = findViewById(R.id.btnCloseExpanded);
+        btnRefresh = findViewById(R.id.btnRefresh);
     }
 
     private void setupBottomSheet() {
         View bottomSheet = findViewById(R.id.bottomSheetVehicleDetails);
-        BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
-        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                if (newState == BottomSheetBehavior.STATE_EXPANDED) gridMenu.setVisibility(View.VISIBLE);
-                else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    findViewById(R.id.layoutExpanded).setVisibility(View.GONE);
-                    findViewById(R.id.layoutCollapsed).setVisibility(View.VISIBLE);
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    // Fully Expanded state
                     gridMenu.setVisibility(View.VISIBLE);
                 } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    // Collapsed state
                     layoutExpanded.setVisibility(View.GONE);
                     gridMenu.setVisibility(View.GONE);
-
                     layoutCollapsed.setVisibility(View.VISIBLE);
-                    fabAdd.setVisibility(View.VISIBLE);
-
-                    fabHistory.setVisibility(View.GONE);
-                    layoutLeftFabs.setVisibility(View.GONE);
+                    if (fabAdd != null) fabAdd.setVisibility(View.VISIBLE);
+                    if (fabHistory != null) fabHistory.setVisibility(View.GONE);
+                    if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.GONE);
                 }
             }
             @Override public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
         });
 
-        findViewById(R.id.layoutCollapsed).setOnClickListener(v -> {
-            findViewById(R.id.layoutCollapsed).setVisibility(View.GONE);
-            findViewById(R.id.layoutExpanded).setVisibility(View.VISIBLE);
-            behavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-        });
-        // Half-expand when collapsed card is clicked
         if (layoutCollapsed != null) {
             layoutCollapsed.setOnClickListener(v -> {
                 layoutCollapsed.setVisibility(View.GONE);
-                fabAdd.setVisibility(View.GONE);
-
+                if (fabAdd != null) fabAdd.setVisibility(View.GONE);
                 layoutExpanded.setVisibility(View.VISIBLE);
-                gridMenu.setVisibility(View.GONE); // Grid is not visible yet
-
-                fabHistory.setVisibility(View.VISIBLE);
-                layoutLeftFabs.setVisibility(View.VISIBLE);
-
+                gridMenu.setVisibility(View.GONE);
+                if (fabHistory != null) fabHistory.setVisibility(View.VISIBLE);
+                if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.VISIBLE);
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
             });
         }
 
-        // Collapse when close button is clicked
         if (btnCloseExpanded != null) {
-            btnCloseExpanded.setOnClickListener(v -> {
-                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-            });
+            btnCloseExpanded.setOnClickListener(v -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED));
+        }
+
+        // --- Grid Menu Listeners ---
+        View btnMenuAlerts = findViewById(R.id.btnMenuAlerts);
+        if (btnMenuAlerts != null) {
+            btnMenuAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
         }
 
         // --- Bottom Navigation Setup ---
-
-        // Home button setup
-        LinearLayout navHome = findViewById(R.id.nav_home);
+        View navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
                 Intent intent = new Intent(VehiclesActivity.this, HomeActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
-                finish();
             });
         }
 
-        // Setup Tags and Circles buttons
-        LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
-        if (bottomNavBar != null) {
-            if (bottomNavBar.getChildCount() > 2) {
-                View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
-                navTags.setOnClickListener(v -> {
-                    Intent intent = new Intent(VehiclesActivity.this, TagsActivity.class);
-                    startActivity(intent);
-                    overridePendingTransition(0, 0);
-                });
-            }
-            if (bottomNavBar.getChildCount() > 3) {
-                View navCircles = bottomNavBar.getChildAt(3); // 4th item is Circles
-                navCircles.setOnClickListener(v -> {
-                    Intent intent = new Intent(VehiclesActivity.this, CirclesActivity.class);
-                    startActivity(intent);
-                    overridePendingTransition(0, 0);
-                });
-            }
+        View navVehicles = findViewById(R.id.nav_vehicles);
+        if (navVehicles != null) {
+            navVehicles.setOnClickListener(v -> {
+                // Already in Vehicles, just collapse the sheet if it's open
+                if (bottomSheetBehavior != null) {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                }
+            });
         }
 
-        // Refresh button setup
+        View navTags = findViewById(R.id.nav_tags);
+        if (navTags != null) {
+            navTags.setOnClickListener(v -> {
+                Intent intent = new Intent(VehiclesActivity.this, TagsActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
+        }
+
+        View navCircles = findViewById(R.id.nav_circles);
+        if (navCircles != null) {
+            navCircles.setOnClickListener(v -> {
+                Intent intent = new Intent(VehiclesActivity.this, CirclesActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
+        }
+
+        View navAlerts = findViewById(R.id.nav_alerts);
+        if (navAlerts != null) {
+            navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+        }
+
+        View navMenu = findViewById(R.id.nav_menu);
+        if (navMenu != null) {
+            navMenu.setOnClickListener(v -> {
+                if (bottomSheetBehavior != null) {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+            });
+        }
+
         if (btnRefresh != null) {
             btnRefresh.setOnClickListener(v -> {
                 Toast.makeText(this, "Refreshing location...", Toast.LENGTH_SHORT).show();
-                fetchRealTimeVehicleData();
+                fetchLocationData();
             });
         }
-
-        if (btnCloseExpanded != null) btnCloseExpanded.setOnClickListener(v -> behavior.setState(BottomSheetBehavior.STATE_COLLAPSED));
     }
 
-    private void setupNavigation() {
-        findViewById(R.id.nav_home).setOnClickListener(v -> {
-            startActivity(new Intent(this, HomeActivity.class));
-            finish();
-        });
+    private void showCallCenterBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
+        dialog.setContentView(view);
+
+        ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
+        if (viewPager != null) {
+            viewPager.setAdapter(new CallCenterPagerAdapter());
+        }
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        View btnCloseBottom = view.findViewById(R.id.btnCallCenterClose);
+        if (btnCloseBottom != null) btnCloseBottom.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void loadUserData() {

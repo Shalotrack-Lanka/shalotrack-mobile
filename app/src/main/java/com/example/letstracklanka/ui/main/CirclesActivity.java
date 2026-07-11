@@ -2,6 +2,7 @@ package com.example.letstracklanka.ui.main;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,8 +35,7 @@ public class CirclesActivity extends AppCompatActivity {
         fabAddCircle.setOnClickListener(v -> Toast.makeText(this, "Add Circle (+)", Toast.LENGTH_SHORT).show());
 
         // --- Bottom Navigation Bar Setup ---
-
-        LinearLayout navHome = findViewById(R.id.nav_home);
+        View navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
                 Intent intent = new Intent(CirclesActivity.this, HomeActivity.class);
@@ -45,22 +45,50 @@ public class CirclesActivity extends AppCompatActivity {
             });
         }
 
-        LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
+        View navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
-                Intent intent = new Intent(CirclesActivity.this, VehiclesActivity.class);
+                Intent intent = new Intent(CirclesActivity.this, com.example.letstracklanka.ui.vehicles.VehiclesActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
             });
         }
 
-        LinearLayout navTags = findViewById(R.id.nav_tags);
+        View navTags = findViewById(R.id.nav_tags);
         if (navTags != null) {
             navTags.setOnClickListener(v -> {
                 Intent intent = new Intent(CirclesActivity.this, TagsActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
             });
         }
+
+        View navAlerts = findViewById(R.id.nav_alerts);
+        if (navAlerts != null) {
+            navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+        }
+
+        View navMenu = findViewById(R.id.nav_menu);
+        if (navMenu != null) {
+            navMenu.setOnClickListener(v -> {
+                View bs = findViewById(R.id.bottomSheetCircles);
+                if (bs != null) {
+                    com.google.android.material.bottomsheet.BottomSheetBehavior.from(bs).setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
+                }
+            });
+        }
+    }
+
+    private void showCallCenterBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
+        dialog.setContentView(view);
+        androidx.viewpager2.widget.ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
+        if (viewPager != null) {
+            viewPager.setAdapter(new com.example.letstracklanka.ui.vehicles.CallCenterPagerAdapter());
+        }
+        dialog.show();
     }
 }

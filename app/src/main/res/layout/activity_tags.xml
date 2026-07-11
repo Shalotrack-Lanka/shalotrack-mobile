@@ -241,17 +241,23 @@
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout
+            android:id="@+id/nav_circles"
+            android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout
+            android:id="@+id/nav_alerts"
+            android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+        <LinearLayout
+            android:id="@+id/nav_menu"
+            android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
             <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
         </LinearLayout>
