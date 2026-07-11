@@ -27,6 +27,7 @@ import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.ui.main.HomeActivity;
 import com.example.letstracklanka.ui.main.TagsActivity;
 import com.example.letstracklanka.ui.main.CirclesActivity;
+import com.example.letstracklanka.ui.main.AlertsActivity; // Imported the new AlertsActivity
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -57,7 +58,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
 
-    // UI components
+    // UI parts (Layouts, buttons, etc.)
     private View layoutCollapsed;
     private LinearLayout layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
@@ -65,15 +66,17 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private View fabAdd, fabHistory, btnRefresh;
     private BottomSheetBehavior<View> bottomSheetBehavior;
 
-    // Data display components
+    // Text tags and dots to show data
     private TextView tvCollapsedStatus, tvCollapsedAddress;
     private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated, tvVehicleNameCollapsed, tvVehicleNameExpanded;
     private CardView dotIgnition, dotAC;
 
+    // Variables for updating map automatically
     private final Handler handler = new Handler();
     private Runnable trackingRunnable;
-    private final int UPDATE_INTERVAL = 5000;
-    
+    private final int UPDATE_INTERVAL = 5000; // Update every 5 seconds
+
+    // Demo vehicle ID to show if no real vehicle is found
     private static final String DEMO_VEHICLE_ID = "39019073-09b8-4dbc-b5f9-6d7ade5ec4df";
 
     private String currentCustomerId = null;
@@ -86,20 +89,25 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vehicles);
 
+        // Setup API connection
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         mainApiService = ApiClient.getClient().create(ApiService.class);
 
+        // Link code with XML design
         initViews();
         setupBottomSheet();
 
+        // Load the Google Map
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mapVehicles);
         if (mapFragment != null) mapFragment.getMapAsync(this);
 
+        // Fetch user data and start tracking
         loadUserData();
         startRealTimeTracking();
     }
 
+    // Connect variables to XML IDs
     private void initViews() {
         layoutCollapsed = findViewById(R.id.layoutCollapsed);
         layoutExpanded = findViewById(R.id.layoutExpanded);
@@ -122,16 +130,20 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         btnRefresh = findViewById(R.id.btnRefresh);
     }
 
+    // Setup how the bottom sheet moves and button clicks
     private void setupBottomSheet() {
         View bottomSheet = findViewById(R.id.bottomSheetVehicleDetails);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        
+
+        // Listen for bottom sheet movements (Slide up/down)
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    // Show full menu when swiped all the way up
                     gridMenu.setVisibility(View.VISIBLE);
                 } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    // Show small card when swiped down
                     layoutExpanded.setVisibility(View.GONE);
                     gridMenu.setVisibility(View.GONE);
                     layoutCollapsed.setVisibility(View.VISIBLE);
@@ -143,6 +155,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             @Override public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
         });
 
+        // Open to half-screen when clicking the small bottom card
         if (layoutCollapsed != null) {
             layoutCollapsed.setOnClickListener(v -> {
                 layoutCollapsed.setVisibility(View.GONE);
@@ -155,17 +168,25 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
+        // Close back to small card when 'X' is clicked
         if (btnCloseExpanded != null) {
             btnCloseExpanded.setOnClickListener(v -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED));
         }
 
         // --- Grid Menu Listeners ---
+        // Changed to go to the new Alerts screen
         View btnMenuAlerts = findViewById(R.id.btnMenuAlerts);
         if (btnMenuAlerts != null) {
-            btnMenuAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+            btnMenuAlerts.setOnClickListener(v -> {
+                Intent intent = new Intent(VehiclesActivity.this, AlertsActivity.class);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
         }
 
-        // --- Bottom Navigation Setup ---
+        // --- Bottom Navigation Bar Buttons ---
+
+        // Go to Home
         View navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
@@ -176,16 +197,17 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
+        // Click Vehicles (Just close the sheet if it's open)
         View navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
-                // Already in Vehicles, just collapse the sheet if it's open
                 if (bottomSheetBehavior != null) {
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
             });
         }
 
+        // Go to Tags Screen
         View navTags = findViewById(R.id.nav_tags);
         if (navTags != null) {
             navTags.setOnClickListener(v -> {
@@ -196,6 +218,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
+        // Go to Circles Screen
         View navCircles = findViewById(R.id.nav_circles);
         if (navCircles != null) {
             navCircles.setOnClickListener(v -> {
@@ -206,11 +229,18 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
+        // Go to Alerts Screen (Updated)
         View navAlerts = findViewById(R.id.nav_alerts);
         if (navAlerts != null) {
-            navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+            navAlerts.setOnClickListener(v -> {
+                Intent intent = new Intent(VehiclesActivity.this, AlertsActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
         }
 
+        // Open full menu when Menu button is clicked
         View navMenu = findViewById(R.id.nav_menu);
         if (navMenu != null) {
             navMenu.setOnClickListener(v -> {
@@ -220,6 +250,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
+        // Refresh location button
         if (btnRefresh != null) {
             btnRefresh.setOnClickListener(v -> {
                 Toast.makeText(this, "Refreshing location...", Toast.LENGTH_SHORT).show();
@@ -228,6 +259,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
+    // Call Center popup dialog (Not used for bottom nav anymore, but kept just in case)
     private void showCallCenterBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
@@ -235,7 +267,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
         if (viewPager != null) {
-            viewPager.setAdapter(new CallCenterPagerAdapter());
+            // NOTE: Ensure CallCenterPagerAdapter exists in your project
+            // viewPager.setAdapter(new CallCenterPagerAdapter());
         }
 
         ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
@@ -247,6 +280,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         dialog.show();
     }
 
+    // Get the current logged-in user details from Firebase
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null || user.getEmail() == null) return;
@@ -264,6 +298,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                                 break;
                             }
                         }
+                        // If user is found, get their vehicles
                         if (currentCustomerId != null) fetchVehicles();
                     }
                 } catch (Exception e) {
@@ -276,6 +311,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
+    // Fetch the list of vehicles owned by this customer
     private void fetchVehicles() {
         if (currentCustomerId == null) return;
         mainApiService.getVehiclesByCustomer(currentCustomerId).enqueue(new Callback<ResponseBody>() {
@@ -285,6 +321,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     if (response.isSuccessful() && body != null) {
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         if (!list.isEmpty()) {
+                            // Select the most recently added vehicle
                             VehicleResponse vehicle = list.get(list.size() - 1);
                             selectedVehicleId = vehicle.getVehicleId();
                             selectedVehicleName = vehicle.getMake() + " " + vehicle.getModel();
@@ -302,21 +339,28 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
+    // Update the vehicle name on the screen
     private void updateVehicleUI() {
         if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(selectedVehicleName);
         if (tvVehicleNameExpanded != null) tvVehicleNameExpanded.setText(selectedVehicleName);
     }
 
+    // Triggers when Google Map is fully loaded
     @Override public void onMapReady(@NonNull GoogleMap googleMap) { mMap = googleMap; }
 
+    // Start fetching location every few seconds
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         trackingRunnable = new Runnable() {
-            @Override public void run() { fetchLocationData(); handler.postDelayed(this, UPDATE_INTERVAL); }
+            @Override public void run() {
+                fetchLocationData();
+                handler.postDelayed(this, UPDATE_INTERVAL);
+            }
         };
         handler.post(trackingRunnable);
     }
 
+    // Get car location from the server
     private void fetchLocationData() {
         if (mMap == null) return;
         trackingApi.getAllCurrentLocations().enqueue(new Callback<ResponseBody>() {
@@ -334,19 +378,20 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                             boolean isMine = hasRealVehicle && vid.equalsIgnoreCase(selectedVehicleId);
                             boolean isDemo = vid.equalsIgnoreCase(DEMO_VEHICLE_ID);
 
+                            // Only show marker if it's my vehicle or the demo vehicle
                             if (isMine || isDemo) {
                                 LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
                                 if (pos.latitude != 0) {
                                     String name = isMine ? selectedVehicleName : "Demo Vehicle";
                                     mMap.addMarker(new MarkerOptions().position(pos).title(name));
-                                    
+
                                     if (isMine) primary = loc;
                                     if (isDemo) demo = loc;
                                 }
                             }
                         }
 
-                        // Use demo if real car has no signal
+                        // Use demo vehicle if real car has no signal
                         if (primary == null) primary = demo;
                         if (primary != null) updateUI(primary);
                     }
@@ -360,29 +405,36 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
+    // Change text, colors, and camera based on location data
     private void updateUI(LocationResponse loc) {
         LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
         if (pos.latitude == 0) return;
+
+        // Move camera to vehicle location
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
-        
+
         String nameToShow = loc.getVehicleId().equalsIgnoreCase(DEMO_VEHICLE_ID) ? "Demo Vehicle" : selectedVehicleName;
         if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(nameToShow);
 
         if (tvCollapsedAddress != null) tvCollapsedAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", pos.latitude, pos.longitude));
         if (tvExpandedAddress != null) tvExpandedAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", pos.latitude, pos.longitude));
-        
+
+        // Change text and color depending on if car is moving or parked
         String status = loc.getSpeed() > 0 ? "Moving (" + (int)loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
         int color = loc.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
-        
+
+        // Green dot if Engine is ON, Red if OFF
         int dotColor = loc.isIgnitionOn() ? Color.parseColor("#4CAF50") : Color.parseColor("#E53935");
         if (dotIgnition != null) dotIgnition.setCardBackgroundColor(dotColor);
         if (dotAC != null) dotAC.setCardBackgroundColor(dotColor);
 
+        // Update the 'Last Updated' time text
         if (tvLastUpdated != null) tvLastUpdated.setText(String.format(Locale.getDefault(), "Sync: %s", new SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(new Date())));
     }
 
+    // Helper method to turn JSON server response into a List
     private <T> List<T> parseList(String json, Class<T> clazz) {
         List<T> list = new ArrayList<>();
         if (json == null || json.trim().isEmpty()) return list;
@@ -400,5 +452,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         return list;
     }
 
-    @Override protected void onDestroy() { super.onDestroy(); if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable); }
+    // Stop tracking when user leaves this screen to save battery
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+    }
 }
