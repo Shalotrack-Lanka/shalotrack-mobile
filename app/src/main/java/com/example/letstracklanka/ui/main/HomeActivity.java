@@ -76,6 +76,16 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final Map<String, Marker> mapMarkers = new HashMap<>();
 
     private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName;
+    // API and Real-time Variables
+    private ShaloTrackApi apiService;
+    private Handler handler = new Handler();
+    private Runnable runnable;
+    private final int UPDATE_INTERVAL = 10000; // 10 seconds
+    private String selectedDeviceId = "DEMO_DEVICE_001";
+
+    // Bottom sheet vehicle card items
+    private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName, tvDeviceTime;
+    private ImageView imgDeviceIcon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +107,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void initViews() {
+        // Find items in the included Bottom Sheet layout
         View bottomSheetView = findViewById(R.id.bottomSheet);
         if(bottomSheetView != null) {
             tvDeviceName = bottomSheetView.findViewById(R.id.tvDeviceName);
@@ -109,6 +120,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void setupUI() {
+        // Setup bottom sheet behavior
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
         if(bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
         
@@ -122,6 +134,54 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (btnAddVehicle != null) {
             btnAddVehicle.setOnClickListener(v -> showAddVehicleDialog());
         }
+        cardDefault.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_NORMAL, cardDefault));
+        cardTerrain.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_TERRAIN, cardTerrain));
+        cardSatellite.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_SATELLITE, cardSatellite));
+        cardHybrid.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_HYBRID, cardHybrid));
+
+        FloatingActionButton fabLocation = findViewById(R.id.fabLocation);
+        fabLocation.setOnClickListener(v -> getDeviceLocation());
+
+        MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
+        if(btnSendLocation != null) btnSendLocation.setOnClickListener(v -> showSendLocationBottomSheet());
+
+        MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
+        if (btnHomeSOS != null) btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
+
+        // --- Bottom Navigation Setup (Without changing XML IDs) ---
+
+        // Go to Vehicles Screen (XML has this ID)
+        LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
+        if (navVehicles != null) {
+            navVehicles.setOnClickListener(v -> {
+                Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
+                startActivity(intent);
+                overridePendingTransition(0, 0); // No animation
+            });
+        }
+
+        // Go to Tags & Circles Screen (Finding the buttons by their position in XML)
+        LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
+        if (bottomNavBar != null) {
+            if (bottomNavBar.getChildCount() > 2) {
+                View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
+                navTags.setOnClickListener(v -> {
+                    Intent intent = new Intent(HomeActivity.this, TagsActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
+            if (bottomNavBar.getChildCount() > 3) {
+                View navCircles = bottomNavBar.getChildAt(3); // 4th item is Circles
+                navCircles.setOnClickListener(v -> {
+                    Intent intent = new Intent(HomeActivity.this, CirclesActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
+        }
+        // --------------------------------
+    }
 
         findViewById(R.id.fabLocation).setOnClickListener(v -> getPhoneLocation());
     }
@@ -165,6 +225,16 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    // --- Real Time Tracking Code ---
+    private void startRealTimeTracking() {
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                fetchRealTimeVehicleData();
+                handler.postDelayed(this, UPDATE_INTERVAL);
+            }
+        };
+        handler.post(runnable);
     }
 
     private void processVehicleAddition(String vNum, String chassis, String engine, String make, String model, 
@@ -208,6 +278,93 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (response.isSuccessful() && response.body() != null) {
                     assignDeviceToVehicle(response.body().getVehicleId(), deviceId);
                 }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (handler != null && runnable != null) {
+            handler.removeCallbacks(runnable);
+        }
+    }
+
+    // --- Permissions and Location Setup ---
+    private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
+            mMap.getUiSettings().setMyLocationButtonEnabled(false);
+            getDeviceLocation();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void getDeviceLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+                if (location != null) {
+                    myCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            enableMyLocation();
+        }
+    }
+
+    private void changeMapType(int mapType, MaterialCardView selectedCard) {
+        if (mMap != null) {
+            mMap.setMapType(mapType);
+            cardDefault.setStrokeWidth(0);
+            cardTerrain.setStrokeWidth(0);
+            cardSatellite.setStrokeWidth(0);
+            cardHybrid.setStrokeWidth(0);
+            selectedCard.setStrokeWidth(8);
+            selectedCard.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+            mapTypeMenu.setVisibility(View.GONE);
+        }
+    }
+
+    // --- Bottom Sheets and Dialogs ---
+
+    @SuppressLint("InflateParams")
+    private void showSOSBottomSheet() {
+        BottomSheetDialog sosDialog = new BottomSheetDialog(this);
+        View sosView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_sos, null);
+        sosDialog.setContentView(sosView);
+
+        ImageView btnClose = sosView.findViewById(R.id.btnCloseSOS);
+        LinearLayout btnTapSOS = sosView.findViewById(R.id.btnTapSOS);
+        MaterialButton btnAddContacts = sosView.findViewById(R.id.btnAddContacts);
+        LinearLayout btnUpgradeCallCenter = sosView.findViewById(R.id.btnUpgradeCallCenter);
+
+        View bgPulseCircle = sosView.findViewById(R.id.bgPulseCircle);
+        if (bgPulseCircle != null) {
+            android.view.animation.Animation pulseAnim = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.pulse_animation);
+            bgPulseCircle.startAnimation(pulseAnim);
+        }
+
+        btnClose.setOnClickListener(v -> sosDialog.dismiss());
+
+        btnTapSOS.setOnClickListener(v -> {
+            sosDialog.dismiss();
+
+            if (myCurrentLocation != null) {
+                String locationLink = "https://www.google.com/maps?q=" + myCurrentLocation.latitude + "," + myCurrentLocation.longitude;
+                String message = "EMERGENCY SOS!\nI need help. Here is my current location:\n" + locationLink;
+
+                Intent smsIntent = new Intent(Intent.ACTION_VIEW);
+                smsIntent.setType("vnd.android-dir/mms-sms");
+                smsIntent.putExtra("sms_body", message);
+                startActivity(smsIntent);
+
+                Toast.makeText(this, "Opening SMS to send SOS...", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Trying to find your location...", Toast.LENGTH_SHORT).show();
+                getDeviceLocation();
             }
             @Override public void onFailure(@NonNull Call<VehicleResponse> call, @NonNull Throwable t) { }
         });

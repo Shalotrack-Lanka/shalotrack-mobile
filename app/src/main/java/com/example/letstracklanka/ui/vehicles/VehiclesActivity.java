@@ -22,6 +22,8 @@ import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.ui.main.HomeActivity;
+import com.example.letstracklanka.ui.main.TagsActivity;
+import com.example.letstracklanka.ui.main.CirclesActivity; // Imported CirclesActivity
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -51,9 +53,12 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
 
+    // UI components
+    private LinearLayout layoutCollapsed, layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
 
+    // Data display components
     private TextView tvCollapsedStatus, tvCollapsedAddress;
     private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated, tvVehicleNameCollapsed, tvVehicleNameExpanded;
     private CardView dotIgnition, dotAC;
@@ -76,6 +81,29 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         mainApiService = ApiClient.getClient().create(ApiService.class);
+        try {
+            // Find Layouts and FABs
+            layoutCollapsed = findViewById(R.id.layoutCollapsed);
+            layoutExpanded = findViewById(R.id.layoutExpanded);
+            layoutLeftFabs = findViewById(R.id.layoutLeftFabs);
+            gridMenu = findViewById(R.id.gridMenu);
+            fabAdd = findViewById(R.id.fabAdd);
+            fabHistory = findViewById(R.id.fabHistory);
+
+            // Find Text Views and Buttons
+            tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
+            tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
+            tvExpandedStatus = findViewById(R.id.tvExpandedStatus);
+            tvExpandedAddress = findViewById(R.id.tvExpandedAddress);
+            tvLastUpdated = findViewById(R.id.tvLastUpdated);
+            dotIgnition = findViewById(R.id.dotIgnition);
+            dotAC = findViewById(R.id.dotAC);
+
+            btnCloseExpanded = findViewById(R.id.btnCloseExpanded);
+            btnRefresh = findViewById(R.id.btnRefresh);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         initViews();
         setupBottomSheet();
@@ -114,6 +142,22 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
                     findViewById(R.id.layoutExpanded).setVisibility(View.GONE);
                     findViewById(R.id.layoutCollapsed).setVisibility(View.VISIBLE);
+        bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    // Fully Expanded state
+                    gridMenu.setVisibility(View.VISIBLE);
+                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    // Collapsed state
+                    layoutExpanded.setVisibility(View.GONE);
+                    gridMenu.setVisibility(View.GONE);
+
+                    layoutCollapsed.setVisibility(View.VISIBLE);
+                    fabAdd.setVisibility(View.VISIBLE);
+
+                    fabHistory.setVisibility(View.GONE);
+                    layoutLeftFabs.setVisibility(View.GONE);
                 }
             }
             @Override public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
@@ -124,6 +168,71 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             findViewById(R.id.layoutExpanded).setVisibility(View.VISIBLE);
             behavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
         });
+        // Half-expand when collapsed card is clicked
+        if (layoutCollapsed != null) {
+            layoutCollapsed.setOnClickListener(v -> {
+                layoutCollapsed.setVisibility(View.GONE);
+                fabAdd.setVisibility(View.GONE);
+
+                layoutExpanded.setVisibility(View.VISIBLE);
+                gridMenu.setVisibility(View.GONE); // Grid is not visible yet
+
+                fabHistory.setVisibility(View.VISIBLE);
+                layoutLeftFabs.setVisibility(View.VISIBLE);
+
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+            });
+        }
+
+        // Collapse when close button is clicked
+        if (btnCloseExpanded != null) {
+            btnCloseExpanded.setOnClickListener(v -> {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            });
+        }
+
+        // --- Bottom Navigation Setup ---
+
+        // Home button setup
+        LinearLayout navHome = findViewById(R.id.nav_home);
+        if (navHome != null) {
+            navHome.setOnClickListener(v -> {
+                Intent intent = new Intent(VehiclesActivity.this, HomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                finish();
+            });
+        }
+
+        // Setup Tags and Circles buttons
+        LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
+        if (bottomNavBar != null) {
+            if (bottomNavBar.getChildCount() > 2) {
+                View navTags = bottomNavBar.getChildAt(2); // 3rd item is Tags
+                navTags.setOnClickListener(v -> {
+                    Intent intent = new Intent(VehiclesActivity.this, TagsActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
+            if (bottomNavBar.getChildCount() > 3) {
+                View navCircles = bottomNavBar.getChildAt(3); // 4th item is Circles
+                navCircles.setOnClickListener(v -> {
+                    Intent intent = new Intent(VehiclesActivity.this, CirclesActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
+            }
+        }
+
+        // Refresh button setup
+        if (btnRefresh != null) {
+            btnRefresh.setOnClickListener(v -> {
+                Toast.makeText(this, "Refreshing location...", Toast.LENGTH_SHORT).show();
+                fetchRealTimeVehicleData();
+            });
+        }
 
         if (btnCloseExpanded != null) btnCloseExpanded.setOnClickListener(v -> behavior.setState(BottomSheetBehavior.STATE_COLLAPSED));
     }
