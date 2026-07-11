@@ -70,8 +70,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
     private static final int UPDATE_INTERVAL = 10000;
-    // FIX: DEMO_VEHICLE_ID removed. It pointed at a vehicle owned by nobody real,
-    // which silently blocked the map from ever showing a genuine customer's vehicle.
+
+    // Removed DEMO_VEHICLE_ID. Now it uses real customer vehicles to show on the map.
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
@@ -175,7 +175,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             View navAlerts = findViewById(R.id.nav_alerts);
             if (navAlerts != null) {
-                navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+                // Modified: Now navigates to the new AlertsActivity instead of the Call Center bottom sheet
+                navAlerts.setOnClickListener(v -> {
+                    Intent intent = new Intent(HomeActivity.this, AlertsActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
             }
 
             View navMenu = findViewById(R.id.nav_menu);
@@ -252,9 +258,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void processVehicleAddition(String vNum, String chassis, String engine, String make, String model,
                                         int year, String color, String type, String fuel, String imei) {
-        // NOTE: this still calls the staff-only GET api/GpsDevices endpoint, so it will
-        // currently 403 for a regular customer and fail with a visible toast below (not
-        // silently anymore). Known, deferred limitation — not fixed in this patch.
+
         mainApiService.getGpsDevices().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
@@ -274,8 +278,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Toast.makeText(HomeActivity.this, "IMEI not found in registry", Toast.LENGTH_LONG).show();
                         }
                     } else {
-                        // FIX: surface non-2xx responses (e.g. 403) instead of silently
-                        // doing nothing, so the user sees why "nothing happened."
+                        // Show server error codes to the user so they know what went wrong
                         Toast.makeText(HomeActivity.this,
                                 "Could not check device registry (code " + response.code() + ")",
                                 Toast.LENGTH_LONG).show();
@@ -391,10 +394,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 try (ResponseBody body = response.body()) {
                     if (!response.isSuccessful() || body == null) return;
 
-                    // FIX: "data" is a single dashboard OBJECT, not an array of vehicles.
-                    // The real vehicle list lives at data.vehicles[]. Parse it directly
-                    // instead of routing through parseList(), which was wrapping the whole
-                    // dashboard object as if it were one vehicle and crashing on null fields.
+                    // Get the vehicle list directly from data.vehicles array to avoid app crash
                     Gson gson = new Gson();
                     JsonObject root = gson.fromJson(body.string(), JsonObject.class);
                     if (root == null || !root.has("data") || root.get("data").isJsonNull()) return;
@@ -411,8 +411,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         String model = v.has("model") && !v.get("model").isJsonNull() ? v.get("model").getAsString() : "";
                         myVehicles.put(vehicleId, (make + " " + model).trim());
 
-                        // Bonus: the dashboard already carries lat/lng/online — use it
-                        // directly instead of waiting on the separate per-vehicle poll.
+                        // Update marker location directly from the dashboard data
                         boolean hasLocation = v.has("latitude") && !v.get("latitude").isJsonNull()
                                 && v.has("longitude") && !v.get("longitude").isJsonNull();
                         if (hasLocation && mMap != null) {
@@ -434,16 +433,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    // FIX: was calling trackingApi.getAllCurrentLocations() — a staff-only endpoint that
-    // now correctly 403s for regular customers, and even before that, was comparing
-    // against a hardcoded DEMO_VEHICLE_ID that belonged to nobody real.
-    // Now polls each vehicle this logged-in customer actually owns (from myVehicles,
-    // populated by fetchMyVehicles()/fetchDashboard()), using the scoped per-vehicle
-    // endpoint the API already enforces ownership on.
+    // Fetch locations only for the vehicles owned by the currently logged-in user
     private void fetchLocation() {
         if (myVehicles.isEmpty()) {
-            // Nothing to poll yet — either the profile/vehicle list hasn't loaded,
-            // or this customer genuinely has no vehicle yet. Not an error.
             return;
         }
 
@@ -464,8 +456,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 }
                             }
                         } else if (response.code() == 404) {
-                            // No location reported yet for this vehicle (e.g. device just
-                            // assigned, hasn't transmitted). Not an error — just nothing to show.
+                            // Location not found for this vehicle. Not an error.
                             Log.d("HomeActivity", "No current location yet for vehicle " + vehicleId);
                         }
                     } catch (Exception e) {
@@ -482,10 +473,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
-     * Handles both response shapes safely:
-     *  - Wrapped envelope: {"success":true,"data":{...}}
-     *  - Raw object: {"vehicleId":"...", "latitude":...}
-     * This avoids guessing which shape your current API build returns.
+     * Handles both response shapes securely
      */
     private LocationResponse extractLocation(String json) {
         if (json == null || json.trim().isEmpty()) return null;
@@ -525,11 +513,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    // FIX: was calling getCustomerByEmail() -> GET api/Customers (staff-only list),
-    // which now 403s for every regular customer, leaving currentCustomerId permanently
-    // null and silently blocking fetchMyVehicles()/fetchDashboard()/fetchLocation() from
-    // ever running. Now calls the new GET api/Customers/me endpoint, which resolves the
-    // caller's own profile from their token — no staff role required.
+    // Use the /me API endpoint to load the logged-in user's profile securely
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -564,7 +548,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
-     * Handles both response shapes safely, same reasoning as extractLocation() above.
+     * Handles both response shapes securely
      */
     private CustomerResponse extractCustomer(String json) {
         if (json == null || json.trim().isEmpty()) return null;
