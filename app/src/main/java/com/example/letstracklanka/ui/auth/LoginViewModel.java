@@ -5,12 +5,10 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.repository.AuthRepository;
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.List;
-
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -25,16 +23,13 @@ public class LoginViewModel extends ViewModel {
     public void login(String email, String password) {
         isLoading.setValue(true);
 
-        // Step 1: Firebase Authentication
         auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        // Step 2: Backend API Verification
-                        // Explicitly use List<CustomerResponse> to match the repository signature
-                        repository.verifyCustomerBackend(email, new Callback<List<CustomerResponse>>() {
+                        repository.verifyCustomerBackend(email, new Callback<ResponseBody>() {
                             @Override
-                            public void onResponse(@NonNull Call<List<CustomerResponse>> call,
-                                                   @NonNull Response<List<CustomerResponse>> response) {
+                            public void onResponse(@NonNull Call<ResponseBody> call,
+                                                   @NonNull Response<ResponseBody> response) {
                                 isLoading.setValue(false);
                                 if (response.isSuccessful()) {
                                     authResult.setValue("SUCCESS");
@@ -44,7 +39,7 @@ public class LoginViewModel extends ViewModel {
                             }
 
                             @Override
-                            public void onFailure(@NonNull Call<List<CustomerResponse>> call,
+                            public void onFailure(@NonNull Call<ResponseBody> call,
                                                   @NonNull Throwable t) {
                                 isLoading.setValue(false);
                                 String error = t.getMessage() != null ? t.getMessage() : "Unknown network error";
