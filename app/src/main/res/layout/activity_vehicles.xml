@@ -285,7 +285,7 @@
                         android:layout_marginTop="12dp"
                         android:gravity="center_vertical">
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" text="Ignition" textColor="#757575" textSize="13sp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ignition" android:textColor="#757575" android:textSize="13sp"/>
                         <androidx.cardview.widget.CardView
                             android:id="@+id/dotIgnition"
                             android:layout_width="10dp"
@@ -294,7 +294,7 @@
                             app:cardBackgroundColor="#E53935"
                             android:layout_marginStart="6dp"/>
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" text="AC" textColor="#757575" textSize="13sp" android:layout_marginStart="20dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="AC" android:textColor="#757575" android:textSize="13sp" android:layout_marginStart="20dp"/>
                         <androidx.cardview.widget.CardView
                             android:id="@+id/dotAC"
                             android:layout_width="10dp"
@@ -303,7 +303,7 @@
                             app:cardBackgroundColor="#E53935"
                             android:layout_marginStart="6dp"/>
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" text="100%" textColor="#757575" textSize="13sp" android:layout_marginStart="20dp" android:layout_marginEnd="4dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100%" android:textColor="#757575" android:textSize="13sp" android:layout_marginStart="20dp" android:layout_marginEnd="4dp"/>
                         <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_lock_idle_charging" app:tint="#4CAF50"/>
                     </LinearLayout>
 

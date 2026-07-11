@@ -4,11 +4,8 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.letstracklanka.data.model.CustomerRequest;
-import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
-
-import java.util.List;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -18,6 +15,7 @@ import retrofit2.Response;
 public class AuthRepository {
     private final ApiService apiService = ApiClient.getClient().create(ApiService.class);
 
+    @SuppressWarnings("unused")
     public MutableLiveData<Boolean> registerCustomer(CustomerRequest request) {
         MutableLiveData<Boolean> status = new MutableLiveData<>();
 

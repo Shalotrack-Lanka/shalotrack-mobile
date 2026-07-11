@@ -13,6 +13,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+@SuppressWarnings("unused")
 public class LoginViewModel extends ViewModel {
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
     private final AuthRepository repository = new AuthRepository();
