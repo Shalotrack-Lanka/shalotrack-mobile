@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import com.example.letstracklanka.R
+import com.example.letstracklanka.ui.auth.EmailInputActivity
 import com.google.firebase.auth.FirebaseAuth
 
 class SplashActivity : AppCompatActivity() {
@@ -15,12 +16,22 @@ class SplashActivity : AppCompatActivity() {
 
         Handler(Looper.getMainLooper()).postDelayed({
             val currentUser = FirebaseAuth.getInstance().currentUser
+            
             if (currentUser != null) {
-                // User is already logged in, go directly to MainActivity
-                val intent = Intent(this, MainActivity::class.java)
-                startActivity(intent)
+                // Check if the user has an email linked to their session
+                if (currentUser.email != null) {
+                    // SESSION OK: Go to Dashboard
+                    val intent = Intent(this, HomeActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                } else {
+                    // PARTIAL SESSION: Go to Details screen to finish linking email
+                    val intent = Intent(this, EmailInputActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                }
             } else {
-                // No session, go to Welcome (Intro) screen
+                // NO SESSION: Go to Welcome screen
                 val intent = Intent(this, WelcomeActivity::class.java)
                 startActivity(intent)
             }

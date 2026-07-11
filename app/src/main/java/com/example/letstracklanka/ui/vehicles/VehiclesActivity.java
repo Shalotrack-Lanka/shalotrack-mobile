@@ -4,22 +4,23 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.GridLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.model.LocationResponse;
-import com.example.letstracklanka.data.model.StatusResponse;
-import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.data.model.VehicleResponse;
+import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
+import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.ui.main.HomeActivity;
 import com.example.letstracklanka.ui.main.TagsActivity;
 import com.example.letstracklanka.ui.main.CirclesActivity; // Imported CirclesActivity
@@ -30,13 +31,18 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -44,30 +50,37 @@ import retrofit2.Response;
 public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-    private ShaloTrackApi apiService;
+    private ShaloTrackApi trackingApi;
+    private ApiService mainApiService;
 
     // UI components
     private LinearLayout layoutCollapsed, layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
-    private FloatingActionButton fabAdd, fabHistory;
     private ImageView btnCloseExpanded;
 
     // Data display components
     private TextView tvCollapsedStatus, tvCollapsedAddress;
-    private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated;
+    private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated, tvVehicleNameCollapsed, tvVehicleNameExpanded;
     private CardView dotIgnition, dotAC;
-    private MaterialButton btnRefresh;
 
-    private Handler handler = new Handler();
-    private Runnable runnable;
-    private final int UPDATE_INTERVAL = 10000;
-    private String selectedDeviceId = "DEMO_DEVICE_001";
+    private final Handler handler = new Handler();
+    private Runnable trackingRunnable;
+    private final int UPDATE_INTERVAL = 5000;
+    
+    private static final String DEMO_VEHICLE_ID = "39019073-09b8-4dbc-b5f9-6d7ade5ec4df";
+
+    private String currentCustomerId = null;
+    private String selectedVehicleId = DEMO_VEHICLE_ID;
+    private String selectedVehicleName = "Demo Vehicle";
+    private boolean hasRealVehicle = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vehicles);
 
+        trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
+        mainApiService = ApiClient.getClient().create(ApiService.class);
         try {
             // Find Layouts and FABs
             layoutCollapsed = findViewById(R.id.layoutCollapsed);
@@ -92,18 +105,43 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             e.printStackTrace();
         }
 
-        apiService = ApiClient.getClient().create(ShaloTrackApi.class);
+        initViews();
+        setupBottomSheet();
+        setupNavigation();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mapVehicles);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(this);
-        }
+        if (mapFragment != null) mapFragment.getMapAsync(this);
 
-        // --- Bottom Sheet Toggling Logic ---
+        loadUserData();
+        startRealTimeTracking();
+    }
+
+    private void initViews() {
+        gridMenu = findViewById(R.id.gridMenu);
+        btnCloseExpanded = findViewById(R.id.btnCloseExpanded);
+        tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
+        tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
+        tvExpandedStatus = findViewById(R.id.tvExpandedStatus);
+        tvExpandedAddress = findViewById(R.id.tvExpandedAddress);
+        tvLastUpdated = findViewById(R.id.tvLastUpdated);
+        tvVehicleNameCollapsed = findViewById(R.id.tvVehicleNameCollapsed);
+        tvVehicleNameExpanded = findViewById(R.id.tvVehicleNameExpanded);
+        dotIgnition = findViewById(R.id.dotIgnition);
+        dotAC = findViewById(R.id.dotAC);
+
+        findViewById(R.id.btnRefresh).setOnClickListener(v -> fetchLocationData());
+    }
+
+    private void setupBottomSheet() {
         View bottomSheet = findViewById(R.id.bottomSheetVehicleDetails);
-        BottomSheetBehavior<View> bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-
+        BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
+        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) gridMenu.setVisibility(View.VISIBLE);
+                else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    findViewById(R.id.layoutExpanded).setVisibility(View.GONE);
+                    findViewById(R.id.layoutCollapsed).setVisibility(View.VISIBLE);
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -122,11 +160,14 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     layoutLeftFabs.setVisibility(View.GONE);
                 }
             }
-
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
+            @Override public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
         });
 
+        findViewById(R.id.layoutCollapsed).setOnClickListener(v -> {
+            findViewById(R.id.layoutCollapsed).setVisibility(View.GONE);
+            findViewById(R.id.layoutExpanded).setVisibility(View.VISIBLE);
+            behavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+        });
         // Half-expand when collapsed card is clicked
         if (layoutCollapsed != null) {
             layoutCollapsed.setOnClickListener(v -> {
@@ -193,98 +234,168 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        startRealTimeTracking();
+        if (btnCloseExpanded != null) btnCloseExpanded.setOnClickListener(v -> behavior.setState(BottomSheetBehavior.STATE_COLLAPSED));
     }
 
-    @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) {
-        mMap = googleMap;
-        fetchRealTimeVehicleData();
+    private void setupNavigation() {
+        findViewById(R.id.nav_home).setOnClickListener(v -> {
+            startActivity(new Intent(this, HomeActivity.class));
+            finish();
+        });
     }
+
+    private void loadUserData() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null || user.getEmail() == null) return;
+
+        mainApiService.getCustomerByEmail(user.getEmail()).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        String json = body.string();
+                        List<CustomerResponse> list = parseList(json, CustomerResponse.class);
+                        for (CustomerResponse c : list) {
+                            if (user.getEmail().equalsIgnoreCase(c.getEmail())) {
+                                currentCustomerId = c.getCustomerId();
+                                break;
+                            }
+                        }
+                        if (currentCustomerId != null) fetchVehicles();
+                    }
+                } catch (Exception e) {
+                    Log.e("VehiclesActivity", "Error loading user data", e);
+                }
+            }
+            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("VehiclesActivity", "Failed to fetch user data", t);
+            }
+        });
+    }
+
+    private void fetchVehicles() {
+        if (currentCustomerId == null) return;
+        mainApiService.getVehiclesByCustomer(currentCustomerId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
+                        if (!list.isEmpty()) {
+                            VehicleResponse vehicle = list.get(list.size() - 1);
+                            selectedVehicleId = vehicle.getVehicleId();
+                            selectedVehicleName = vehicle.getMake() + " " + vehicle.getModel();
+                            hasRealVehicle = true;
+                            updateVehicleUI();
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e("VehiclesActivity", "Error fetching vehicles", e);
+                }
+            }
+            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("VehiclesActivity", "Failed to fetch vehicles", t);
+            }
+        });
+    }
+
+    private void updateVehicleUI() {
+        if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(selectedVehicleName);
+        if (tvVehicleNameExpanded != null) tvVehicleNameExpanded.setText(selectedVehicleName);
+    }
+
+    @Override public void onMapReady(@NonNull GoogleMap googleMap) { mMap = googleMap; }
 
     private void startRealTimeTracking() {
-        runnable = new Runnable() {
-            @Override
-            public void run() {
-                fetchRealTimeVehicleData();
-                handler.postDelayed(this, UPDATE_INTERVAL);
-            }
+        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+        trackingRunnable = new Runnable() {
+            @Override public void run() { fetchLocationData(); handler.postDelayed(this, UPDATE_INTERVAL); }
         };
-        handler.post(runnable);
+        handler.post(trackingRunnable);
     }
 
-    private void fetchRealTimeVehicleData() {
-        if (apiService == null || mMap == null) return;
-
-        apiService.getCurrentLocation(selectedDeviceId).enqueue(new Callback<LocationResponse>() {
+    private void fetchLocationData() {
+        if (mMap == null) return;
+        trackingApi.getAllCurrentLocations().enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(Call<LocationResponse> call, Response<LocationResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    double lat = response.body().getLatitude();
-                    double lng = response.body().getLongitude();
-                    LatLng carLocation = new LatLng(lat, lng);
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        List<LocationResponse> list = parseList(body.string(), LocationResponse.class);
+                        mMap.clear();
+                        LocationResponse primary = null;
+                        LocationResponse demo = null;
 
-                    mMap.clear();
-                    mMap.addMarker(new MarkerOptions().position(carLocation).title("LT Demo Device"));
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(carLocation, 16f));
+                        for (LocationResponse loc : list) {
+                            String vid = loc.getVehicleId();
+                            boolean isMine = hasRealVehicle && vid.equalsIgnoreCase(selectedVehicleId);
+                            boolean isDemo = vid.equalsIgnoreCase(DEMO_VEHICLE_ID);
 
-                    String addressText = lat + ", " + lng;
-                    if (tvCollapsedAddress != null) tvCollapsedAddress.setText(addressText);
-                    if (tvExpandedAddress != null) tvExpandedAddress.setText(addressText);
+                            if (isMine || isDemo) {
+                                LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
+                                if (pos.latitude != 0) {
+                                    String name = isMine ? selectedVehicleName : "Demo Vehicle";
+                                    mMap.addMarker(new MarkerOptions().position(pos).title(name));
+                                    
+                                    if (isMine) primary = loc;
+                                    if (isDemo) demo = loc;
+                                }
+                            }
+                        }
 
-                    if(tvLastUpdated != null) {
-                        String currentTime = new SimpleDateFormat("dd MMM yyyy hh:mm a", Locale.getDefault()).format(new Date());
-                        tvLastUpdated.setText("Updated: " + currentTime);
+                        // Use demo if real car has no signal
+                        if (primary == null) primary = demo;
+                        if (primary != null) updateUI(primary);
                     }
+                } catch (Exception e) {
+                    Log.e("VehiclesActivity", "Error fetching location", e);
                 }
             }
-            @Override
-            public void onFailure(Call<LocationResponse> call, Throwable t) { }
-        });
-
-        apiService.getDeviceStatus(selectedDeviceId).enqueue(new Callback<StatusResponse>() {
-            @Override
-            public void onResponse(Call<StatusResponse> call, Response<StatusResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    double speed = response.body().getSpeed();
-                    boolean isAccOn = response.body().isAccStatus();
-
-                    if (tvCollapsedStatus != null && tvExpandedStatus != null) {
-                        if (speed > 0) {
-                            String movingText = "Moving (" + (int)speed + " km/h)";
-                            tvCollapsedStatus.setText(movingText);
-                            tvCollapsedStatus.setTextColor(Color.parseColor("#00BFA5"));
-                            tvExpandedStatus.setText(movingText);
-                            tvExpandedStatus.setTextColor(Color.parseColor("#00BFA5"));
-                        } else {
-                            tvCollapsedStatus.setText("Parked ");
-                            tvCollapsedStatus.setTextColor(Color.parseColor("#1976D2"));
-                            tvExpandedStatus.setText("Parked ");
-                            tvExpandedStatus.setTextColor(Color.parseColor("#1976D2"));
-                        }
-                    }
-
-                    if (dotIgnition != null && dotAC != null) {
-                        if(isAccOn) {
-                            dotIgnition.setCardBackgroundColor(Color.parseColor("#4CAF50"));
-                            dotAC.setCardBackgroundColor(Color.parseColor("#4CAF50"));
-                        } else {
-                            dotIgnition.setCardBackgroundColor(Color.parseColor("#E53935"));
-                            dotAC.setCardBackgroundColor(Color.parseColor("#E53935"));
-                        }
-                    }
-                }
+            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("VehiclesActivity", "Failed to fetch location", t);
             }
-            @Override
-            public void onFailure(Call<StatusResponse> call, Throwable t) { }
         });
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (handler != null && runnable != null) {
-            handler.removeCallbacks(runnable);
+    private void updateUI(LocationResponse loc) {
+        LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
+        if (pos.latitude == 0) return;
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+        
+        String nameToShow = loc.getVehicleId().equalsIgnoreCase(DEMO_VEHICLE_ID) ? "Demo Vehicle" : selectedVehicleName;
+        if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(nameToShow);
+
+        if (tvCollapsedAddress != null) tvCollapsedAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", pos.latitude, pos.longitude));
+        if (tvExpandedAddress != null) tvExpandedAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", pos.latitude, pos.longitude));
+        
+        String status = loc.getSpeed() > 0 ? "Moving (" + (int)loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
+        int color = loc.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1976D2");
+        if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
+        if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
+        
+        int dotColor = loc.isIgnitionOn() ? Color.parseColor("#4CAF50") : Color.parseColor("#E53935");
+        if (dotIgnition != null) dotIgnition.setCardBackgroundColor(dotColor);
+        if (dotAC != null) dotAC.setCardBackgroundColor(dotColor);
+
+        if (tvLastUpdated != null) tvLastUpdated.setText(String.format(Locale.getDefault(), "Sync: %s", new SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(new Date())));
+    }
+
+    private <T> List<T> parseList(String json, Class<T> clazz) {
+        List<T> list = new ArrayList<>();
+        if (json == null || json.trim().isEmpty()) return list;
+        Gson gson = new Gson();
+        String trimmed = json.trim();
+        try {
+            if (trimmed.startsWith("[")) {
+                list = gson.fromJson(trimmed, TypeToken.getParameterized(List.class, clazz).getType());
+            } else if (trimmed.startsWith("{")) {
+                list.add(gson.fromJson(trimmed, clazz));
+            }
+        } catch (Exception e) {
+            Log.e("VehiclesActivity", "Error parsing list JSON", e);
         }
+        return list;
     }
+
+    @Override protected void onDestroy() { super.onDestroy(); if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable); }
 }

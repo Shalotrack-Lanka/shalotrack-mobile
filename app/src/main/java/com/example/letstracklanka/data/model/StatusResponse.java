@@ -7,10 +7,20 @@ public class StatusResponse {
     @SerializedName("speed")
     private double speed;
 
+    @SerializedName("Speed")
+    private double speedUpper;
+
     @SerializedName("accStatus")
     private boolean accStatus;
 
-    // Getters
-    public double getSpeed() { return speed; }
-    public boolean isAccStatus() { return accStatus; }
+    @SerializedName("IgnitionStatus")
+    private boolean ignitionStatus;
+
+    public double getSpeed() { 
+        return speedUpper != 0 ? speedUpper : speed; 
+    }
+    
+    public boolean isAccStatus() { 
+        return accStatus || ignitionStatus; 
+    }
 }
