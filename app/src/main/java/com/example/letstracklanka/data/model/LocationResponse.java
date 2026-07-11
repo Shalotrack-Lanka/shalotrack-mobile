@@ -5,38 +5,43 @@ import com.google.gson.annotations.SerializedName;
 
 /**
  * Robust model for CurrentLocations.
- * Based on your SQL: 'Latitude', 'Longitude', 'Speed', 'IgnitionStatus' are stored as Strings/Text.
+ *
+ * FIX: the real API returns camelCase JSON keys (latitude, longitude, speed,
+ * ignitionStatus) but this model was only listening for PascalCase (Latitude,
+ * Longitude, Speed, IgnitionStatus). Gson is case-sensitive, so every one of
+ * those fields silently parsed to null -> 0, meaning the map marker never
+ * appeared even though the API was returning correct, real coordinates.
+ *
+ * Using @SerializedName's "alternate" list so both casings are accepted,
+ * the same defensive pattern already used for vehicleId below.
  */
 @SuppressWarnings("unused")
 public class LocationResponse {
-    
-    @SerializedName("VehicleId")
+
+    @SerializedName(value = "VehicleId", alternate = {"vehicleId"})
     private String vehicleId;
 
-    @SerializedName("vehicleId")
-    private String vehicleIdLower;
-
-    @SerializedName("Latitude")
+    @SerializedName(value = "Latitude", alternate = {"latitude"})
     private JsonElement latitude;
 
-    @SerializedName("Longitude")
+    @SerializedName(value = "Longitude", alternate = {"longitude"})
     private JsonElement longitude;
 
-    @SerializedName("Speed")
+    @SerializedName(value = "Speed", alternate = {"speed"})
     private JsonElement speed;
 
-    @SerializedName("IgnitionStatus")
+    @SerializedName(value = "IgnitionStatus", alternate = {"ignitionStatus"})
     private JsonElement ignitionStatus;
 
     public String getVehicleId() {
-        return vehicleId != null ? vehicleId : vehicleIdLower;
+        return vehicleId;
     }
 
-    public double getLatitude() { 
+    public double getLatitude() {
         return parseToDouble(latitude);
     }
-    
-    public double getLongitude() { 
+
+    public double getLongitude() {
         return parseToDouble(longitude);
     }
 

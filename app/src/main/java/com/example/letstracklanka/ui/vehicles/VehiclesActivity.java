@@ -58,7 +58,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ApiService mainApiService;
 
     // UI components
-    private LinearLayout layoutCollapsed, layoutExpanded, layoutLeftFabs;
+    private View layoutCollapsed;
+    private LinearLayout layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
     private View fabAdd, fabHistory, btnRefresh;

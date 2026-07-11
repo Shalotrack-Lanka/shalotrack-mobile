@@ -1,7 +1,6 @@
 package com.example.letstracklanka.ui.main;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -53,6 +52,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
@@ -69,8 +69,9 @@ import retrofit2.Response;
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
-    private static final String DEMO_VEHICLE_ID = "39019073-09b8-4dbc-b5f9-6d7ade5ec4df";
     private static final int UPDATE_INTERVAL = 10000;
+    // FIX: DEMO_VEHICLE_ID removed. It pointed at a vehicle owned by nobody real,
+    // which silently blocked the map from ever showing a genuine customer's vehicle.
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
@@ -100,14 +101,14 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         initViews();
         setupUI();
         enableMyLocation();
-        
+
         startRealTimeTracking();
         loadUserData();
     }
 
     private void initViews() {
         View bottomSheetView = findViewById(R.id.bottomSheet);
-        if(bottomSheetView != null) {
+        if (bottomSheetView != null) {
             tvDeviceName = bottomSheetView.findViewById(R.id.tvDeviceName);
             tvDeviceStatus = bottomSheetView.findViewById(R.id.tvDeviceStatus);
             tvDeviceAddress = bottomSheetView.findViewById(R.id.tvDeviceAddress);
@@ -125,8 +126,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void setupUI() {
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
-        if(bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
-        
+        if (bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
+
         findViewById(R.id.nav_vehicles).setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -241,7 +242,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         return;
                     }
                     int year = yearStr.isEmpty() ? 2024 : Integer.parseInt(yearStr);
-                    
+
                     Toast.makeText(this, "Linking Hardware...", Toast.LENGTH_SHORT).show();
                     processVehicleAddition(vNum, chassis, engine, make, model, year, color, type, fuel, imei);
                 })
@@ -249,8 +250,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .show();
     }
 
-    private void processVehicleAddition(String vNum, String chassis, String engine, String make, String model, 
-                                       int year, String color, String type, String fuel, String imei) {
+    private void processVehicleAddition(String vNum, String chassis, String engine, String make, String model,
+                                        int year, String color, String type, String fuel, String imei) {
+        // NOTE: this still calls the staff-only GET api/GpsDevices endpoint, so it will
+        // currently 403 for a regular customer and fail with a visible toast below (not
+        // silently anymore). Known, deferred limitation — not fixed in this patch.
         mainApiService.getGpsDevices().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
@@ -269,29 +273,48 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         } else {
                             Toast.makeText(HomeActivity.this, "IMEI not found in registry", Toast.LENGTH_LONG).show();
                         }
+                    } else {
+                        // FIX: surface non-2xx responses (e.g. 403) instead of silently
+                        // doing nothing, so the user sees why "nothing happened."
+                        Toast.makeText(HomeActivity.this,
+                                "Could not check device registry (code " + response.code() + ")",
+                                Toast.LENGTH_LONG).show();
                     }
                 } catch (Exception e) {
                     Log.e("HomeActivity", "Error finding device", e);
                 }
             }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Toast.makeText(HomeActivity.this, "Registry Error", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void createVehicle(String vNum, String chassis, String engine, String make, String model, 
-                              int year, String color, String type, String fuel, String deviceId) {
-        if (currentCustomerId == null) return;
+    private void createVehicle(String vNum, String chassis, String engine, String make, String model,
+                               int year, String color, String type, String fuel, String deviceId) {
+        if (currentCustomerId == null) {
+            Toast.makeText(this, "Your profile isn't loaded yet. Please try again.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         CreateVehicleRequest request = new CreateVehicleRequest(currentCustomerId, vNum, chassis, engine, make, model, year, color, type, fuel);
         mainApiService.createVehicle(request).enqueue(new Callback<VehicleResponse>() {
             @Override
             public void onResponse(@NonNull Call<VehicleResponse> call, @NonNull Response<VehicleResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     assignDeviceToVehicle(response.body().getVehicleId(), deviceId);
+                } else {
+                    Toast.makeText(HomeActivity.this,
+                            "Could not create vehicle (code " + response.code() + ")",
+                            Toast.LENGTH_LONG).show();
                 }
             }
-            @Override public void onFailure(@NonNull Call<VehicleResponse> call, @NonNull Throwable t) { }
+
+            @Override
+            public void onFailure(@NonNull Call<VehicleResponse> call, @NonNull Throwable t) {
+                Toast.makeText(HomeActivity.this, "Network error creating vehicle", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -301,10 +324,18 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(HomeActivity.this, "Vehicle Linked to DB!", Toast.LENGTH_LONG).show();
-                    loadUserData(); 
+                    loadUserData();
+                } else {
+                    Toast.makeText(HomeActivity.this,
+                            "Could not assign device (code " + response.code() + ")",
+                            Toast.LENGTH_LONG).show();
                 }
             }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {}
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Toast.makeText(HomeActivity.this, "Network error assigning device", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -342,10 +373,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         trackingRunnable = new Runnable() {
-            @Override public void run() { 
-                fetchLocation(); 
+            @Override
+            public void run() {
+                fetchLocation();
                 if (currentCustomerId != null) fetchDashboard();
-                handler.postDelayed(this, UPDATE_INTERVAL); 
+                handler.postDelayed(this, UPDATE_INTERVAL);
             }
         };
         handler.post(trackingRunnable);
@@ -357,47 +389,117 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        List<DashboardResponse> dashboardItems = parseList(body.string(), DashboardResponse.class);
-                        for (DashboardResponse item : dashboardItems) {
-                            myVehicles.put(item.getVehicleId().toLowerCase(), item.getDisplayName());
+                    if (!response.isSuccessful() || body == null) return;
+
+                    // FIX: "data" is a single dashboard OBJECT, not an array of vehicles.
+                    // The real vehicle list lives at data.vehicles[]. Parse it directly
+                    // instead of routing through parseList(), which was wrapping the whole
+                    // dashboard object as if it were one vehicle and crashing on null fields.
+                    Gson gson = new Gson();
+                    JsonObject root = gson.fromJson(body.string(), JsonObject.class);
+                    if (root == null || !root.has("data") || root.get("data").isJsonNull()) return;
+
+                    JsonObject data = root.getAsJsonObject("data");
+                    if (!data.has("vehicles") || !data.get("vehicles").isJsonArray()) return;
+
+                    for (com.google.gson.JsonElement el : data.getAsJsonArray("vehicles")) {
+                        JsonObject v = el.getAsJsonObject();
+                        if (!v.has("vehicleId") || v.get("vehicleId").isJsonNull()) continue;
+
+                        String vehicleId = v.get("vehicleId").getAsString().toLowerCase();
+                        String make = v.has("make") && !v.get("make").isJsonNull() ? v.get("make").getAsString() : "";
+                        String model = v.has("model") && !v.get("model").isJsonNull() ? v.get("model").getAsString() : "";
+                        myVehicles.put(vehicleId, (make + " " + model).trim());
+
+                        // Bonus: the dashboard already carries lat/lng/online — use it
+                        // directly instead of waiting on the separate per-vehicle poll.
+                        boolean hasLocation = v.has("latitude") && !v.get("latitude").isJsonNull()
+                                && v.has("longitude") && !v.get("longitude").isJsonNull();
+                        if (hasLocation && mMap != null) {
+                            double lat = v.get("latitude").getAsDouble();
+                            double lng = v.get("longitude").getAsDouble();
+                            if (lat != 0 || lng != 0) {
+                                updateMarker(vehicleId, new LatLng(lat, lng), myVehicles.get(vehicleId));
+                            }
                         }
                     }
                 } catch (Exception e) {
                     Log.e("HomeActivity", "Dashboard error", e);
                 }
             }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {}
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+            }
         });
     }
 
+    // FIX: was calling trackingApi.getAllCurrentLocations() — a staff-only endpoint that
+    // now correctly 403s for regular customers, and even before that, was comparing
+    // against a hardcoded DEMO_VEHICLE_ID that belonged to nobody real.
+    // Now polls each vehicle this logged-in customer actually owns (from myVehicles,
+    // populated by fetchMyVehicles()/fetchDashboard()), using the scoped per-vehicle
+    // endpoint the API already enforces ownership on.
     private void fetchLocation() {
-        trackingApi.getAllCurrentLocations().enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null && mMap != null) {
-                        List<LocationResponse> locations = parseList(body.string(), LocationResponse.class);
-                        LocationResponse toShow = null;
-                        for (LocationResponse loc : locations) {
-                            String vid = loc.getVehicleId() != null ? loc.getVehicleId().toLowerCase() : "";
-                            boolean isMine = myVehicles.containsKey(vid);
-                            boolean isDemo = DEMO_VEHICLE_ID.equalsIgnoreCase(vid);
-                            if (isDemo || isMine) {
+        if (myVehicles.isEmpty()) {
+            // Nothing to poll yet — either the profile/vehicle list hasn't loaded,
+            // or this customer genuinely has no vehicle yet. Not an error.
+            return;
+        }
+
+        for (String vehicleId : myVehicles.keySet()) {
+            trackingApi.getVehicleLocation(vehicleId).enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                    try (ResponseBody body = response.body()) {
+                        if (response.isSuccessful() && body != null && mMap != null) {
+                            String json = body.string();
+                            LocationResponse loc = extractLocation(json);
+                            if (loc != null && loc.getVehicleId() != null) {
                                 LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
-                                if (pos.latitude != 0) {
-                                    updateMarker(vid, pos, isMine ? myVehicles.get(vid) : "Demo Vehicle");
-                                    if (isMine) toShow = loc;
-                                    else if (toShow == null) toShow = loc;
+                                if (pos.latitude != 0 || pos.longitude != 0) {
+                                    String title = myVehicles.getOrDefault(vehicleId, "My Vehicle");
+                                    updateMarker(vehicleId, pos, title);
+                                    updateUI(loc);
                                 }
                             }
+                        } else if (response.code() == 404) {
+                            // No location reported yet for this vehicle (e.g. device just
+                            // assigned, hasn't transmitted). Not an error — just nothing to show.
+                            Log.d("HomeActivity", "No current location yet for vehicle " + vehicleId);
                         }
-                        if (toShow != null) updateUI(toShow);
+                    } catch (Exception e) {
+                        Log.e("HomeActivity", "Location parse error for " + vehicleId, e);
                     }
-                } catch (Exception e) { }
+                }
+
+                @Override
+                public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                    Log.e("HomeActivity", "Location fetch failed for " + vehicleId, t);
+                }
+            });
+        }
+    }
+
+    /**
+     * Handles both response shapes safely:
+     *  - Wrapped envelope: {"success":true,"data":{...}}
+     *  - Raw object: {"vehicleId":"...", "latitude":...}
+     * This avoids guessing which shape your current API build returns.
+     */
+    private LocationResponse extractLocation(String json) {
+        if (json == null || json.trim().isEmpty()) return null;
+        Gson gson = new Gson();
+        try {
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                return gson.fromJson(root.getAsJsonObject("data"), LocationResponse.class);
             }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) { }
-        });
+            return gson.fromJson(json, LocationResponse.class);
+        } catch (Exception e) {
+            Log.e("HomeActivity", "extractLocation parse error", e);
+            return null;
+        }
     }
 
     private void updateMarker(String id, LatLng pos, String title) {
@@ -414,38 +516,69 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void updateUI(LocationResponse loc) {
         String vid = loc.getVehicleId().toLowerCase();
-        String name = myVehicles.getOrDefault(vid, "Demo Vehicle");
+        String name = myVehicles.getOrDefault(vid, "My Vehicle");
         if (tvDeviceName != null) tvDeviceName.setText(name);
         if (tvDeviceAddress != null) tvDeviceAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", loc.getLatitude(), loc.getLongitude()));
         if (tvDeviceStatus != null) {
-            tvDeviceStatus.setText(loc.getSpeed() > 0 ? "Moving (" + (int)loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked"));
+            tvDeviceStatus.setText(loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked"));
             tvDeviceStatus.setTextColor(loc.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1877F2"));
         }
     }
 
+    // FIX: was calling getCustomerByEmail() -> GET api/Customers (staff-only list),
+    // which now 403s for every regular customer, leaving currentCustomerId permanently
+    // null and silently blocking fetchMyVehicles()/fetchDashboard()/fetchLocation() from
+    // ever running. Now calls the new GET api/Customers/me endpoint, which resolves the
+    // caller's own profile from their token — no staff role required.
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null || user.getEmail() == null) return;
+        if (user == null) return;
 
-        mainApiService.getCustomerByEmail(user.getEmail()).enqueue(new Callback<ResponseBody>() {
+        mainApiService.getMyProfile().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
                         String json = body.string();
-                        List<CustomerResponse> list = parseList(json, CustomerResponse.class);
-                        for (CustomerResponse c : list) {
-                            if (user.getEmail().equalsIgnoreCase(c.getEmail())) {
-                                currentCustomerId = c.getCustomerId();
-                                break;
-                            }
+                        CustomerResponse customer = extractCustomer(json);
+                        if (customer != null && customer.getCustomerId() != null) {
+                            currentCustomerId = customer.getCustomerId();
+                            fetchMyVehicles();
+                            fetchDashboard();
                         }
-                        if (currentCustomerId != null) fetchMyVehicles();
+                    } else if (response.code() == 404) {
+                        Log.w("HomeActivity", "No customer profile exists yet for this account.");
+                    } else {
+                        Log.w("HomeActivity", "getMyProfile failed with code " + response.code());
                     }
-                } catch (Exception e) { }
+                } catch (Exception e) {
+                    Log.e("HomeActivity", "loadUserData parse error", e);
+                }
             }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {}
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("HomeActivity", "loadUserData network error", t);
+            }
         });
+    }
+
+    /**
+     * Handles both response shapes safely, same reasoning as extractLocation() above.
+     */
+    private CustomerResponse extractCustomer(String json) {
+        if (json == null || json.trim().isEmpty()) return null;
+        Gson gson = new Gson();
+        try {
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                return gson.fromJson(root.getAsJsonObject("data"), CustomerResponse.class);
+            }
+            return gson.fromJson(json, CustomerResponse.class);
+        } catch (Exception e) {
+            Log.e("HomeActivity", "extractCustomer parse error", e);
+            return null;
+        }
     }
 
     private void fetchMyVehicles() {
@@ -461,9 +594,14 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             myVehicles.put(v.getVehicleId().toLowerCase(), v.getMake() + " " + v.getModel());
                         }
                     }
-                } catch (Exception e) { }
+                } catch (Exception e) {
+                    Log.e("HomeActivity", "fetchMyVehicles parse error", e);
+                }
             }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) { }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+            }
         });
     }
 
@@ -501,9 +639,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) { 
-        mMap = googleMap; 
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f)); 
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        mMap = googleMap;
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f));
     }
 
     private void changeMapType(int mapType, MaterialCardView selectedCard) {
@@ -533,14 +671,29 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         Gson gson = new Gson();
         String trimmed = json.trim();
         try {
-            if (trimmed.startsWith("[")) list = gson.fromJson(trimmed, TypeToken.getParameterized(List.class, clazz).getType());
-            else if (trimmed.startsWith("{")) list.add(gson.fromJson(trimmed, clazz));
-        } catch (Exception e) { Log.e("HomeActivity", "Parse error", e); }
+            // Handle both a raw top-level array and an envelope with "data" holding the array.
+            JsonObject maybeEnvelope = null;
+            try {
+                maybeEnvelope = trimmed.startsWith("{") ? gson.fromJson(trimmed, JsonObject.class) : null;
+            } catch (Exception ignored) {
+            }
+
+            if (maybeEnvelope != null && maybeEnvelope.has("data") && maybeEnvelope.get("data").isJsonArray()) {
+                list = gson.fromJson(maybeEnvelope.getAsJsonArray("data"), TypeToken.getParameterized(List.class, clazz).getType());
+            } else if (trimmed.startsWith("[")) {
+                list = gson.fromJson(trimmed, TypeToken.getParameterized(List.class, clazz).getType());
+            } else if (trimmed.startsWith("{")) {
+                list.add(gson.fromJson(trimmed, clazz));
+            }
+        } catch (Exception e) {
+            Log.e("HomeActivity", "Parse error", e);
+        }
         return list;
     }
 
-    @Override protected void onDestroy() { 
-        super.onDestroy(); 
-        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable); 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
     }
 }
