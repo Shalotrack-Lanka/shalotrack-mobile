@@ -33,6 +33,8 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
+        <activity android:name=".ui.history.TripHistoryActivity" android:exported="false" />
+
         <!-- කෙලින්ම Home එකට යන්න මේක වෙනස් කළා -->
         <activity
             android:name=".ui.main.HomeActivity"

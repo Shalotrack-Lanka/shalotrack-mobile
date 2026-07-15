@@ -6,14 +6,9 @@ import com.google.gson.annotations.SerializedName;
 /**
  * Robust model for CurrentLocations.
  *
- * FIX: the real API returns camelCase JSON keys (latitude, longitude, speed,
- * ignitionStatus) but this model was only listening for PascalCase (Latitude,
- * Longitude, Speed, IgnitionStatus). Gson is case-sensitive, so every one of
- * those fields silently parsed to null -> 0, meaning the map marker never
- * appeared even though the API was returning correct, real coordinates.
- *
- * Using @SerializedName's "alternate" list so both casings are accepted,
- * the same defensive pattern already used for vehicleId below.
+ * Handles the camelCase-vs-PascalCase mismatch (see earlier fix) via Gson's
+ * "alternate" names. Added `heading` so the car marker can be rotated to face
+ * the direction of travel.
  */
 @SuppressWarnings("unused")
 public class LocationResponse {
@@ -29,6 +24,9 @@ public class LocationResponse {
 
     @SerializedName(value = "Speed", alternate = {"speed"})
     private JsonElement speed;
+
+    @SerializedName(value = "Heading", alternate = {"heading"})
+    private JsonElement heading;
 
     @SerializedName(value = "IgnitionStatus", alternate = {"ignitionStatus"})
     private JsonElement ignitionStatus;
@@ -47,6 +45,11 @@ public class LocationResponse {
 
     public double getSpeed() {
         return parseToDouble(speed);
+    }
+
+    /** Compass bearing in degrees (0-360), direction the vehicle is/was heading. */
+    public float getHeading() {
+        return (float) parseToDouble(heading);
     }
 
     public boolean isIgnitionOn() {

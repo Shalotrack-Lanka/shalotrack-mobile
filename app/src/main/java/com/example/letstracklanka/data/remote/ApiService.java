@@ -22,8 +22,6 @@ public interface ApiService {
     // customer token. If AuthRepository or VehiclesActivity break the same way
     // HomeActivity did, they need the same fix -- see chat notes. Not touched tonight
     // to avoid widening the change under time pressure.
-    @GET("api/Customers")
-    Call<ResponseBody> getCustomerByEmail(@Query("email") String email);
 
     // NEW: used by HomeActivity now. Resolves the caller's own profile from their
     // token -- works for any authenticated customer, not just staff.
@@ -46,4 +44,9 @@ public interface ApiService {
 
     @GET("api/Customers/{customerId}/dashboard")
     Call<ResponseBody> getCustomerDashboard(@Path("customerId") String customerId);
+
+    // NEW — customer-safe single-device lookup by IMEI, used for device linking.
+    // Replaces the staff-only getGpsDevices() full-list approach.
+    @GET("api/GpsDevices/lookup/{imei}")
+    Call<ResponseBody> lookupDeviceByImei(@Path("imei") String imei);
 }

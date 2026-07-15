@@ -2,6 +2,7 @@ package com.example.letstracklanka.ui.vehicles;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -13,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.viewpager2.widget.ViewPager2;
@@ -24,9 +26,12 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.ui.main.AddressResolver;
 import com.example.letstracklanka.ui.main.HomeActivity;
+import com.example.letstracklanka.ui.history.TripHistoryActivity;
 import com.example.letstracklanka.ui.main.TagsActivity;
 import com.example.letstracklanka.ui.main.CirclesActivity;
+import com.example.letstracklanka.ui.main.VehicleTrailRenderer;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -38,6 +43,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.text.SimpleDateFormat;
@@ -57,8 +63,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
 
+    private VehicleTrailRenderer trailRenderer;
+
     // UI components
-    private View layoutCollapsed;
+    private View layoutCollapsed;              // FIX: was LinearLayout, XML root is RelativeLayout — see MIGRATION notes
     private LinearLayout layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
@@ -68,18 +76,22 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     // Data display components
     private TextView tvCollapsedStatus, tvCollapsedAddress;
     private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated, tvVehicleNameCollapsed, tvVehicleNameExpanded;
+    private TextView tvVehicleImei, tvGpsDeviceStatus;
     private CardView dotIgnition, dotAC;
+    private AddressResolver addressResolver;
 
     private final Handler handler = new Handler();
     private Runnable trackingRunnable;
-    private final int UPDATE_INTERVAL = 5000;
-    
-    private static final String DEMO_VEHICLE_ID = "39019073-09b8-4dbc-b5f9-6d7ade5ec4df";
+    private final int UPDATE_INTERVAL = 10000;   // widened from 5s; matches HomeActivity's cadence
 
     private String currentCustomerId = null;
-    private String selectedVehicleId = DEMO_VEHICLE_ID;
-    private String selectedVehicleName = "Demo Vehicle";
+    private String selectedVehicleId = null;
+    private String selectedVehicleName = "No vehicle yet";
     private boolean hasRealVehicle = false;
+
+    // Kept for Details/Nav grid actions.
+    private VehicleResponse selectedVehicle = null;
+    private LatLng lastKnownPosition = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,9 +100,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         mainApiService = ApiClient.getClient().create(ApiService.class);
+        addressResolver = new AddressResolver(this); //object
 
         initViews();
         setupBottomSheet();
+        setupGridMenu();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mapVehicles);
@@ -108,6 +122,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         fabAdd = findViewById(R.id.fabAdd);
         fabHistory = findViewById(R.id.fabHistory);
 
+        // FIX: fabHistory now lives permanently in the top-right FAB stack (see XML),
+        // always visible, same as Letstrack's reference UI. No visibility toggling
+        // needed here anymore — it never moves or disappears with the sheet's state.
+        if (fabHistory != null) {
+            fabHistory.setOnClickListener(v -> openTripHistory());
+        }
+
         tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
         tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
         tvExpandedStatus = findViewById(R.id.tvExpandedStatus);
@@ -115,6 +136,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         tvLastUpdated = findViewById(R.id.tvLastUpdated);
         tvVehicleNameCollapsed = findViewById(R.id.tvVehicleNameCollapsed);
         tvVehicleNameExpanded = findViewById(R.id.tvVehicleNameExpanded);
+        tvVehicleImei = findViewById(R.id.tvVehicleImei);
+        tvGpsDeviceStatus = findViewById(R.id.tvGpsDeviceStatus);
         dotIgnition = findViewById(R.id.dotIgnition);
         dotAC = findViewById(R.id.dotAC);
 
@@ -125,7 +148,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private void setupBottomSheet() {
         View bottomSheet = findViewById(R.id.bottomSheetVehicleDetails);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        
+
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -136,7 +159,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     gridMenu.setVisibility(View.GONE);
                     layoutCollapsed.setVisibility(View.VISIBLE);
                     if (fabAdd != null) fabAdd.setVisibility(View.VISIBLE);
-                    if (fabHistory != null) fabHistory.setVisibility(View.GONE);
+                    // FIX: fabHistory visibility no longer tied to sheet state — removed
+                    // the two toggle lines that used to live here and in the expand
+                    // block below. It stays permanently visible in the top-right stack.
                     if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.GONE);
                 }
             }
@@ -148,10 +173,20 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 layoutCollapsed.setVisibility(View.GONE);
                 if (fabAdd != null) fabAdd.setVisibility(View.GONE);
                 layoutExpanded.setVisibility(View.VISIBLE);
-                gridMenu.setVisibility(View.GONE);
-                if (fabHistory != null) fabHistory.setVisibility(View.VISIBLE);
+                gridMenu.setVisibility(View.VISIBLE);
                 if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.VISIBLE);
-                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+
+                // FIX round 2: setting visibility and calling setState() in the same
+                // click let BottomSheetBehavior calculate the expanded height from a
+                // STALE measurement taken before gridMenu became visible -- the sheet
+                // expanded to its old, smaller size and the new grid content had
+                // nowhere to go (looked "stuck", nothing left to scroll into).
+                // Deferring setState() with post() lets the layout pass that makes
+                // the grid visible complete FIRST, so the behavior re-measures
+                // including the grid before deciding the expanded height.
+                View bottomSheetView = findViewById(R.id.bottomSheetVehicleDetails);
+                bottomSheetView.post(() ->
+                        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED));
             });
         }
 
@@ -159,13 +194,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             btnCloseExpanded.setOnClickListener(v -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED));
         }
 
-        // --- Grid Menu Listeners ---
         View btnMenuAlerts = findViewById(R.id.btnMenuAlerts);
         if (btnMenuAlerts != null) {
             btnMenuAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
         }
 
-        // --- Bottom Navigation Setup ---
         View navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
@@ -179,7 +212,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         View navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
-                // Already in Vehicles, just collapse the sheet if it's open
                 if (bottomSheetBehavior != null) {
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 }
@@ -228,6 +260,110 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
+    /**
+     * Wires the action grid (History / Alerts / VoiceTrack / Value / Places /
+     * Immobilize / Nav / Details), matching Letstrack's reference layout.
+     *
+     * Only History, Nav, and Details do something real right now. VoiceTrack,
+     * Value, and Places are grayed out in the XML and show a placeholder message —
+     * they aren't built features yet, not broken ones. Immobilize is Engine Cut:
+     * it is DELIBERATELY never wired to any real command. Do not change this
+     * without an explicit, written safety specification from the client.
+     */
+    private void setupGridMenu() {
+        View btnMenuHistory = findViewById(R.id.btnMenuHistory);
+        if (btnMenuHistory != null) {
+            btnMenuHistory.setOnClickListener(v -> openTripHistory());
+        }
+
+        View btnMenuVoiceTrack = findViewById(R.id.btnMenuVoiceTrack);
+        if (btnMenuVoiceTrack != null) {
+            btnMenuVoiceTrack.setOnClickListener(v ->
+                    Toast.makeText(this, "Not available for this device", Toast.LENGTH_SHORT).show());
+        }
+
+        View btnMenuValue = findViewById(R.id.btnMenuValue);
+        if (btnMenuValue != null) {
+            btnMenuValue.setOnClickListener(v ->
+                    Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
+        }
+
+        View btnMenuPlaces = findViewById(R.id.btnMenuPlaces);
+        if (btnMenuPlaces != null) {
+            btnMenuPlaces.setOnClickListener(v ->
+                    Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
+        }
+
+        // SAFETY: Immobilize = Engine Cut. Never wire this to a real command without
+        // an explicit safety spec (speed threshold, confirmation flow, PIN, fallback
+        // behavior) agreed with the client. This handler only informs the user.
+        View btnMenuImmobilize = findViewById(R.id.btnMenuImmobilize);
+        if (btnMenuImmobilize != null) {
+            btnMenuImmobilize.setOnClickListener(v -> new AlertDialog.Builder(this)
+                    .setTitle("Not available yet")
+                    .setMessage("Remote engine cut requires additional safety configuration " +
+                            "and is not enabled for this vehicle yet.")
+                    .setPositiveButton("OK", null)
+                    .show());
+        }
+
+        View btnMenuNav = findViewById(R.id.btnMenuNav);
+        if (btnMenuNav != null) {
+            btnMenuNav.setOnClickListener(v -> openNavigation());
+        }
+
+        View btnMenuDetails = findViewById(R.id.btnMenuDetails);
+        if (btnMenuDetails != null) {
+            btnMenuDetails.setOnClickListener(v -> showVehicleDetails());
+        }
+    }
+
+    private void openTripHistory() {
+        Intent intent = new Intent(VehiclesActivity.this, TripHistoryActivity.class);
+        startActivity(intent);
+    }
+
+    private void openNavigation() {
+        if (lastKnownPosition == null) {
+            Toast.makeText(this, "No location available yet", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Uri gmmIntentUri = Uri.parse("google.navigation:q=" +
+                lastKnownPosition.latitude + "," + lastKnownPosition.longitude);
+        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+        mapIntent.setPackage("com.google.android.apps.maps");
+        if (mapIntent.resolveActivity(getPackageManager()) != null) {
+            startActivity(mapIntent);
+        } else {
+            // Google Maps app not installed — fall back to a browser-based maps URL.
+            Uri webUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=" +
+                    lastKnownPosition.latitude + "," + lastKnownPosition.longitude);
+            startActivity(new Intent(Intent.ACTION_VIEW, webUri));
+        }
+    }
+
+    private void showVehicleDetails() {
+        if (selectedVehicle == null) {
+            Toast.makeText(this, "Vehicle details not loaded yet", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String message = "Vehicle Number: " + safe(selectedVehicle.getVehicleNumber()) + "\n" +
+                "Make: " + safe(selectedVehicle.getMake()) + "\n" +
+                "Model: " + safe(selectedVehicle.getModel()) + "\n" +
+                "IMEI: " + (selectedVehicle.hasGpsDevice() && selectedVehicle.getImei() != null
+                ? selectedVehicle.getImei() : "Not linked");
+
+        new AlertDialog.Builder(this)
+                .setTitle(selectedVehicleName)
+                .setMessage(message)
+                .setPositiveButton("Close", null)
+                .show();
+    }
+
+    private String safe(String value) {
+        return value != null ? value : "--";
+    }
+
     private void showCallCenterBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
@@ -247,24 +383,23 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         dialog.show();
     }
 
+    // customers). Now uses the /me endpoint, same fix already applied in HomeActivity.
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null || user.getEmail() == null) return;
+        if (user == null) return;
 
-        mainApiService.getCustomerByEmail(user.getEmail()).enqueue(new Callback<ResponseBody>() {
+        mainApiService.getMyProfile().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
-                        String json = body.string();
-                        List<CustomerResponse> list = parseList(json, CustomerResponse.class);
-                        for (CustomerResponse c : list) {
-                            if (user.getEmail().equalsIgnoreCase(c.getEmail())) {
-                                currentCustomerId = c.getCustomerId();
-                                break;
-                            }
+                        CustomerResponse customer = extractObject(body.string(), CustomerResponse.class);
+                        if (customer != null && customer.getCustomerId() != null) {
+                            currentCustomerId = customer.getCustomerId();
+                            fetchVehicles();
                         }
-                        if (currentCustomerId != null) fetchVehicles();
+                    } else {
+                        Log.w("VehiclesActivity", "getMyProfile failed with code " + response.code());
                     }
                 } catch (Exception e) {
                     Log.e("VehiclesActivity", "Error loading user data", e);
@@ -286,9 +421,27 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         if (!list.isEmpty()) {
                             VehicleResponse vehicle = list.get(list.size() - 1);
+                            selectedVehicle = vehicle;
                             selectedVehicleId = vehicle.getVehicleId();
+                            trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
                             selectedVehicleName = vehicle.getMake() + " " + vehicle.getModel();
                             hasRealVehicle = true;
+
+                            // Vehicle Information display
+                            if (vehicle.hasGpsDevice() && vehicle.getImei() != null) {
+                                if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: " + vehicle.getImei());
+                                if (tvGpsDeviceStatus != null) {
+                                    tvGpsDeviceStatus.setText("GPS Device: Linked");
+                                    tvGpsDeviceStatus.setTextColor(Color.parseColor("#00BFA5"));
+                                }
+                            } else {
+                                if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: Not linked");
+                                if (tvGpsDeviceStatus != null) {
+                                    tvGpsDeviceStatus.setText("GPS Device: Not linked");
+                                    tvGpsDeviceStatus.setTextColor(Color.parseColor("#E53935"));
+                                }
+                            }
+
                             updateVehicleUI();
                         }
                     }
@@ -307,7 +460,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (tvVehicleNameExpanded != null) tvVehicleNameExpanded.setText(selectedVehicleName);
     }
 
-    @Override public void onMapReady(@NonNull GoogleMap googleMap) { mMap = googleMap; }
+    @Override public void onMapReady(@NonNull GoogleMap googleMap) {
+        mMap = googleMap;
+        trailRenderer = new VehicleTrailRenderer(this, mMap, trackingApi);
+    }
 
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
@@ -317,38 +473,29 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         handler.post(trackingRunnable);
     }
 
+    // FIX: was trackingApi.getAllCurrentLocations() — the staff-only endpoint that 403s
+    // for regular customers (the exact bug fixed in HomeActivity earlier tonight).
+    // Now polls the single selected vehicle via the scoped, ownership-checked endpoint.
     private void fetchLocationData() {
-        if (mMap == null) return;
-        trackingApi.getAllCurrentLocations().enqueue(new Callback<ResponseBody>() {
+        if (mMap == null || !hasRealVehicle || selectedVehicleId == null) return;
+
+        trackingApi.getVehicleLocation(selectedVehicleId).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
-                        List<LocationResponse> list = parseList(body.string(), LocationResponse.class);
-                        mMap.clear();
-                        LocationResponse primary = null;
-                        LocationResponse demo = null;
+                        LocationResponse loc = extractObject(body.string(), LocationResponse.class);
+                        if (loc == null || loc.getVehicleId() == null) return;
 
-                        for (LocationResponse loc : list) {
-                            String vid = loc.getVehicleId();
-                            boolean isMine = hasRealVehicle && vid.equalsIgnoreCase(selectedVehicleId);
-                            boolean isDemo = vid.equalsIgnoreCase(DEMO_VEHICLE_ID);
-
-                            if (isMine || isDemo) {
-                                LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
-                                if (pos.latitude != 0) {
-                                    String name = isMine ? selectedVehicleName : "Demo Vehicle";
-                                    mMap.addMarker(new MarkerOptions().position(pos).title(name));
-                                    
-                                    if (isMine) primary = loc;
-                                    if (isDemo) demo = loc;
-                                }
-                            }
+                        LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
+                        if (pos.latitude != 0 || pos.longitude != 0) {
+                            lastKnownPosition = pos;   // used by the Nav grid action
+                            trailRenderer.updatePosition(pos, loc.getHeading(), selectedVehicleName);
+                            updateUI(loc);
                         }
-
-                        // Use demo if real car has no signal
-                        if (primary == null) primary = demo;
-                        if (primary != null) updateUI(primary);
+                    } else if (response.code() == 404) {
+                        // No location reported yet for this vehicle — normal, not an error.
+                        Log.d("VehiclesActivity", "No current location yet for " + selectedVehicleId);
                     }
                 } catch (Exception e) {
                     Log.e("VehiclesActivity", "Error fetching location", e);
@@ -362,20 +509,21 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private void updateUI(LocationResponse loc) {
         LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
-        if (pos.latitude == 0) return;
+        if (pos.latitude == 0 && pos.longitude == 0) return;
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
-        
-        String nameToShow = loc.getVehicleId().equalsIgnoreCase(DEMO_VEHICLE_ID) ? "Demo Vehicle" : selectedVehicleName;
-        if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(nameToShow);
 
-        if (tvCollapsedAddress != null) tvCollapsedAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", pos.latitude, pos.longitude));
-        if (tvExpandedAddress != null) tvExpandedAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", pos.latitude, pos.longitude));
-        
-        String status = loc.getSpeed() > 0 ? "Moving (" + (int)loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
+        if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(selectedVehicleName);
+
+        addressResolver.resolveAddress(pos.latitude, pos.longitude, address -> {
+            if (tvCollapsedAddress != null) tvCollapsedAddress.setText(address);
+            if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
+        });
+
+        String status = loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
         int color = loc.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
-        
+
         int dotColor = loc.isIgnitionOn() ? Color.parseColor("#4CAF50") : Color.parseColor("#E53935");
         if (dotIgnition != null) dotIgnition.setCardBackgroundColor(dotColor);
         if (dotAC != null) dotAC.setCardBackgroundColor(dotColor);
@@ -383,21 +531,43 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (tvLastUpdated != null) tvLastUpdated.setText(String.format(Locale.getDefault(), "Sync: %s", new SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(new Date())));
     }
 
+    /**
+     * FIX: the old parseList() never unwrapped the API's envelope
+     * ({"success":true,...,"data":[...]}) — it parsed the WHOLE envelope object as if it
+     * were a single VehicleResponse/CustomerResponse, producing an object with every
+     * field null. Both parseList (for arrays) and extractObject (for single objects)
+     * now correctly reach into "data" first.
+     */
     private <T> List<T> parseList(String json, Class<T> clazz) {
         List<T> list = new ArrayList<>();
         if (json == null || json.trim().isEmpty()) return list;
         Gson gson = new Gson();
-        String trimmed = json.trim();
         try {
-            if (trimmed.startsWith("[")) {
-                list = gson.fromJson(trimmed, TypeToken.getParameterized(List.class, clazz).getType());
-            } else if (trimmed.startsWith("{")) {
-                list.add(gson.fromJson(trimmed, clazz));
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root != null && root.has("data") && root.get("data").isJsonArray()) {
+                list = gson.fromJson(root.getAsJsonArray("data"), TypeToken.getParameterized(List.class, clazz).getType());
+            } else if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                list.add(gson.fromJson(root.getAsJsonObject("data"), clazz));
             }
         } catch (Exception e) {
             Log.e("VehiclesActivity", "Error parsing list JSON", e);
         }
         return list;
+    }
+
+    private <T> T extractObject(String json, Class<T> clazz) {
+        if (json == null || json.trim().isEmpty()) return null;
+        Gson gson = new Gson();
+        try {
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                return gson.fromJson(root.getAsJsonObject("data"), clazz);
+            }
+            return null;
+        } catch (Exception e) {
+            Log.e("VehiclesActivity", "Error parsing object JSON", e);
+            return null;
+        }
     }
 
     @Override protected void onDestroy() { super.onDestroy(); if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable); }
