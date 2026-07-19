@@ -39,10 +39,16 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
+        <!-- දැන් App එක ලෝඩ් වෙන්නේ මෙන්න මේ HomeActivity (Dashboard) එකෙනුයි -->
         <activity
             android:name=".ui.main.HomeActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:exported="true"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.auth.ProcessingActivity"
@@ -73,16 +79,11 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
-        <!-- Splash Activity එක තමා දැන් App එකේ Launcher එක -->
+        <!-- Splash Activity එකෙන් LAUNCHER එක අයින් කළා -->
         <activity
             android:name=".ui.main.SplashActivity"
-            android:exported="true"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
         <activity
             android:name=".ui.main.MainActivity"
