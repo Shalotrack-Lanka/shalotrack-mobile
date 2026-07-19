@@ -145,15 +145,24 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
+
+        // ---------------------------------------------------------
+        // මෙන්න Edit Profile Pen Icon එක ක්ලික් කළාම වෙන දේ කේතය
+        // ---------------------------------------------------------
+        ImageView ivEditProfileMenu = findViewById(R.id.ivEditProfileMenu);
+        if (ivEditProfileMenu != null) {
+            ivEditProfileMenu.setOnClickListener(v -> {
+                // Drawer එක close කරලා Bottom Sheet එක අරින්න
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showEditProfileBottomSheet();
+            });
+        }
     }
 
     private void setupUI() {
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
         if (bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-        // ---------------------------------------------------------
-        // මෙන්න මම අලුතින් එකතු කරපු Layers බටන් එකේ කේතය
-        // ---------------------------------------------------------
         FloatingActionButton fabLayers = findViewById(R.id.fabLayers);
         if (fabLayers != null) {
             fabLayers.setOnClickListener(v -> {
@@ -166,7 +175,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             });
         }
-        // ---------------------------------------------------------
 
         findViewById(R.id.nav_vehicles).setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
@@ -233,6 +241,54 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
+    // ---------------------------------------------------------
+    // මෙන්න අලුත් Edit Profile Bottom Sheet එක ඕපන් කරන Method එක
+    // ---------------------------------------------------------
+    private void showEditProfileBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_edit_profile, null);
+        dialog.setContentView(view);
+
+        // Views හොයාගැනීම
+        ImageView btnClose = view.findViewById(R.id.btnCloseEditProfile);
+        MaterialButton btnSave = view.findViewById(R.id.btnSaveProfile);
+
+        EditText etFirstName = view.findViewById(R.id.etFirstName);
+        EditText etSurname = view.findViewById(R.id.etSurname);
+        EditText etPhone = view.findViewById(R.id.etPhone);
+        EditText etEmail = view.findViewById(R.id.etEmail);
+
+        // දැනට Drawer එකේ තියෙන විස්තර මේකට සෙට් කිරීම
+        if (tvDrawerName != null) {
+            String fullName = tvDrawerName.getText().toString();
+            String[] nameParts = fullName.split(" ");
+            if (nameParts.length > 0) etFirstName.setText(nameParts[0]);
+            if (nameParts.length > 1) {
+                StringBuilder surname = new StringBuilder();
+                for (int i = 1; i < nameParts.length; i++) {
+                    surname.append(nameParts[i]).append(" ");
+                }
+                etSurname.setText(surname.toString().trim());
+            }
+        }
+        if (tvDrawerPhone != null) etPhone.setText(tvDrawerPhone.getText().toString());
+        if (tvDrawerEmail != null) etEmail.setText(tvDrawerEmail.getText().toString());
+
+        // Close button action
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // Save button action (දැනට බොත්තම එබුවම වැහෙන විදිහට හදලා තියෙන්නේ. පස්සේ API එකට Data යවන්න පුළුවන්)
+        btnSave.setOnClickListener(v -> {
+            Toast.makeText(this, "Profile Saved Successfully!", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        // Bottom sheet එක ෆුල් ස්ක්‍රීන් පේන්න (Keyboard එක ආවම අවුල් නොයන්න)
+        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        dialog.show();
+    }
+    // ---------------------------------------------------------
 
     private void showCallCenterBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
