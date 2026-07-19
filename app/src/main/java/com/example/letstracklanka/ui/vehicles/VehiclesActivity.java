@@ -240,13 +240,17 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Open full menu when Menu button is clicked
+        // ----------------------------------------------------------------------
+        // මෙන්න වෙනස් කරපු Menu Button කේතය (Home එකට ගිහින් Drawer එක අරින්න)
+        // ----------------------------------------------------------------------
         View navMenu = findViewById(R.id.nav_menu);
         if (navMenu != null) {
             navMenu.setOnClickListener(v -> {
-                if (bottomSheetBehavior != null) {
-                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-                }
+                Intent intent = new Intent(VehiclesActivity.this, HomeActivity.class);
+                intent.putExtra("open_drawer", true);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
             });
         }
 
