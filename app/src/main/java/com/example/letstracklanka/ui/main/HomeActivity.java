@@ -109,6 +109,16 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         startRealTimeTracking();
         loadUserData();
+
+        // ---------------------------------------------------------
+        // අනිත් ස්ක්‍රීන් වලින් එන සිග්නල් එක අඳුරගෙන ඉබේම Menu එක අරින්න
+        // ---------------------------------------------------------
+        if (getIntent().getBooleanExtra("open_drawer", false)) {
+            if (drawerLayout != null) {
+                // UI එක සම්පූර්ණයෙන්ම ලෝඩ් වුණාට පස්සේ Drawer එක අරින්න
+                drawerLayout.post(() -> drawerLayout.openDrawer(GravityCompat.START));
+            }
+        }
     }
 
     private void initViews() {
