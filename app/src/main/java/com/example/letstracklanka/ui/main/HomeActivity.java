@@ -20,7 +20,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.letstracklanka.R;
@@ -34,6 +36,7 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
+import com.example.letstracklanka.ui.auth.LoginActivity;
 import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -71,8 +74,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
     private static final int UPDATE_INTERVAL = 10000;
 
-    // Removed DEMO_VEHICLE_ID. Now it uses real customer vehicles to show on the map.
-
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
     private ShaloTrackApi trackingApi;
@@ -88,6 +89,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName;
     private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
     private View mapTypeMenu;
+
+    // Drawer Variables
+    private DrawerLayout drawerLayout;
+    private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,6 +112,24 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void initViews() {
+        // Drawer initialization
+        drawerLayout = findViewById(R.id.drawerLayout);
+        tvDrawerName = findViewById(R.id.tvDrawerName);
+        tvDrawerPhone = findViewById(R.id.tvDrawerPhone);
+        tvDrawerEmail = findViewById(R.id.tvDrawerEmail);
+
+        // Log out button in the drawer
+        TextView tvLogOut = findViewById(R.id.tvLogOut);
+        if(tvLogOut != null) {
+            tvLogOut.setOnClickListener(v -> {
+                FirebaseAuth.getInstance().signOut();
+                Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            });
+        }
+
         View bottomSheetView = findViewById(R.id.bottomSheet);
         if (bottomSheetView != null) {
             tvDeviceName = bottomSheetView.findViewById(R.id.tvDeviceName);
@@ -175,7 +198,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             View navAlerts = findViewById(R.id.nav_alerts);
             if (navAlerts != null) {
-                // Modified: Now navigates to the new AlertsActivity instead of the Call Center bottom sheet
                 navAlerts.setOnClickListener(v -> {
                     Intent intent = new Intent(HomeActivity.this, AlertsActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -186,10 +208,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             View navMenu = findViewById(R.id.nav_menu);
             if (navMenu != null) {
+                // Modified: Now opens the Side Navigation Drawer instead of the Bottom Sheet
                 navMenu.setOnClickListener(v -> {
-                    NestedScrollView bs = findViewById(R.id.bottomSheet);
-                    if (bs != null) {
-                        BottomSheetBehavior.from(bs).setState(BottomSheetBehavior.STATE_EXPANDED);
+                    if (drawerLayout != null) {
+                        drawerLayout.openDrawer(GravityCompat.START);
                     }
                 });
             }
@@ -278,7 +300,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Toast.makeText(HomeActivity.this, "IMEI not found in registry", Toast.LENGTH_LONG).show();
                         }
                     } else {
-                        // Show server error codes to the user so they know what went wrong
                         Toast.makeText(HomeActivity.this,
                                 "Could not check device registry (code " + response.code() + ")",
                                 Toast.LENGTH_LONG).show();
@@ -394,7 +415,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 try (ResponseBody body = response.body()) {
                     if (!response.isSuccessful() || body == null) return;
 
-                    // Get the vehicle list directly from data.vehicles array to avoid app crash
                     Gson gson = new Gson();
                     JsonObject root = gson.fromJson(body.string(), JsonObject.class);
                     if (root == null || !root.has("data") || root.get("data").isJsonNull()) return;
@@ -411,7 +431,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         String model = v.has("model") && !v.get("model").isJsonNull() ? v.get("model").getAsString() : "";
                         myVehicles.put(vehicleId, (make + " " + model).trim());
 
-                        // Update marker location directly from the dashboard data
                         boolean hasLocation = v.has("latitude") && !v.get("latitude").isJsonNull()
                                 && v.has("longitude") && !v.get("longitude").isJsonNull();
                         if (hasLocation && mMap != null) {
@@ -433,7 +452,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    // Fetch locations only for the vehicles owned by the currently logged-in user
     private void fetchLocation() {
         if (myVehicles.isEmpty()) {
             return;
@@ -456,7 +474,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 }
                             }
                         } else if (response.code() == 404) {
-                            // Location not found for this vehicle. Not an error.
                             Log.d("HomeActivity", "No current location yet for vehicle " + vehicleId);
                         }
                     } catch (Exception e) {
@@ -472,9 +489,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    /**
-     * Handles both response shapes securely
-     */
     private LocationResponse extractLocation(String json) {
         if (json == null || json.trim().isEmpty()) return null;
         Gson gson = new Gson();
@@ -513,7 +527,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    // Use the /me API endpoint to load the logged-in user's profile securely
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -524,6 +537,28 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
                         String json = body.string();
+
+                        // Drawer Menu එකට විස්තර සෙට් කිරීම
+                        try {
+                            Gson gson = new Gson();
+                            JsonObject root = gson.fromJson(json, JsonObject.class);
+                            JsonObject data = root.has("data") && root.get("data").isJsonObject() ? root.getAsJsonObject("data") : root;
+
+                            String name = data.has("name") && !data.get("name").isJsonNull() ? data.get("name").getAsString() :
+                                    (data.has("fullName") && !data.get("fullName").isJsonNull() ? data.get("fullName").getAsString() : "Unknown User");
+
+                            String phone = data.has("phone") && !data.get("phone").isJsonNull() ? data.get("phone").getAsString() :
+                                    (data.has("phoneNumber") && !data.get("phoneNumber").isJsonNull() ? data.get("phoneNumber").getAsString() : "No Phone Number");
+
+                            String email = data.has("email") && !data.get("email").isJsonNull() ? data.get("email").getAsString() : "No Email";
+
+                            if(tvDrawerName != null) tvDrawerName.setText(name);
+                            if(tvDrawerPhone != null) tvDrawerPhone.setText(phone);
+                            if(tvDrawerEmail != null) tvDrawerEmail.setText(email);
+                        } catch(Exception e) {
+                            Log.e("HomeActivity", "Drawer UI update error", e);
+                        }
+
                         CustomerResponse customer = extractCustomer(json);
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
@@ -547,9 +582,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    /**
-     * Handles both response shapes securely
-     */
     private CustomerResponse extractCustomer(String json) {
         if (json == null || json.trim().isEmpty()) return null;
         Gson gson = new Gson();
@@ -655,7 +687,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         Gson gson = new Gson();
         String trimmed = json.trim();
         try {
-            // Handle both a raw top-level array and an envelope with "data" holding the array.
             JsonObject maybeEnvelope = null;
             try {
                 maybeEnvelope = trimmed.startsWith("{") ? gson.fromJson(trimmed, JsonObject.class) : null;
