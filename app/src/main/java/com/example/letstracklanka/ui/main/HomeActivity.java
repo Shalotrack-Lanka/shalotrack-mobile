@@ -151,6 +151,23 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
         if (bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
 
+        // ---------------------------------------------------------
+        // මෙන්න මම අලුතින් එකතු කරපු Layers බටන් එකේ කේතය
+        // ---------------------------------------------------------
+        FloatingActionButton fabLayers = findViewById(R.id.fabLayers);
+        if (fabLayers != null) {
+            fabLayers.setOnClickListener(v -> {
+                if (mapTypeMenu != null) {
+                    if (mapTypeMenu.getVisibility() == View.VISIBLE) {
+                        mapTypeMenu.setVisibility(View.GONE);
+                    } else {
+                        mapTypeMenu.setVisibility(View.VISIBLE);
+                    }
+                }
+            });
+        }
+        // ---------------------------------------------------------
+
         findViewById(R.id.nav_vehicles).setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -208,7 +225,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             View navMenu = findViewById(R.id.nav_menu);
             if (navMenu != null) {
-                // Modified: Now opens the Side Navigation Drawer instead of the Bottom Sheet
                 navMenu.setOnClickListener(v -> {
                     if (drawerLayout != null) {
                         drawerLayout.openDrawer(GravityCompat.START);
