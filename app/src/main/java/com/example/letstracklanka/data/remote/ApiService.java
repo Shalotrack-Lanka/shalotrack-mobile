@@ -9,6 +9,7 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
@@ -16,12 +17,6 @@ import retrofit2.http.Query;
 public interface ApiService {
     @POST("api/Customers")
     Call<ResponseBody> createCustomer(@Body CustomerRequest request);
-
-    // KEPT for AuthRepository.java / VehiclesActivity.java, which still call this.
-    // NOTE: hits GET api/Customers, which is now staff-only and will 403 for a regular
-    // customer token. If AuthRepository or VehiclesActivity break the same way
-    // HomeActivity did, they need the same fix -- see chat notes. Not touched tonight
-    // to avoid widening the change under time pressure.
 
     // NEW: used by HomeActivity now. Resolves the caller's own profile from their
     // token -- works for any authenticated customer, not just staff.
@@ -49,4 +44,11 @@ public interface ApiService {
     // Replaces the staff-only getGpsDevices() full-list approach.
     @GET("api/GpsDevices/lookup/{imei}")
     Call<ResponseBody> lookupDeviceByImei(@Path("imei") String imei);
+
+    // NEW — Alerts (Stage 2: real data for AlertsActivity)
+    @GET("api/Alerts")
+    Call<ResponseBody> getMyAlerts(@Query("page") int page, @Query("pageSize") int pageSize);
+
+    @PATCH("api/Alerts/{alertId}/read")
+    Call<ResponseBody> markAlertAsRead(@Path("alertId") long alertId);
 }

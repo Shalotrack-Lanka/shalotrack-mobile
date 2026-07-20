@@ -38,6 +38,7 @@ import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.main.AddressResolver;
 import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
+import com.example.letstracklanka.ui.auth.LoginActivity;   // NEW -- fixes "Cannot resolve symbol" for the logout button
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
