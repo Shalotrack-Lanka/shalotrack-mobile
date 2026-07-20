@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <color name="white">#FFFFFF</color>
+    <!-- Brand - new navy design system -->
+    <color name="brand_primary">#0A2463</color>
+    <color name="brand_primary_light">#1976D2</color>
+    <color name="brand_accent">#1877F2</color>   <!-- kept for trail line / secondary accents -->
+
+    <!-- Status colors (used for moving/idle/parked, ignition dots, etc.) -->
+    <color name="status_moving">#00BFA5</color>
+    <color name="status_idle">#1976D2</color>
+    <color name="status_danger">#E53935</color>
+    <color name="status_success">#4CAF50</color>
+    <color name="status_warning">#FF9800</color>
+
+    <!-- Text -->
+    <color name="text_primary">#222222</color>
+    <color name="text_secondary">#5B6B82</color>
+    <color name="text_muted">#888888</color>
+    <color name="text_on_dark">#FFFFFF</color>
+
+    <!-- Surfaces -->
+    <color name="surface_background">#F0F0F0</color>
+    <color name="surface_white">#FFFFFF</color>
+    <color name="surface_chip_selected_bg">#EAF2FE</color>
+    <color name="surface_stroke">#E0E0E0</color>
+
 </resources>

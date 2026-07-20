@@ -34,6 +34,7 @@ import com.example.letstracklanka.ui.main.CirclesActivity;
 import com.example.letstracklanka.ui.main.VehicleTrailRenderer;
 import com.example.letstracklanka.ui.main.RealtimeLocationClient;
 import com.example.letstracklanka.ui.main.RealtimeLocationPayload;
+import com.example.letstracklanka.ui.main.AlertsActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
