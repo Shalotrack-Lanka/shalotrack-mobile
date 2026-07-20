@@ -70,7 +70,7 @@ import retrofit2.Response;
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
-    private static final int UPDATE_INTERVAL = 10000;
+    private static final int UPDATE_INTERVAL = 1000;   // NEW — was 10000. SignalR push is now primary; this is just a safety-net fallback poll in case the push connection drops.
     // FIX: DEMO_VEHICLE_ID removed. It pointed at a vehicle owned by nobody real,
     // which silently blocked the map from ever showing a genuine customer's vehicle.
 
@@ -90,6 +90,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
     private View mapTypeMenu;
     private VehicleTrailRenderer trailRenderer;
+    private RealtimeLocationClient realtimeClient;   // NEW — Option B push client
     private AddressResolver addressResolver;
 
     @Override
@@ -444,6 +445,36 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     // Now polls each vehicle this logged-in customer actually owns (from myVehicles,
     // populated by fetchMyVehicles()/fetchDashboard()), using the scoped per-vehicle
     // endpoint the API already enforces ownership on.
+    /**
+     * Handles a location pushed via SignalR (Option B). Mirrors fetchLocation()'s
+     * success path, but reads from RealtimeLocationPayload instead of LocationResponse
+     * since the latter has no setters and can't be constructed from pushed data.
+     */
+    private void handlePushedLocation(RealtimeLocationPayload payload) {
+        if (payload.getVehicleId() == null || mMap == null) return;
+        LatLng pos = new LatLng(payload.getLatitude(), payload.getLongitude());
+        if (pos.latitude == 0 && pos.longitude == 0) return;
+
+        String title = myVehicles.getOrDefault(payload.getVehicleId().toLowerCase(), "My Vehicle");
+        trailRenderer.updatePosition(pos, (float) payload.getHeading(), title);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+
+        if (tvDeviceName != null) tvDeviceName.setText(title);
+
+        addressResolver.resolveAddress(pos.latitude, pos.longitude, address -> {
+            if (tvDeviceAddress != null) tvDeviceAddress.setText(address);
+        });
+
+        String status = payload.getSpeed() > 0
+                ? "Moving (" + (int) payload.getSpeed() + " km/h)"
+                : (payload.isIgnitionOn() ? "Idle" : "Parked");
+        int color = payload.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1877F2");
+        if (tvDeviceStatus != null) {
+            tvDeviceStatus.setText(status);
+            tvDeviceStatus.setTextColor(color);
+        }
+    }
+
     private void fetchLocation() {
         if (myVehicles.isEmpty()) {
             // Nothing to poll yet — either the profile/vehicle list hasn't loaded,
@@ -600,6 +631,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         for (VehicleResponse v : list) {
                             myVehicles.put(v.getVehicleId().toLowerCase(), v.getMake() + " " + v.getModel());
                             trailRenderer.loadInitialTrail(v.getVehicleId(), () -> {});
+
+                            // NEW — start real-time push for this vehicle (Option B)
+                            if (realtimeClient == null) {
+                                realtimeClient = new RealtimeLocationClient();
+                                realtimeClient.connect(v.getVehicleId(), payload ->
+                                        runOnUiThread(() -> handlePushedLocation(payload)));
+                            }
                         }
                         // FIX: was relying entirely on the 10s polling loop to eventually
                         // pick up the newly-known vehicle. That loop's first tick fires at
@@ -713,5 +751,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+        if (realtimeClient != null) realtimeClient.stop();   // NEW
     }
 }

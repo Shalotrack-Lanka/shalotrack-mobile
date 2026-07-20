@@ -32,6 +32,8 @@ import com.example.letstracklanka.ui.history.TripHistoryActivity;
 import com.example.letstracklanka.ui.main.TagsActivity;
 import com.example.letstracklanka.ui.main.CirclesActivity;
 import com.example.letstracklanka.ui.main.VehicleTrailRenderer;
+import com.example.letstracklanka.ui.main.RealtimeLocationClient;
+import com.example.letstracklanka.ui.main.RealtimeLocationPayload;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -64,6 +66,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ApiService mainApiService;
 
     private VehicleTrailRenderer trailRenderer;
+    private RealtimeLocationClient realtimeClient;   // NEW — Option B push client
 
     // UI components
     private View layoutCollapsed;              // FIX: was LinearLayout, XML root is RelativeLayout — see MIGRATION notes
@@ -82,7 +85,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private final Handler handler = new Handler();
     private Runnable trackingRunnable;
-    private final int UPDATE_INTERVAL = 10000;   // widened from 5s; matches HomeActivity's cadence
+    private final int UPDATE_INTERVAL = 1000;   // NEW — was 10000. SignalR push is now primary; this is just a safety-net fallback poll in case the push connection drops.
 
     private String currentCustomerId = null;
     private String selectedVehicleId = null;
@@ -424,6 +427,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                             selectedVehicle = vehicle;
                             selectedVehicleId = vehicle.getVehicleId();
                             trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
+
+                            // NEW — start real-time push for this vehicle (Option B)
+                            if (realtimeClient == null) {
+                                realtimeClient = new RealtimeLocationClient();
+                                realtimeClient.connect(selectedVehicleId, payload ->
+                                        runOnUiThread(() -> handlePushedLocation(payload)));
+                            }
                             selectedVehicleName = vehicle.getMake() + " " + vehicle.getModel();
                             hasRealVehicle = true;
 
@@ -476,6 +486,40 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     // FIX: was trackingApi.getAllCurrentLocations() — the staff-only endpoint that 403s
     // for regular customers (the exact bug fixed in HomeActivity earlier tonight).
     // Now polls the single selected vehicle via the scoped, ownership-checked endpoint.
+    /**
+     * Handles a location pushed via SignalR (Option B). Mirrors fetchLocationData()'s
+     * success path, but reads from RealtimeLocationPayload instead of LocationResponse
+     * since the latter has no setters and can't be constructed from pushed data.
+     */
+    private void handlePushedLocation(RealtimeLocationPayload payload) {
+        if (payload.getVehicleId() == null || mMap == null || !hasRealVehicle) return;
+        LatLng pos = new LatLng(payload.getLatitude(), payload.getLongitude());
+        if (pos.latitude == 0 && pos.longitude == 0) return;
+
+        trailRenderer.updatePosition(pos, (float) payload.getHeading(), selectedVehicleName);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+
+        if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(selectedVehicleName);
+
+        addressResolver.resolveAddress(pos.latitude, pos.longitude, address -> {
+            if (tvCollapsedAddress != null) tvCollapsedAddress.setText(address);
+            if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
+        });
+
+        String status = payload.getSpeed() > 0
+                ? "Moving (" + (int) payload.getSpeed() + " km/h)"
+                : (payload.isIgnitionOn() ? "Idle" : "Parked");
+        int color = payload.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1976D2");
+        if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
+        if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
+
+        int dotColor = payload.isIgnitionOn() ? Color.parseColor("#4CAF50") : Color.parseColor("#E53935");
+        if (dotIgnition != null) dotIgnition.setCardBackgroundColor(dotColor);
+        if (dotAC != null) dotAC.setCardBackgroundColor(dotColor);
+
+        if (tvLastUpdated != null) tvLastUpdated.setText(String.format(Locale.getDefault(), "Sync: %s", new SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(new Date())));
+    }
+
     private void fetchLocationData() {
         if (mMap == null || !hasRealVehicle || selectedVehicleId == null) return;
 
@@ -570,5 +614,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
-    @Override protected void onDestroy() { super.onDestroy(); if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable); }
+    @Override protected void onDestroy() {
+        super.onDestroy();
+        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+        if (realtimeClient != null) realtimeClient.stop();   // NEW
+    }
 }
