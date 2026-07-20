@@ -39,6 +39,9 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
+        <activity android:name=".ui.history.TripHistoryActivity" android:exported="false" />
+
+        <!-- කෙලින්ම Home එකට යන්න මේක වෙනස් කළා -->
         <!-- දැන් App එක ලෝඩ් වෙන්නේ මෙන්න මේ HomeActivity (Dashboard) එකෙනුයි -->
         <activity
             android:name=".ui.main.HomeActivity"

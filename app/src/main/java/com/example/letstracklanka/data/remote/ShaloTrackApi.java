@@ -4,17 +4,9 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ShaloTrackApi {
-
-    // FIX: all methods now return Call<ResponseBody> instead of typed
-    // Call<LocationResponse>/Call<StatusResponse>. The real API wraps every response in
-    // an envelope: {"success":true,"data":{...},...}. Deserializing straight into the
-    // typed model (as before) silently produced an object with every field null, because
-    // Gson doesn't know to reach into "data" on its own. Returning ResponseBody lets the
-    // caller manually unwrap the envelope (see HomeActivity.extractLocation()) before
-    // mapping into the real model — same pattern already used for getAllCurrentLocations()
-    // below, which was already correct.
 
     @GET("api/CurrentLocations/device/{deviceId}")
     Call<ResponseBody> getCurrentLocation(@Path("deviceId") String deviceId);
@@ -28,9 +20,26 @@ public interface ShaloTrackApi {
     @GET("api/DeviceStatus/vehicle/{vehicleId}")
     Call<ResponseBody> getVehicleStatus(@Path("vehicleId") String vehicleId);
 
-    // Staff-only on the server (Admin/Dealer role). A regular customer token will get a
-    // 403 here — that's correct and expected. Kept for any staff-facing screen; do not
-    // use this for a customer's own tracking view (use getVehicleLocation instead).
     @GET("api/CurrentLocations")
     Call<ResponseBody> getAllCurrentLocations();
+
+    // NEW -- trail history for the "moving blue line."
+    // vehicleId is REQUIRED server-side now (see GpsTrackingService fix); omitting it
+    // will 400. from/to are ISO-8601 UTC, e.g. "2026-07-11T00:00:00Z". pageSize capped
+    // at 500 server-side regardless of what's requested here.
+    @GET("api/GpsTracking")
+    Call<ResponseBody> getTrackingHistory(
+            @Query("vehicleId") String vehicleId,
+            @Query("from") String fromIso,
+            @Query("to") String toIso,
+            @Query("pageSize") int pageSize
+    );
+
+    // NEW -- trip/stop summary report for the History screen.
+    @GET("api/GpsTracking/trips")
+    Call<ResponseBody> getTripsSummary(
+            @Query("vehicleId") String vehicleId,
+            @Query("from") String fromIso,
+            @Query("to") String toIso
+    );
 }

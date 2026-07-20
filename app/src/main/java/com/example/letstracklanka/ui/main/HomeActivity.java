@@ -36,7 +36,7 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
-import com.example.letstracklanka.ui.auth.LoginActivity;
+import com.example.letstracklanka.ui.main.AddressResolver;
 import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -72,7 +72,9 @@ import retrofit2.Response;
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
-    private static final int UPDATE_INTERVAL = 10000;
+    private static final int UPDATE_INTERVAL = 1000;   // NEW — was 10000. SignalR push is now primary; this is just a safety-net fallback poll in case the push connection drops.
+    // FIX: DEMO_VEHICLE_ID removed. It pointed at a vehicle owned by nobody real,
+    // which silently blocked the map from ever showing a genuine customer's vehicle.
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
@@ -89,6 +91,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName;
     private MaterialCardView cardDefault, cardTerrain, cardSatellite, cardHybrid;
     private View mapTypeMenu;
+    private VehicleTrailRenderer trailRenderer;
+    private RealtimeLocationClient realtimeClient;   // NEW — Option B push client
+    private AddressResolver addressResolver;
 
     // Drawer Variables
     private DrawerLayout drawerLayout;
@@ -100,6 +105,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_home);
 
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
+        addressResolver = new AddressResolver(this);
         mainApiService = ApiClient.getClient().create(ApiService.class);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -534,6 +540,42 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
+    // FIX: was calling trackingApi.getAllCurrentLocations() — a staff-only endpoint that
+    // now correctly 403s for regular customers, and even before that, was comparing
+    // against a hardcoded DEMO_VEHICLE_ID that belonged to nobody real.
+    // Now polls each vehicle this logged-in customer actually owns (from myVehicles,
+    // populated by fetchMyVehicles()/fetchDashboard()), using the scoped per-vehicle
+    // endpoint the API already enforces ownership on.
+    /**
+     * Handles a location pushed via SignalR (Option B). Mirrors fetchLocation()'s
+     * success path, but reads from RealtimeLocationPayload instead of LocationResponse
+     * since the latter has no setters and can't be constructed from pushed data.
+     */
+    private void handlePushedLocation(RealtimeLocationPayload payload) {
+        if (payload.getVehicleId() == null || mMap == null) return;
+        LatLng pos = new LatLng(payload.getLatitude(), payload.getLongitude());
+        if (pos.latitude == 0 && pos.longitude == 0) return;
+
+        String title = myVehicles.getOrDefault(payload.getVehicleId().toLowerCase(), "My Vehicle");
+        trailRenderer.updatePosition(pos, (float) payload.getHeading(), title);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+
+        if (tvDeviceName != null) tvDeviceName.setText(title);
+
+        addressResolver.resolveAddress(pos.latitude, pos.longitude, address -> {
+            if (tvDeviceAddress != null) tvDeviceAddress.setText(address);
+        });
+
+        String status = payload.getSpeed() > 0
+                ? "Moving (" + (int) payload.getSpeed() + " km/h)"
+                : (payload.isIgnitionOn() ? "Idle" : "Parked");
+        int color = payload.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1877F2");
+        if (tvDeviceStatus != null) {
+            tvDeviceStatus.setText(status);
+            tvDeviceStatus.setTextColor(color);
+        }
+    }
+
     private void fetchLocation() {
         if (myVehicles.isEmpty()) {
             return;
@@ -551,7 +593,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
                                 if (pos.latitude != 0 || pos.longitude != 0) {
                                     String title = myVehicles.getOrDefault(vehicleId, "My Vehicle");
-                                    updateMarker(vehicleId, pos, title);
+                                    trailRenderer.updatePosition(pos, loc.getHeading(), title);   // NEW — replaces updateMarker()
                                     updateUI(loc);
                                 }
                             }
@@ -602,7 +644,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         String vid = loc.getVehicleId().toLowerCase();
         String name = myVehicles.getOrDefault(vid, "My Vehicle");
         if (tvDeviceName != null) tvDeviceName.setText(name);
-        if (tvDeviceAddress != null) tvDeviceAddress.setText(String.format(Locale.getDefault(), "%.6f, %.6f", loc.getLatitude(), loc.getLongitude()));
+        if (tvDeviceAddress != null) {
+            addressResolver.resolveAddress(loc.getLatitude(), loc.getLongitude(), address ->
+                    tvDeviceAddress.setText(address));
+        }
         if (tvDeviceStatus != null) {
             tvDeviceStatus.setText(loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked"));
             tvDeviceStatus.setTextColor(loc.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1877F2"));
@@ -690,6 +735,23 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         myVehicles.clear();
                         for (VehicleResponse v : list) {
                             myVehicles.put(v.getVehicleId().toLowerCase(), v.getMake() + " " + v.getModel());
+                            trailRenderer.loadInitialTrail(v.getVehicleId(), () -> {});
+
+                            // NEW — start real-time push for this vehicle (Option B)
+                            if (realtimeClient == null) {
+                                realtimeClient = new RealtimeLocationClient();
+                                realtimeClient.connect(v.getVehicleId(), payload ->
+                                        runOnUiThread(() -> handlePushedLocation(payload)));
+                            }
+                        }
+                        // FIX: was relying entirely on the 10s polling loop to eventually
+                        // pick up the newly-known vehicle. That loop's first tick fires at
+                        // app start (before this data exists) and doesn't run again for a
+                        // full UPDATE_INTERVAL — so the vehicle could sit ready for several
+                        // seconds before the next scheduled poll finally noticed it. Fetching
+                        // immediately here cuts that dead wait out of cold start.
+                        if (!myVehicles.isEmpty()) {
+                            fetchLocation();
                         }
                     }
                 } catch (Exception e) {
@@ -739,6 +801,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        trailRenderer = new VehicleTrailRenderer(this, mMap, trackingApi);   // NEW
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f));
     }
 
@@ -792,5 +855,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+        if (realtimeClient != null) realtimeClient.stop();   // NEW
     }
 }
