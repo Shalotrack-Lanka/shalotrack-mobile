@@ -3,11 +3,9 @@ package com.example.letstracklanka.ui.main;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.letstracklanka.R;
-import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -19,13 +17,17 @@ public class CirclesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_circles);
 
-        // Map එක ලෝඩ් කිරීම
+        // Load the Google Map in the background
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapCircles);
         if (mapFragment != null) {
-            mapFragment.getMapAsync(googleMap -> { });
+            mapFragment.getMapAsync(googleMap -> {
+                // No action needed when map loads, it will just show in the background
+            });
         }
 
-        // Button Clicks
+        // --- Setup Buttons and Clicks ---
+
+        // Create Circle and Help buttons
         MaterialButton btnCreateCircle = findViewById(R.id.btnCreateCircle);
         MaterialButton btnWatchHelp = findViewById(R.id.btnWatchHelp);
         FloatingActionButton fabAddCircle = findViewById(R.id.fabAddCircle);
@@ -34,7 +36,9 @@ public class CirclesActivity extends AppCompatActivity {
         btnWatchHelp.setOnClickListener(v -> Toast.makeText(this, "Watch Help Videos clicked", Toast.LENGTH_SHORT).show());
         fabAddCircle.setOnClickListener(v -> Toast.makeText(this, "Add Circle (+)", Toast.LENGTH_SHORT).show());
 
-        // --- Bottom Navigation Bar Setup ---
+        // --- Setup Bottom Navigation Bar ---
+
+        // Go to Home screen
         View navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
@@ -45,6 +49,7 @@ public class CirclesActivity extends AppCompatActivity {
             });
         }
 
+        // Go to Vehicles screen
         View navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
@@ -55,6 +60,7 @@ public class CirclesActivity extends AppCompatActivity {
             });
         }
 
+        // Go to Tags screen
         View navTags = findViewById(R.id.nav_tags);
         if (navTags != null) {
             navTags.setOnClickListener(v -> {
@@ -65,11 +71,18 @@ public class CirclesActivity extends AppCompatActivity {
             });
         }
 
+        // Go to Alerts screen (Updated to navigate to the new AlertsActivity)
         View navAlerts = findViewById(R.id.nav_alerts);
         if (navAlerts != null) {
-            navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+            navAlerts.setOnClickListener(v -> {
+                Intent intent = new Intent(CirclesActivity.this, AlertsActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
         }
 
+        // Open the bottom sheet menu
         View navMenu = findViewById(R.id.nav_menu);
         if (navMenu != null) {
             navMenu.setOnClickListener(v -> {
@@ -81,6 +94,7 @@ public class CirclesActivity extends AppCompatActivity {
         }
     }
 
+    // Call Center popup dialog (Not used directly from bottom nav anymore, but kept just in case)
     private void showCallCenterBottomSheet() {
         com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);

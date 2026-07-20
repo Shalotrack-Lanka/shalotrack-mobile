@@ -20,7 +20,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.letstracklanka.R;
@@ -93,6 +95,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private RealtimeLocationClient realtimeClient;   // NEW — Option B push client
     private AddressResolver addressResolver;
 
+    // Drawer Variables
+    private DrawerLayout drawerLayout;
+    private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -109,9 +115,37 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         startRealTimeTracking();
         loadUserData();
+
+        // ---------------------------------------------------------
+        // අනිත් ස්ක්‍රීන් වලින් එන සිග්නල් එක අඳුරගෙන ඉබේම Menu එක අරින්න
+        // ---------------------------------------------------------
+        if (getIntent().getBooleanExtra("open_drawer", false)) {
+            if (drawerLayout != null) {
+                // UI එක සම්පූර්ණයෙන්ම ලෝඩ් වුණාට පස්සේ Drawer එක අරින්න
+                drawerLayout.post(() -> drawerLayout.openDrawer(GravityCompat.START));
+            }
+        }
     }
 
     private void initViews() {
+        // Drawer initialization
+        drawerLayout = findViewById(R.id.drawerLayout);
+        tvDrawerName = findViewById(R.id.tvDrawerName);
+        tvDrawerPhone = findViewById(R.id.tvDrawerPhone);
+        tvDrawerEmail = findViewById(R.id.tvDrawerEmail);
+
+        // Log out button in the drawer
+        TextView tvLogOut = findViewById(R.id.tvLogOut);
+        if(tvLogOut != null) {
+            tvLogOut.setOnClickListener(v -> {
+                FirebaseAuth.getInstance().signOut();
+                Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            });
+        }
+
         View bottomSheetView = findViewById(R.id.bottomSheet);
         if (bottomSheetView != null) {
             tvDeviceName = bottomSheetView.findViewById(R.id.tvDeviceName);
@@ -127,11 +161,36 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
+
+        // ---------------------------------------------------------
+        // මෙන්න Edit Profile Pen Icon එක ක්ලික් කළාම වෙන දේ කේතය
+        // ---------------------------------------------------------
+        ImageView ivEditProfileMenu = findViewById(R.id.ivEditProfileMenu);
+        if (ivEditProfileMenu != null) {
+            ivEditProfileMenu.setOnClickListener(v -> {
+                // Drawer එක close කරලා Bottom Sheet එක අරින්න
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showEditProfileBottomSheet();
+            });
+        }
     }
 
     private void setupUI() {
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
         if (bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+        FloatingActionButton fabLayers = findViewById(R.id.fabLayers);
+        if (fabLayers != null) {
+            fabLayers.setOnClickListener(v -> {
+                if (mapTypeMenu != null) {
+                    if (mapTypeMenu.getVisibility() == View.VISIBLE) {
+                        mapTypeMenu.setVisibility(View.GONE);
+                    } else {
+                        mapTypeMenu.setVisibility(View.VISIBLE);
+                    }
+                }
+            });
+        }
 
         findViewById(R.id.nav_vehicles).setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
@@ -180,20 +239,72 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             View navAlerts = findViewById(R.id.nav_alerts);
             if (navAlerts != null) {
-                navAlerts.setOnClickListener(v -> showCallCenterBottomSheet());
+                navAlerts.setOnClickListener(v -> {
+                    Intent intent = new Intent(HomeActivity.this, AlertsActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(intent);
+                    overridePendingTransition(0, 0);
+                });
             }
 
             View navMenu = findViewById(R.id.nav_menu);
             if (navMenu != null) {
                 navMenu.setOnClickListener(v -> {
-                    NestedScrollView bs = findViewById(R.id.bottomSheet);
-                    if (bs != null) {
-                        BottomSheetBehavior.from(bs).setState(BottomSheetBehavior.STATE_EXPANDED);
+                    if (drawerLayout != null) {
+                        drawerLayout.openDrawer(GravityCompat.START);
                     }
                 });
             }
         }
     }
+
+    // ---------------------------------------------------------
+    // මෙන්න අලුත් Edit Profile Bottom Sheet එක ඕපන් කරන Method එක
+    // ---------------------------------------------------------
+    private void showEditProfileBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_edit_profile, null);
+        dialog.setContentView(view);
+
+        // Views හොයාගැනීම
+        ImageView btnClose = view.findViewById(R.id.btnCloseEditProfile);
+        MaterialButton btnSave = view.findViewById(R.id.btnSaveProfile);
+
+        EditText etFirstName = view.findViewById(R.id.etFirstName);
+        EditText etSurname = view.findViewById(R.id.etSurname);
+        EditText etPhone = view.findViewById(R.id.etPhone);
+        EditText etEmail = view.findViewById(R.id.etEmail);
+
+        // දැනට Drawer එකේ තියෙන විස්තර මේකට සෙට් කිරීම
+        if (tvDrawerName != null) {
+            String fullName = tvDrawerName.getText().toString();
+            String[] nameParts = fullName.split(" ");
+            if (nameParts.length > 0) etFirstName.setText(nameParts[0]);
+            if (nameParts.length > 1) {
+                StringBuilder surname = new StringBuilder();
+                for (int i = 1; i < nameParts.length; i++) {
+                    surname.append(nameParts[i]).append(" ");
+                }
+                etSurname.setText(surname.toString().trim());
+            }
+        }
+        if (tvDrawerPhone != null) etPhone.setText(tvDrawerPhone.getText().toString());
+        if (tvDrawerEmail != null) etEmail.setText(tvDrawerEmail.getText().toString());
+
+        // Close button action
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // Save button action (දැනට බොත්තම එබුවම වැහෙන විදිහට හදලා තියෙන්නේ. පස්සේ API එකට Data යවන්න පුළුවන්)
+        btnSave.setOnClickListener(v -> {
+            Toast.makeText(this, "Profile Saved Successfully!", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        // Bottom sheet එක ෆුල් ස්ක්‍රීන් පේන්න (Keyboard එක ආවම අවුල් නොයන්න)
+        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        dialog.show();
+    }
+    // ---------------------------------------------------------
 
     private void showCallCenterBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
@@ -257,9 +368,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void processVehicleAddition(String vNum, String chassis, String engine, String make, String model,
                                         int year, String color, String type, String fuel, String imei) {
-        // NOTE: this still calls the staff-only GET api/GpsDevices endpoint, so it will
-        // currently 403 for a regular customer and fail with a visible toast below (not
-        // silently anymore). Known, deferred limitation — not fixed in this patch.
+
         mainApiService.getGpsDevices().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
@@ -279,8 +388,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Toast.makeText(HomeActivity.this, "IMEI not found in registry", Toast.LENGTH_LONG).show();
                         }
                     } else {
-                        // FIX: surface non-2xx responses (e.g. 403) instead of silently
-                        // doing nothing, so the user sees why "nothing happened."
                         Toast.makeText(HomeActivity.this,
                                 "Could not check device registry (code " + response.code() + ")",
                                 Toast.LENGTH_LONG).show();
@@ -396,10 +503,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 try (ResponseBody body = response.body()) {
                     if (!response.isSuccessful() || body == null) return;
 
-                    // FIX: "data" is a single dashboard OBJECT, not an array of vehicles.
-                    // The real vehicle list lives at data.vehicles[]. Parse it directly
-                    // instead of routing through parseList(), which was wrapping the whole
-                    // dashboard object as if it were one vehicle and crashing on null fields.
                     Gson gson = new Gson();
                     JsonObject root = gson.fromJson(body.string(), JsonObject.class);
                     if (root == null || !root.has("data") || root.get("data").isJsonNull()) return;
@@ -416,8 +519,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         String model = v.has("model") && !v.get("model").isJsonNull() ? v.get("model").getAsString() : "";
                         myVehicles.put(vehicleId, (make + " " + model).trim());
 
-                        // Bonus: the dashboard already carries lat/lng/online — use it
-                        // directly instead of waiting on the separate per-vehicle poll.
                         boolean hasLocation = v.has("latitude") && !v.get("latitude").isJsonNull()
                                 && v.has("longitude") && !v.get("longitude").isJsonNull();
                         if (hasLocation && mMap != null) {
@@ -477,8 +578,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void fetchLocation() {
         if (myVehicles.isEmpty()) {
-            // Nothing to poll yet — either the profile/vehicle list hasn't loaded,
-            // or this customer genuinely has no vehicle yet. Not an error.
             return;
         }
 
@@ -499,8 +598,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 }
                             }
                         } else if (response.code() == 404) {
-                            // No location reported yet for this vehicle (e.g. device just
-                            // assigned, hasn't transmitted). Not an error — just nothing to show.
                             Log.d("HomeActivity", "No current location yet for vehicle " + vehicleId);
                         }
                     } catch (Exception e) {
@@ -516,12 +613,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    /**
-     * Handles both response shapes safely:
-     *  - Wrapped envelope: {"success":true,"data":{...}}
-     *  - Raw object: {"vehicleId":"...", "latitude":...}
-     * This avoids guessing which shape your current API build returns.
-     */
     private LocationResponse extractLocation(String json) {
         if (json == null || json.trim().isEmpty()) return null;
         Gson gson = new Gson();
@@ -563,11 +654,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    // FIX: was calling getCustomerByEmail() -> GET api/Customers (staff-only list),
-    // which now 403s for every regular customer, leaving currentCustomerId permanently
-    // null and silently blocking fetchMyVehicles()/fetchDashboard()/fetchLocation() from
-    // ever running. Now calls the new GET api/Customers/me endpoint, which resolves the
-    // caller's own profile from their token — no staff role required.
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -578,6 +664,28 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
                         String json = body.string();
+
+                        // Drawer Menu එකට විස්තර සෙට් කිරීම
+                        try {
+                            Gson gson = new Gson();
+                            JsonObject root = gson.fromJson(json, JsonObject.class);
+                            JsonObject data = root.has("data") && root.get("data").isJsonObject() ? root.getAsJsonObject("data") : root;
+
+                            String name = data.has("name") && !data.get("name").isJsonNull() ? data.get("name").getAsString() :
+                                    (data.has("fullName") && !data.get("fullName").isJsonNull() ? data.get("fullName").getAsString() : "Unknown User");
+
+                            String phone = data.has("phone") && !data.get("phone").isJsonNull() ? data.get("phone").getAsString() :
+                                    (data.has("phoneNumber") && !data.get("phoneNumber").isJsonNull() ? data.get("phoneNumber").getAsString() : "No Phone Number");
+
+                            String email = data.has("email") && !data.get("email").isJsonNull() ? data.get("email").getAsString() : "No Email";
+
+                            if(tvDrawerName != null) tvDrawerName.setText(name);
+                            if(tvDrawerPhone != null) tvDrawerPhone.setText(phone);
+                            if(tvDrawerEmail != null) tvDrawerEmail.setText(email);
+                        } catch(Exception e) {
+                            Log.e("HomeActivity", "Drawer UI update error", e);
+                        }
+
                         CustomerResponse customer = extractCustomer(json);
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
@@ -601,9 +709,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    /**
-     * Handles both response shapes safely, same reasoning as extractLocation() above.
-     */
     private CustomerResponse extractCustomer(String json) {
         if (json == null || json.trim().isEmpty()) return null;
         Gson gson = new Gson();
@@ -727,7 +832,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         Gson gson = new Gson();
         String trimmed = json.trim();
         try {
-            // Handle both a raw top-level array and an envelope with "data" holding the array.
             JsonObject maybeEnvelope = null;
             try {
                 maybeEnvelope = trimmed.startsWith("{") ? gson.fromJson(trimmed, JsonObject.class) : null;

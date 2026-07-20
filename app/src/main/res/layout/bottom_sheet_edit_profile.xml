@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bottom_sheet_bg"
+    android:orientation="vertical">
+
+    <!-- Top Bar with Title and Close Button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit profile"
+            android:textColor="#000000"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnCloseEditProfile"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentEnd="true"
+            android:background="@drawable/bg_edit_text_rounded"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="#555555" />
+    </RelativeLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Profile Image -->
+            <RelativeLayout
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="20dp">
+
+                <ImageView
+                    android:id="@+id/imgEditProfilePic"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_default_profile" />
+
+                <!-- Pen Icon (Decorative here) -->
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentBottom="true"
+                    android:layout_marginEnd="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/bg_edit_text_rounded"
+                    android:padding="6dp"
+                    android:src="@android:drawable/ic_menu_edit"
+                    app:tint="#555555" />
+            </RelativeLayout>
+
+            <!-- First Name -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="First name" android:textColor="#999999" android:textSize="14sp" />
+            <EditText android:id="@+id/etFirstName" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:textColor="#000000" android:textSize="16sp" />
+
+            <!-- Surname -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Surname" android:textColor="#999999" android:textSize="14sp" />
+            <EditText android:id="@+id/etSurname" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:textColor="#000000" android:textSize="16sp" />
+
+            <!-- Phone -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Phone" android:textColor="#999999" android:textSize="14sp" />
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp">
+                <EditText android:id="@+id/etPhone" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:paddingEnd="40dp" android:textColor="#000000" android:textSize="16sp" android:inputType="phone"/>
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true" android:layout_marginEnd="12dp" android:src="@android:drawable/presence_online" app:tint="#4CAF50" />
+            </RelativeLayout>
+
+            <!-- Email -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Email" android:textColor="#999999" android:textSize="14sp" />
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp">
+                <EditText android:id="@+id/etEmail" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:paddingEnd="40dp" android:textColor="#000000" android:textSize="16sp" android:inputType="textEmailAddress"/>
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true" android:layout_marginEnd="12dp" android:src="@android:drawable/presence_online" app:tint="#4CAF50" />
+            </RelativeLayout>
+
+            <!-- Address Line 1 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Address line 1" android:textColor="#999999" android:textSize="14sp" />
+            <EditText android:id="@+id/etAddress1" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:textColor="#000000" android:textSize="16sp" />
+
+            <!-- Address Line 2 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Address line 2" android:textColor="#999999" android:textSize="14sp" />
+            <EditText android:id="@+id/etAddress2" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:textColor="#000000" android:textSize="16sp" />
+
+            <!-- City & State Row -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false">
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginEnd="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="City" android:textColor="#999999" android:textSize="14sp" />
+                    <EditText android:id="@+id/etCity" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:textColor="#000000" android:textSize="16sp" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginStart="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="State" android:textColor="#999999" android:textSize="14sp" />
+                    <EditText android:id="@+id/etState" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="12dp" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:textColor="#000000" android:textSize="16sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Post Code -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Post Code" android:textColor="#999999" android:textSize="14sp" />
+            <EditText android:id="@+id/etPostCode" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="4dp" android:layout_marginBottom="24dp" android:background="@drawable/bg_edit_text_rounded" android:paddingHorizontal="12dp" android:textColor="#000000" android:textSize="16sp" android:inputType="number"/>
+
+            <!-- Save Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveProfile"
+                android:layout_width="150dp"
+                android:layout_height="55dp"
+                android:layout_gravity="end"
+                android:layout_marginBottom="20dp"
+                android:text="Save"
+                android:textAllCaps="false"
+                android:textSize="18sp"
+                app:backgroundTint="#81B2F3"
+                app:cornerRadius="12dp" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
