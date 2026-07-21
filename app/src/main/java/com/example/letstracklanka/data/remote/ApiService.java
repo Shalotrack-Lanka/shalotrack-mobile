@@ -3,6 +3,7 @@ package com.example.letstracklanka.data.remote;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
+import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 
 import okhttp3.ResponseBody;
@@ -11,6 +12,7 @@ import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.PATCH;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -22,6 +24,10 @@ public interface ApiService {
     // token -- works for any authenticated customer, not just staff.
     @GET("api/Customers/me")
     Call<ResponseBody> getMyProfile();
+
+    // NEW -- used by the Edit Profile bottom sheet's Save button.
+    @PUT("api/Customers/{customerId}")
+    Call<ResponseBody> updateCustomer(@Path("customerId") String customerId, @Body UpdateCustomerRequest request);
 
     @GET("api/Vehicles/customer/{customerId}")
     Call<ResponseBody> getVehiclesByCustomer(@Path("customerId") String customerId);

@@ -30,6 +30,15 @@ public class TripSummary {
     @SerializedName(value = "distanceKm", alternate = {"DistanceKm"})
     private JsonElement distanceKm;
 
+    // NEW -- these have existed in the API response since the Stops/Speed report
+    // work earlier tonight, but this model never had fields for them, so Gson
+    // silently dropped them on every parse until now.
+    @SerializedName(value = "maxSpeed", alternate = {"MaxSpeed"})
+    private JsonElement maxSpeed;
+
+    @SerializedName(value = "avgSpeed", alternate = {"AvgSpeed"})
+    private JsonElement avgSpeed;
+
     @SerializedName(value = "inProgress", alternate = {"InProgress"})
     private Boolean inProgress;
 
@@ -41,6 +50,8 @@ public class TripSummary {
     public double getEndLongitude() { return parseToDouble(endLongitude); }
     public double getDurationMinutes() { return parseToDouble(durationMinutes); }
     public double getDistanceKm() { return parseToDouble(distanceKm); }
+    public double getMaxSpeed() { return parseToDouble(maxSpeed); }
+    public double getAvgSpeed() { return parseToDouble(avgSpeed); }
     public boolean isInProgress() { return inProgress != null && inProgress; }
 
     private double parseToDouble(JsonElement element) {

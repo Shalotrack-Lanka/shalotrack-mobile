@@ -1,6 +1,7 @@
 package com.example.letstracklanka.ui.history;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -20,6 +21,7 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
+import com.example.letstracklanka.ui.main.AddressResolver;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -44,11 +46,13 @@ public class TripHistoryActivity extends AppCompatActivity {
 
     private String currentCustomerId = null;
     private String selectedVehicleId = null;
+    private String selectedVehicleName = "My Vehicle";
 
     private TextView tvRangeLabel, tvTripCount, tvStopCount, tvDistance, tvDrivingTime, tvEmptyState;
     private View chipToday, chipWeek, chipMonth, chipCustom, progressBar;
     private RecyclerView recyclerView;
     private TripAdapter adapter;
+    private AddressResolver addressResolver;
 
     // Current filter window, in UTC.
     private Date rangeFrom;
@@ -61,6 +65,7 @@ public class TripHistoryActivity extends AppCompatActivity {
 
         mainApiService = ApiClient.getClient().create(ApiService.class);
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
+        addressResolver = new AddressResolver(this);
 
         initViews();
         setupChips();
@@ -86,7 +91,7 @@ public class TripHistoryActivity extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.recyclerTrips);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new TripAdapter(new ArrayList<>());
+        adapter = new TripAdapter(new ArrayList<>(), addressResolver, this::openTripDetail);
         recyclerView.setAdapter(adapter);
 
         View btnBack = findViewById(R.id.btnBack);
@@ -191,6 +196,7 @@ public class TripHistoryActivity extends AppCompatActivity {
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         if (!list.isEmpty()) {
                             selectedVehicleId = list.get(list.size() - 1).getVehicleId();
+                            selectedVehicleName = list.get(list.size() - 1).getMake() + " " + list.get(list.size() - 1).getModel();
                             fetchTrips();
                         } else {
                             showEmpty("No vehicle linked yet.");
@@ -239,6 +245,20 @@ public class TripHistoryActivity extends AppCompatActivity {
                 showEmpty("Network error — check your connection.");
             }
         });
+    }
+
+    private void openTripDetail(TripSummary trip) {
+        if (selectedVehicleId == null) return;
+        Intent intent = new Intent(TripHistoryActivity.this, TripDetailActivity.class);
+        intent.putExtra(TripDetailActivity.EXTRA_VEHICLE_ID, selectedVehicleId);
+        intent.putExtra(TripDetailActivity.EXTRA_FROM_ISO, trip.getStartTime());
+        intent.putExtra(TripDetailActivity.EXTRA_TO_ISO, trip.getEndTime());
+        intent.putExtra(TripDetailActivity.EXTRA_VEHICLE_NAME, selectedVehicleName);
+        intent.putExtra(TripDetailActivity.EXTRA_DISTANCE_KM, trip.getDistanceKm());
+        intent.putExtra(TripDetailActivity.EXTRA_DURATION_MIN, trip.getDurationMinutes());
+        intent.putExtra(TripDetailActivity.EXTRA_MAX_SPEED, trip.getMaxSpeed());
+        intent.putExtra(TripDetailActivity.EXTRA_AVG_SPEED, trip.getAvgSpeed());
+        startActivity(intent);
     }
 
     private void renderReport(TripsReportResponse report) {

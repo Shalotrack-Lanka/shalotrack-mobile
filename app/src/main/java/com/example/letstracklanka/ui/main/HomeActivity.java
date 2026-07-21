@@ -30,6 +30,7 @@ import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
+import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.DashboardResponse;
 import com.example.letstracklanka.data.model.GpsDeviceResponse;
 import com.example.letstracklanka.data.model.LocationResponse;
@@ -86,6 +87,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Runnable trackingRunnable;
 
     private String currentCustomerId = null;
+    private CustomerResponse currentCustomer = null;   // NEW -- retains full profile for Edit Profile save
     private final Map<String, String> myVehicles = new HashMap<>();
     private final Map<String, Marker> mapMarkers = new HashMap<>();
     private LatLng myCurrentLocation = null;
@@ -119,11 +121,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         loadUserData();
 
         // ---------------------------------------------------------
-        // අනිත් ස්ක්‍රීන් වලින් එන සිග්නල් එක අඳුරගෙන ඉබේම Menu එක අරින්න
+        // Detect a signal from another screen and automatically open the drawer menu
         // ---------------------------------------------------------
         if (getIntent().getBooleanExtra("open_drawer", false)) {
             if (drawerLayout != null) {
-                // UI එක සම්පූර්ණයෙන්ම ලෝඩ් වුණාට පස්සේ Drawer එක අරින්න
+                // Open the drawer only after the UI has fully loaded
                 drawerLayout.post(() -> drawerLayout.openDrawer(GravityCompat.START));
             }
         }
@@ -165,15 +167,72 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (mapFragment != null) mapFragment.getMapAsync(this);
 
         // ---------------------------------------------------------
-        // මෙන්න Edit Profile Pen Icon එක ක්ලික් කළාම වෙන දේ කේතය
+        // What happens when the Edit Profile pen icon is clicked
         // ---------------------------------------------------------
         ImageView ivEditProfileMenu = findViewById(R.id.ivEditProfileMenu);
         if (ivEditProfileMenu != null) {
             ivEditProfileMenu.setOnClickListener(v -> {
-                // Drawer එක close කරලා Bottom Sheet එක අරින්න
+                // Close the drawer and open the bottom sheet
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
                 showEditProfileBottomSheet();
             });
+        }
+
+        setupDrawerMenuItems();
+    }
+
+    /**
+     * Wires the full drawer menu (matching the Letstrack reference layout).
+     * Add New / Reports / Chat & Support map to real, existing features.
+     * Everything else is an honest "Coming soon" placeholder -- not part of
+     * ShaloTrack yet, not wired to fake data.
+     */
+    private void setupDrawerMenuItems() {
+        View btnMenuAddNew = findViewById(R.id.btnMenuAddNew);
+        if (btnMenuAddNew != null) {
+            btnMenuAddNew.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showAddVehicleDialog();
+            });
+        }
+
+        View btnMenuReports = findViewById(R.id.btnMenuReports);
+        if (btnMenuReports != null) {
+            btnMenuReports.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                startActivity(new Intent(HomeActivity.this, com.example.letstracklanka.ui.history.TripHistoryActivity.class));
+            });
+        }
+
+        View btnMenuChatSupport = findViewById(R.id.btnMenuChatSupport);
+        if (btnMenuChatSupport != null) {
+            btnMenuChatSupport.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showCallCenterBottomSheet();
+            });
+        }
+
+        View btnMenuVoiceTrack = findViewById(R.id.btnMenuVoiceTrack);
+        if (btnMenuVoiceTrack != null) {
+            btnMenuVoiceTrack.setOnClickListener(v ->
+                    Toast.makeText(this, "Not available for this app", Toast.LENGTH_SHORT).show());
+        }
+
+        int[] comingSoonIds = {
+                R.id.btnMenuPlaces,
+                R.id.btnMenuVehicleSubs,
+                R.id.btnMenuAppSubs,
+                R.id.btnMenuRefer,
+                R.id.btnMenuShop,
+                R.id.btnMenuHelpVideos,
+                R.id.btnMenuSettings,
+                R.id.btnMenuPrivacy
+        };
+        for (int id : comingSoonIds) {
+            View item = findViewById(id);
+            if (item != null) {
+                item.setOnClickListener(v -> Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
+            }
         }
     }
 
@@ -261,14 +320,14 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     // ---------------------------------------------------------
-    // මෙන්න අලුත් Edit Profile Bottom Sheet එක ඕපන් කරන Method එක
+    // Method that opens the Edit Profile bottom sheet
     // ---------------------------------------------------------
     private void showEditProfileBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_edit_profile, null);
         dialog.setContentView(view);
 
-        // Views හොයාගැනීම
+        // Finding the views
         ImageView btnClose = view.findViewById(R.id.btnCloseEditProfile);
         MaterialButton btnSave = view.findViewById(R.id.btnSaveProfile);
 
@@ -277,7 +336,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         EditText etPhone = view.findViewById(R.id.etPhone);
         EditText etEmail = view.findViewById(R.id.etEmail);
 
-        // දැනට Drawer එකේ තියෙන විස්තර මේකට සෙට් කිරීම
+        // Populate this sheet with the details currently shown in the drawer
         if (tvDrawerName != null) {
             String fullName = tvDrawerName.getText().toString();
             String[] nameParts = fullName.split(" ");
@@ -296,13 +355,61 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Close button action
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Save button action (දැනට බොත්තම එබුවම වැහෙන විදිහට හදලා තියෙන්නේ. පස්සේ API එකට Data යවන්න පුළුවන්)
+        // Save button action -- now actually calls PUT /api/Customers/{customerId}.
+        // Email is NOT included: the API's update endpoint doesn't accept it (email
+        // is tied to Firebase identity, not editable through this simple form), so
+        // whatever the user types there is intentionally not sent anywhere.
+        // Address and profileImage aren't collected by this form at all -- to avoid
+        // PUT silently wiping them, the customer's existing values (from
+        // currentCustomer, loaded earlier) are sent back unchanged.
         btnSave.setOnClickListener(v -> {
-            Toast.makeText(this, "Profile Saved Successfully!", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+            if (currentCustomer == null || currentCustomerId == null) {
+                Toast.makeText(this, "Profile not loaded yet, try again in a moment", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String firstName = etFirstName.getText().toString().trim();
+            String surname = etSurname.getText().toString().trim();
+            String fullName = surname.isEmpty() ? firstName : firstName + " " + surname;
+            String phone = etPhone.getText().toString().trim();
+
+            if (fullName.isEmpty()) {
+                Toast.makeText(this, "Name can't be empty", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            btnSave.setEnabled(false);
+
+            UpdateCustomerRequest request = new UpdateCustomerRequest(
+                    fullName,
+                    phone,
+                    currentCustomer.getAddress(),         // preserved, not edited here
+                    currentCustomer.getProfileImage()      // preserved, not edited here
+            );
+
+            mainApiService.updateCustomer(currentCustomerId, request).enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                    btnSave.setEnabled(true);
+                    if (response.isSuccessful()) {
+                        Toast.makeText(HomeActivity.this, "Profile updated successfully", Toast.LENGTH_SHORT).show();
+                        if (tvDrawerName != null) tvDrawerName.setText(fullName);
+                        if (tvDrawerPhone != null) tvDrawerPhone.setText(phone);
+                        dialog.dismiss();
+                    } else {
+                        Toast.makeText(HomeActivity.this, "Could not save (code " + response.code() + ")", Toast.LENGTH_LONG).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                    btnSave.setEnabled(true);
+                    Toast.makeText(HomeActivity.this, "Network error — check your connection", Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
-        // Bottom sheet එක ෆුල් ස්ක්‍රීන් පේන්න (Keyboard එක ආවම අවුල් නොයන්න)
+        // Make the bottom sheet appear full-screen (so it doesn't get disrupted when the keyboard appears)
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
@@ -667,7 +774,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     if (response.isSuccessful() && body != null) {
                         String json = body.string();
 
-                        // Drawer Menu එකට විස්තර සෙට් කිරීම
+                        // Populate the drawer menu with the profile details
                         try {
                             Gson gson = new Gson();
                             JsonObject root = gson.fromJson(json, JsonObject.class);
@@ -691,6 +798,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         CustomerResponse customer = extractCustomer(json);
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
+                            currentCustomer = customer;   // NEW -- retained so Save can preserve address/profileImage
                             fetchMyVehicles();
                             fetchDashboard();
                         }
