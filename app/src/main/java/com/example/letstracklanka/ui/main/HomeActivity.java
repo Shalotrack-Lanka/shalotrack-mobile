@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -570,7 +571,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         String status = payload.getSpeed() > 0
                 ? "Moving (" + (int) payload.getSpeed() + " km/h)"
                 : (payload.isIgnitionOn() ? "Idle" : "Parked");
-        int color = payload.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1877F2");
+        int color = payload.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary);
         if (tvDeviceStatus != null) {
             tvDeviceStatus.setText(status);
             tvDeviceStatus.setTextColor(color);
@@ -651,7 +652,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         if (tvDeviceStatus != null) {
             tvDeviceStatus.setText(loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked"));
-            tvDeviceStatus.setTextColor(loc.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1877F2"));
+            tvDeviceStatus.setTextColor(loc.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary));
         }
     }
 
@@ -814,7 +815,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             cardSatellite.setStrokeWidth(0);
             cardHybrid.setStrokeWidth(0);
             selectedCard.setStrokeWidth(8);
-            selectedCard.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+            selectedCard.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary)));
             if (mapTypeMenu != null) mapTypeMenu.setVisibility(View.GONE);
         }
     }

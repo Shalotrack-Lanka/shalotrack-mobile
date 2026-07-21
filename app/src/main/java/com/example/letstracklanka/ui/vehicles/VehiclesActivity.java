@@ -2,6 +2,7 @@ package com.example.letstracklanka.ui.vehicles;
 
 import android.content.Intent;
 import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -476,7 +477,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                                 if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: " + vehicle.getImei());
                                 if (tvGpsDeviceStatus != null) {
                                     tvGpsDeviceStatus.setText("GPS Device: Linked");
-                                    tvGpsDeviceStatus.setTextColor(Color.parseColor("#00BFA5"));
+                                    tvGpsDeviceStatus.setTextColor(ContextCompat.getColor(VehiclesActivity.this, com.example.letstracklanka.R.color.status_moving));
                                 }
                             } else {
                                 if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: Not linked");
@@ -548,11 +549,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         String status = payload.getSpeed() > 0
                 ? "Moving (" + (int) payload.getSpeed() + " km/h)"
                 : (payload.isIgnitionOn() ? "Idle" : "Parked");
-        int color = payload.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1976D2");
+        int color = payload.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 
-        int dotColor = payload.isIgnitionOn() ? Color.parseColor("#4CAF50") : Color.parseColor("#E53935");
+        int dotColor = payload.isIgnitionOn() ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_success) : Color.parseColor("#E53935");
         if (dotIgnition != null) dotIgnition.setCardBackgroundColor(dotColor);
         if (dotAC != null) dotAC.setCardBackgroundColor(dotColor);
 
@@ -604,11 +605,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
 
         String status = loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
-        int color = loc.getSpeed() > 0 ? Color.parseColor("#00BFA5") : Color.parseColor("#1976D2");
+        int color = loc.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 
-        int dotColor = loc.isIgnitionOn() ? Color.parseColor("#4CAF50") : Color.parseColor("#E53935");
+        int dotColor = loc.isIgnitionOn() ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_success) : Color.parseColor("#E53935");
         if (dotIgnition != null) dotIgnition.setCardBackgroundColor(dotColor);
         if (dotAC != null) dotAC.setCardBackgroundColor(dotColor);
 
