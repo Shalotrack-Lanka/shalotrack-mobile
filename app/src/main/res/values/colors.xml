@@ -1,22 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Legacy/default - restored after being accidentally dropped once already.
+         Existing screens (Tags, Circles, and likely others not touched tonight)
+         reference this directly by name; do not remove without checking every
+         usage first. -->
     <color name="white">#FFFFFF</color>
-    <!-- Brand - new navy design system -->
+
+    <!-- Brand - navy design system -->
     <color name="brand_primary">#0A2463</color>
     <color name="brand_primary_light">#1976D2</color>
-    <color name="brand_accent">#1877F2</color>   <!-- kept for trail line / secondary accents -->
+    <color name="brand_accent">#1877F2</color>   <!-- still used in the provided design package -->
 
-    <!-- Status colors (used for moving/idle/parked, ignition dots, etc.) -->
-    <color name="status_moving">#00BFA5</color>
-    <color name="status_idle">#1976D2</color>
-    <color name="status_danger">#E53935</color>
-    <color name="status_success">#4CAF50</color>
-    <color name="status_warning">#FF9800</color>
+    <!-- Status colors - grounded in the actual provided design files' palette -->
+    <color name="status_moving">#16A34A</color>   <!-- CHANGED: was #00BFA5 (teal), now matches design package's green -->
+    <color name="status_idle">#1976D2</color>     <!-- unchanged - already matched -->
+    <color name="status_danger">#E53935</color>   <!-- unchanged - already matched -->
+    <color name="status_success">#16A34A</color>
+    <color name="status_warning">#FF9800</color>  <!-- kept - no equivalent found in the provided design package -->
+
+    <!-- Danger/warning banner treatment (e.g. Immobilize safety panel) -->
+    <color name="danger_banner_bg">#FEF2F2</color>
+    <color name="danger_banner_border">#FEE2E2</color>
+    <color name="danger_banner_text">#991B1B</color>
 
     <!-- Text -->
     <color name="text_primary">#222222</color>
     <color name="text_secondary">#5B6B82</color>
+    <color name="text_tertiary">#757575</color>   <!-- NEW - from the design package -->
     <color name="text_muted">#888888</color>
     <color name="text_on_dark">#FFFFFF</color>
 
@@ -25,5 +36,6 @@
     <color name="surface_white">#FFFFFF</color>
     <color name="surface_chip_selected_bg">#EAF2FE</color>
     <color name="surface_stroke">#E0E0E0</color>
+    <color name="surface_muted_blue">#9FB2C9</color>   <!-- NEW - from the design package -->
 
 </resources>

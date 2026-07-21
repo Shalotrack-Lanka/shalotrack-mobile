@@ -5,6 +5,7 @@
     android:layout_marginStart="16dp"
     android:layout_marginEnd="16dp"
     android:layout_marginTop="8dp"
+    app:cardBackgroundColor="@color/surface_white"
     app:cardCornerRadius="10dp"
     app:cardElevation="1dp"
     xmlns:app="http://schemas.android.com/apk/res-auto">
@@ -56,7 +57,7 @@
                 android:layout_width="6dp"
                 android:layout_height="6dp"
                 android:layout_marginTop="4dp"
-                android:background="#00BFA5" />
+                android:background="@color/status_moving" />
 
             <TextView
                 android:id="@+id/tvStartPoint"
@@ -109,7 +110,7 @@
                 android:layout_weight="1"
                 android:text="4h 38m"
                 android:textSize="12sp"
-                android:textColor="#1877F2" />
+                android:textColor="@color/brand_primary" />
 
             <TextView
                 android:id="@+id/tvDistance"
@@ -119,7 +120,7 @@
                 android:gravity="end"
                 android:text="15.2 km"
                 android:textSize="12sp"
-                android:textColor="#1877F2" />
+                android:textColor="@color/brand_primary" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

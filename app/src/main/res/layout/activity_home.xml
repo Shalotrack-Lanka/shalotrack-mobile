@@ -76,7 +76,7 @@
                                 android:layout_margin="6dp"
                                 app:cardCornerRadius="16dp"
                                 app:cardElevation="0dp"
-                                app:strokeColor="#1877F2"
+                                app:strokeColor="@color/brand_primary"
                                 app:strokeWidth="3dp">
 
                                 <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#FFFFFF">
@@ -158,18 +158,18 @@
                         android:layout_marginEnd="8dp"
                         android:text="Send Location"
                         android:textAllCaps="false"
-                        android:textColor="#1877F2"
+                        android:textColor="@color/brand_primary"
                         android:textSize="15sp"
                         app:backgroundTint="#FFFFFF"
                         app:cornerRadius="12dp"
                         app:icon="@drawable/ic_my_location"
-                        app:iconTint="#1877F2"
+                        app:iconTint="@color/brand_primary"
                         app:layout_constraintHorizontal_weight="1.2"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toStartOf="@+id/btnSOS"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
-                        app:strokeColor="#1877F2"
+                        app:strokeColor="@color/brand_primary"
                         app:strokeWidth="1.5dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -201,7 +201,7 @@
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
                         app:srcCompat="@drawable/ic_refresh"
-                        app:tint="#1877F2" />
+                        app:tint="@color/brand_primary" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 

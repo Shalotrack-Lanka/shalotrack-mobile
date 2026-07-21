@@ -55,7 +55,7 @@
             android:text="Today"
             android:textSize="12sp"
             android:textColor="#FFFFFF"
-            android:background="#1877F2" />
+            android:background="@color/brand_primary" />
 
         <TextView
             android:id="@+id/chipWeek"
@@ -67,7 +67,7 @@
             android:gravity="center"
             android:text="This Week"
             android:textSize="12sp"
-            android:textColor="#1877F2"
+            android:textColor="@color/brand_primary"
             android:background="#EAF2FE" />
 
         <TextView
@@ -80,7 +80,7 @@
             android:gravity="center"
             android:text="This Month"
             android:textSize="12sp"
-            android:textColor="#1877F2"
+            android:textColor="@color/brand_primary"
             android:background="#EAF2FE" />
 
         <TextView
@@ -93,7 +93,7 @@
             android:gravity="center"
             android:text="Custom"
             android:textSize="12sp"
-            android:textColor="#1877F2"
+            android:textColor="@color/brand_primary"
             android:background="#EAF2FE" />
     </LinearLayout>
 
@@ -132,7 +132,7 @@
                 android:text="0"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="#1877F2" />
+                android:textColor="@color/brand_primary" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
