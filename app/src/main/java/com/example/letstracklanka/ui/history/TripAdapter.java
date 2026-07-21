@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.TripSummary;
+import com.example.letstracklanka.ui.main.AddressResolver;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,10 +22,18 @@ import java.util.TimeZone;
 
 public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder> {
 
-    private List<TripSummary> trips;
+    public interface OnTripClickListener {
+        void onTripClick(TripSummary trip);
+    }
 
-    public TripAdapter(List<TripSummary> trips) {
+    private List<TripSummary> trips;
+    private final AddressResolver addressResolver;
+    private final OnTripClickListener clickListener;
+
+    public TripAdapter(List<TripSummary> trips, AddressResolver addressResolver, OnTripClickListener clickListener) {
         this.trips = trips;
+        this.addressResolver = addressResolver;
+        this.clickListener = clickListener;
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -48,14 +57,36 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
         holder.tvDuration.setText(formatDuration(trip.getDurationMinutes()));
         holder.tvDistance.setText(String.format(Locale.getDefault(), "%.1f km", trip.getDistanceKm()));
 
-        // Coordinates shown immediately; a full address needs a separate resolver call
-        // per item (deliberately not wired here yet -- see chat notes: wiring
-        // AddressResolver into a RecyclerView needs view-recycling-safe handling so a
-        // fast scroll doesn't show a stale item's resolved address on a reused row).
+        // Show raw coordinates immediately as a fallback, then resolve real
+        // addresses asynchronously. Each TextView is tagged with the exact trip
+        // object it currently represents -- when the async lookup returns, we
+        // only apply the result if the tag still matches. This is what makes it
+        // safe against RecyclerView recycling: if this row gets reused for a
+        // different trip before the network call finishes, the stale result is
+        // silently dropped instead of overwriting the wrong row.
         holder.tvStartPoint.setText(String.format(Locale.getDefault(), "%.5f, %.5f", trip.getStartLatitude(), trip.getStartLongitude()));
         holder.tvEndPoint.setText(String.format(Locale.getDefault(), "%.5f, %.5f", trip.getEndLatitude(), trip.getEndLongitude()));
 
+        holder.tvStartPoint.setTag(trip);
+        holder.tvEndPoint.setTag(trip);
+
+        addressResolver.resolveAddress(trip.getStartLatitude(), trip.getStartLongitude(), address -> {
+            if (holder.tvStartPoint.getTag() == trip) {
+                holder.tvStartPoint.setText(address);
+            }
+        });
+
+        addressResolver.resolveAddress(trip.getEndLatitude(), trip.getEndLongitude(), address -> {
+            if (holder.tvEndPoint.getTag() == trip) {
+                holder.tvEndPoint.setText(address);
+            }
+        });
+
         holder.tvInProgress.setVisibility(trip.isInProgress() ? View.VISIBLE : View.GONE);
+
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) clickListener.onTripClick(trip);
+        });
     }
 
     @Override
