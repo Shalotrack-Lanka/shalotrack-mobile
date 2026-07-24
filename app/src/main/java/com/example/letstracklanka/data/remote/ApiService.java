@@ -3,13 +3,16 @@ package com.example.letstracklanka.data.remote;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
+import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -17,18 +20,14 @@ public interface ApiService {
     @POST("api/Customers")
     Call<ResponseBody> createCustomer(@Body CustomerRequest request);
 
-    // KEPT for AuthRepository.java / VehiclesActivity.java, which still call this.
-    // NOTE: hits GET api/Customers, which is now staff-only and will 403 for a regular
-    // customer token. If AuthRepository or VehiclesActivity break the same way
-    // HomeActivity did, they need the same fix -- see chat notes. Not touched tonight
-    // to avoid widening the change under time pressure.
-    @GET("api/Customers")
-    Call<ResponseBody> getCustomerByEmail(@Query("email") String email);
-
     // NEW: used by HomeActivity now. Resolves the caller's own profile from their
     // token -- works for any authenticated customer, not just staff.
     @GET("api/Customers/me")
     Call<ResponseBody> getMyProfile();
+
+    // NEW -- used by the Edit Profile bottom sheet's Save button.
+    @PUT("api/Customers/{customerId}")
+    Call<ResponseBody> updateCustomer(@Path("customerId") String customerId, @Body UpdateCustomerRequest request);
 
     @GET("api/Vehicles/customer/{customerId}")
     Call<ResponseBody> getVehiclesByCustomer(@Path("customerId") String customerId);
@@ -46,4 +45,16 @@ public interface ApiService {
 
     @GET("api/Customers/{customerId}/dashboard")
     Call<ResponseBody> getCustomerDashboard(@Path("customerId") String customerId);
+
+    // NEW — customer-safe single-device lookup by IMEI, used for device linking.
+    // Replaces the staff-only getGpsDevices() full-list approach.
+    @GET("api/GpsDevices/lookup/{imei}")
+    Call<ResponseBody> lookupDeviceByImei(@Path("imei") String imei);
+
+    // NEW — Alerts (Stage 2: real data for AlertsActivity)
+    @GET("api/Alerts")
+    Call<ResponseBody> getMyAlerts(@Query("page") int page, @Query("pageSize") int pageSize);
+
+    @PATCH("api/Alerts/{alertId}/read")
+    Call<ResponseBody> markAlertAsRead(@Path("alertId") long alertId);
 }

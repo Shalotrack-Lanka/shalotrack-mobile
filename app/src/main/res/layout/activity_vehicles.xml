@@ -42,7 +42,7 @@
                     android:contentDescription="@string/desc_map_layers"
                     app:backgroundTint="#FFFFFF"
                     app:fabSize="mini"
-                    app:tint="#1877F2"
+                    app:tint="@color/brand_primary"
                     app:srcCompat="@drawable/ic_layers" />
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:layout_width="wrap_content"
@@ -50,7 +50,7 @@
                     android:contentDescription="@string/desc_my_location"
                     app:backgroundTint="#FFFFFF"
                     app:fabSize="mini"
-                    app:tint="#1877F2"
+                    app:tint="@color/brand_primary"
                     app:srcCompat="@drawable/ic_my_location" />
             </LinearLayout>
 
@@ -63,23 +63,8 @@
                 android:contentDescription="@string/desc_add_vehicle"
                 app:backgroundTint="#FFFFFF"
                 app:fabSize="normal"
-                app:tint="#1877F2"
+                app:tint="@color/brand_primary"
                 app:srcCompat="@android:drawable/ic_input_add"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fabHistory"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="270dp"
-                android:visibility="gone"
-                android:contentDescription="@string/desc_history"
-                app:backgroundTint="#FFFFFF"
-                app:fabSize="normal"
-                app:tint="#1877F2"
-                app:srcCompat="@android:drawable/ic_menu_recent_history"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
@@ -284,6 +269,24 @@
                     </RelativeLayout>
 
                     <TextView
+                        android:id="@+id/tvVehicleImei"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="#555555"
+                        android:textSize="12sp"
+                        android:text="IMEI: --" />
+
+                    <TextView
+                        android:id="@+id/tvGpsDeviceStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="#555555"
+                        android:textSize="12sp"
+                        android:text="GPS Device: --" />
+
+                    <TextView
                         android:id="@+id/tvExpandedAddress"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -320,7 +323,7 @@
                             android:layout_marginStart="6dp"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/battery_full" android:textColor="#757575" android:textSize="13sp" android:layout_marginStart="20dp" android:layout_marginEnd="4dp"/>
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_lock_idle_charging" android:contentDescription="@string/desc_battery" app:tint="#4CAF50"/>
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_lock_idle_charging" android:contentDescription="@string/desc_battery" app:tint="@color/status_success"/>
                     </LinearLayout>
 
                     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginTop="16dp" android:layout_marginBottom="12dp"/>
@@ -339,7 +342,7 @@
                             app:cornerRadius="8dp"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
-                            app:backgroundTint="#1877F2"/>
+                            app:backgroundTint="@color/brand_primary"/>
                         <TextView
                             android:id="@+id/tvLastUpdated"
                             android:layout_width="wrap_content"
@@ -376,7 +379,7 @@
                             android:textStyle="bold"
                             android:drawablePadding="4dp"
                             app:drawableTopCompat="@android:drawable/ic_menu_recent_history"
-                            app:drawableTint="#1877F2" />
+                            app:drawableTint="@color/brand_primary" />
 
                         <androidx.appcompat.widget.AppCompatTextView
                             android:id="@+id/btnMenuAlerts"
@@ -391,7 +394,7 @@
                             android:textStyle="bold"
                             android:drawablePadding="4dp"
                             app:drawableTopCompat="@android:drawable/ic_popup_reminder"
-                            app:drawableTint="#1877F2" />
+                            app:drawableTint="@color/brand_primary" />
 
                         <androidx.appcompat.widget.AppCompatTextView
                             android:id="@+id/btnMenuVoiceTrack"
@@ -402,11 +405,11 @@
                             android:padding="8dp"
                             android:text="@string/voicetrack"
                             android:textSize="12sp"
-                            android:textColor="#000000"
+                            android:textColor="#BDBDBD"
                             android:textStyle="bold"
                             android:drawablePadding="4dp"
                             app:drawableTopCompat="@android:drawable/ic_btn_speak_now"
-                            app:drawableTint="#1877F2" />
+                            app:drawableTint="#BDBDBD" />
 
                         <androidx.appcompat.widget.AppCompatTextView
                             android:id="@+id/btnMenuValue"
@@ -417,11 +420,11 @@
                             android:padding="8dp"
                             android:text="@string/value"
                             android:textSize="12sp"
-                            android:textColor="#000000"
+                            android:textColor="#BDBDBD"
                             android:textStyle="bold"
                             android:drawablePadding="4dp"
                             app:drawableTopCompat="@android:drawable/ic_menu_myplaces"
-                            app:drawableTint="#1877F2" />
+                            app:drawableTint="#BDBDBD" />
 
                         <androidx.appcompat.widget.AppCompatTextView
                             android:id="@+id/btnMenuPlaces"
@@ -433,11 +436,11 @@
                             android:padding="8dp"
                             android:text="@string/places"
                             android:textSize="12sp"
-                            android:textColor="#000000"
+                            android:textColor="#BDBDBD"
                             android:textStyle="bold"
                             android:drawablePadding="4dp"
                             app:drawableTopCompat="@android:drawable/ic_menu_mapmode"
-                            app:drawableTint="#1877F2" />
+                            app:drawableTint="#BDBDBD" />
 
                         <androidx.appcompat.widget.AppCompatTextView
                             android:id="@+id/btnMenuImmobilize"
@@ -469,7 +472,7 @@
                             android:textStyle="bold"
                             android:drawablePadding="4dp"
                             app:drawableTopCompat="@android:drawable/ic_menu_directions"
-                            app:drawableTint="#1877F2" />
+                            app:drawableTint="@color/brand_primary" />
 
                         <androidx.appcompat.widget.AppCompatTextView
                             android:id="@+id/btnMenuDetails"
@@ -485,13 +488,27 @@
                             android:textStyle="bold"
                             android:drawablePadding="4dp"
                             app:drawableTopCompat="@android:drawable/ic_menu_info_details"
-                            app:drawableTint="#1877F2" />
+                            app:drawableTint="@color/brand_primary" />
 
                     </GridLayout>
 
                 </LinearLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabHistory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@string/desc_history"
+            app:backgroundTint="#FFFFFF"
+            app:fabSize="mini"
+            app:tint="@color/brand_primary"
+            app:srcCompat="@android:drawable/ic_menu_recent_history"
+            app:layout_anchor="@id/bottomSheetVehicleDetails"
+            app:layout_anchorGravity="top|end" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <LinearLayout

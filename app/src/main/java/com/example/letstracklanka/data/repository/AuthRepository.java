@@ -32,8 +32,4 @@ public class AuthRepository {
         });
         return status;
     }
-
-    public void verifyCustomerBackend(String email, Callback<ResponseBody> callback) {
-        apiService.getCustomerByEmail(email).enqueue(callback);
-    }
 }
