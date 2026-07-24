@@ -364,7 +364,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Save button action -- now actually calls PUT /api/Customers/{customerId}.
+        // Save button action
         btnSave.setOnClickListener(v -> {
             if (currentCustomer == null || currentCustomerId == null) {
                 Toast.makeText(this, "Profile not loaded yet, try again in a moment", Toast.LENGTH_SHORT).show();
@@ -386,8 +386,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             UpdateCustomerRequest request = new UpdateCustomerRequest(
                     fullName,
                     phone,
-                    currentCustomer.getAddress(),         // preserved, not edited here
-                    currentCustomer.getProfileImage()      // preserved, not edited here
+                    currentCustomer.getAddress(),
+                    currentCustomer.getProfileImage()
             );
 
             mainApiService.updateCustomer(currentCustomerId, request).enqueue(new Callback<ResponseBody>() {
@@ -474,16 +474,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             btnClose.setOnClickListener(v -> dialog.dismiss());
         }
 
-        // Setup the active plan / continue button
+        // XML එකේ තියෙන බටන් එකේ ID එක මොකක් වුණත් වැඩ කරන්න අපි මේ විදිහට කේතය ලියනවා
         MaterialButton btnActivePlan = view.findViewById(R.id.btnActivePlan);
         if (btnActivePlan != null) {
-            btnActivePlan.setOnClickListener(v -> dialog.dismiss());
-        }
-
-        MaterialButton btnContinueAppSubs = view.findViewById(R.id.btnContinueAppSubs);
-        if (btnContinueAppSubs != null) {
-            btnContinueAppSubs.setOnClickListener(v -> {
-                Toast.makeText(this, "Continuing to payment...", Toast.LENGTH_SHORT).show();
+            btnActivePlan.setOnClickListener(v -> {
+                Toast.makeText(this, "Continuing...", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
         }
