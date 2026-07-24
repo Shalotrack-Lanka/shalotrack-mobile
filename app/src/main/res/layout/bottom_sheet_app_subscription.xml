@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bottom_sheet_bg"
     android:orientation="vertical"
-    android:paddingBottom="24dp">
+    android:paddingBottom="20dp">
 
     <!-- Top Drag Handle -->
     <View
@@ -34,16 +34,16 @@
                 android:layout_height="wrap_content"
                 android:text="Choose Your Plan"
                 android:textColor="#000000"
-                android:textSize="22sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Tap a plan to view its features"
-                android:textColor="#666666"
-                android:textSize="14sp" />
+                android:layout_marginTop="4dp"
+                android:text="Select the plan that best fits you"
+                android:textColor="#555555"
+                android:textSize="16sp" />
         </LinearLayout>
 
         <ImageView
@@ -60,20 +60,64 @@
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Horizontal Cards ScrollView for 4 Plans -->
+            <!-- Billed Annually / Monthly Toggle -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#F5F5F5"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        app:cardBackgroundColor="#1877F2"
+                        app:cardCornerRadius="8dp"
+                        app:cardElevation="2dp">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="Billed Annually"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="Billed Monthly"
+                        android:textColor="#9E9E9E"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Horizontal Plan Cards -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clipToPadding="false"
                 android:paddingHorizontal="12dp"
-                android:paddingVertical="12dp"
+                android:paddingBottom="16dp"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -81,163 +125,140 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <!-- 1. Free Plan Card -->
+                    <!-- Free Plan Card -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardFree"
-                        android:layout_width="120dp"
-                        android:layout_height="90dp"
-                        android:layout_margin="6dp"
-                        app:cardCornerRadius="14dp"
-                        app:cardElevation="2dp"
-                        app:strokeColor="#1877F2"
-                        app:strokeWidth="2dp">
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#000000" android:textSize="16sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 0" android:textColor="#555555" android:textSize="13sp" />
+                        android:layout_width="140dp"
+                        android:layout_height="100dp"
+                        android:layout_margin="8dp"
+                        app:cardBackgroundColor="#CCFF90"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="2dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="L0/month" android:textColor="#000000" android:textSize="14sp" android:textStyle="bold" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- 2. 1 Year Plan Card -->
+                    <!-- 1 Year Plan Card -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card1Year"
-                        android:layout_width="120dp"
-                        android:layout_height="90dp"
-                        android:layout_margin="6dp"
-                        app:cardCornerRadius="14dp"
-                        app:cardElevation="2dp"
-                        app:strokeWidth="0dp">
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1 Year" android:textColor="#000000" android:textSize="16sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 1,490/yr" android:textColor="#555555" android:textSize="13sp" />
+                        android:layout_width="140dp"
+                        android:layout_height="100dp"
+                        android:layout_margin="8dp"
+                        app:cardBackgroundColor="#F5F5F5"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="2dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1 Year" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 1,490/year" android:textColor="#000000" android:textSize="14sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- 3. 3 Years Plan Card -->
+                    <!-- 3 Year Plan Card -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card3Year"
-                        android:layout_width="120dp"
-                        android:layout_height="90dp"
-                        android:layout_margin="6dp"
-                        app:cardCornerRadius="14dp"
-                        app:cardElevation="2dp"
-                        app:strokeWidth="0dp">
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3 Years" android:textColor="#000000" android:textSize="16sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 3,990/3yrs" android:textColor="#555555" android:textSize="13sp" />
+                        android:layout_width="140dp"
+                        android:layout_height="100dp"
+                        android:layout_margin="8dp"
+                        app:cardBackgroundColor="#FFD54F"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="2dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3 Years" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 3,990/3yr" android:textColor="#000000" android:textSize="14sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- 4. 4 Years Plan Card -->
+                    <!-- 4 Year Plan Card -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card4Year"
-                        android:layout_width="120dp"
-                        android:layout_height="90dp"
-                        android:layout_margin="6dp"
-                        app:cardCornerRadius="14dp"
-                        app:cardElevation="2dp"
-                        app:strokeWidth="0dp">
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4 Years" android:textColor="#000000" android:textSize="16sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 4,990/4yrs" android:textColor="#555555" android:textSize="13sp" />
+                        android:layout_width="140dp"
+                        android:layout_height="100dp"
+                        android:layout_margin="8dp"
+                        app:cardBackgroundColor="#424242"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="2dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4 Years" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 4,990/4yr" android:textColor="#FFFFFF" android:textSize="14sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
                 </LinearLayout>
             </HorizontalScrollView>
 
-            <!-- Dynamic Selected Plan Header -->
-            <TextView
-                android:id="@+id/tvSelectedPlanTitle"
+            <!-- Features Table Header -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="8dp"
-                android:text="Free Plan Features"
-                android:textColor="#1877F2"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp"
+                android:paddingBottom="8dp">
 
-            <!-- Dynamic Features Container -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="8dp"
-                app:cardBackgroundColor="#F8F9FA"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="Features" android:textColor="#555" android:textSize="16sp" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <!-- Feature 1 -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingVertical="6dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Live Tracking Update" android:textColor="#000000" android:textSize="14sp" />
-                        <TextView android:id="@+id/tvFeatureLiveTracking" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Basic (60s)" android:textColor="#555555" android:textStyle="bold" />
-                    </LinearLayout>
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
-
-                    <!-- Feature 2 -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingVertical="6dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Route History Playback" android:textColor="#000000" android:textSize="14sp" />
-                        <TextView android:id="@+id/tvFeatureHistory" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="24 Hours" android:textColor="#555555" android:textStyle="bold" />
-                    </LinearLayout>
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
-
-                    <!-- Feature 3 -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingVertical="6dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Safe Zone / Geofence Alerts" android:textColor="#000000" android:textSize="14sp" />
-                        <TextView android:id="@+id/tvFeatureGeofence" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1 Zone" android:textColor="#555555" android:textStyle="bold" />
-                    </LinearLayout>
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
-
-                    <!-- Feature 4 -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingVertical="6dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Emergency Contacts / SOS" android:textColor="#000000" android:textSize="14sp" />
-                        <TextView android:id="@+id/tvFeatureSos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1 Contact" android:textColor="#555555" android:textStyle="bold" />
-                    </LinearLayout>
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
-
-                    <!-- Feature 5 -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingVertical="6dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Customer Support" android:textColor="#000000" android:textSize="14sp" />
-                        <TextView android:id="@+id/tvFeatureSupport" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Standard" android:textColor="#555555" android:textStyle="bold" />
-                    </LinearLayout>
-
+                    android:id="@+id/bgSelectedPlanHeader"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="#E3F2FD"
+                    android:gravity="center">
+                    <TextView android:id="@+id/tvColFree" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#000" android:textSize="16sp" android:textStyle="bold" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Bottom Select Button -->
+                <TextView android:id="@+id/tvColSelected" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="1 Year" android:textColor="#555" android:textSize="16sp" />
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#E0E0E0" />
+
+            <!-- Table Rows (Feature list) -->
+
+            <!-- Row 1: Private Calling -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="Private calling" android:textColor="#000" android:textStyle="bold" />
+                <LinearLayout android:id="@+id/bgCol1Row1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp"/></LinearLayout>
+                <TextView android:id="@+id/tvVal1Row1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="✔️" android:textColor="#4CAF50" android:textSize="16sp"/>
+            </LinearLayout>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#F5F5F5" />
+
+            <!-- Row 2: SOS / emergency -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="SOS / emergency\ncall button" android:textColor="#000" android:textStyle="bold" />
+                <LinearLayout android:id="@+id/bgCol1Row2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp" /></LinearLayout>
+                <TextView android:id="@+id/tvVal1Row2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Message with\nlocation" android:textColor="#9E9E9E" android:textSize="12sp" />
+            </LinearLayout>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#F5F5F5" />
+
+            <!-- Row 3: Emergency Contacts -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="Emergency contacts" android:textColor="#000" android:textStyle="bold" />
+                <LinearLayout android:id="@+id/bgCol1Row3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1" android:textColor="#555" android:textSize="13sp" /></LinearLayout>
+                <TextView android:id="@+id/tvVal1Row3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Up to 2" android:textColor="#9E9E9E" android:textSize="13sp" />
+            </LinearLayout>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#F5F5F5" />
+
+            <!-- Row 4: Medical Profile -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="Medical profile" android:textColor="#000" android:textStyle="bold" />
+                <LinearLayout android:id="@+id/bgCol1Row4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp"/></LinearLayout>
+                <TextView android:id="@+id/tvVal1Row4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="✔️" android:textColor="#4CAF50" android:textSize="16sp"/>
+            </LinearLayout>
+
+            <!-- Bottom Button -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSelectPlan"
+                android:id="@+id/btnContinueAppSubs"
                 android:layout_width="match_parent"
-                android:layout_height="54dp"
+                android:layout_height="56dp"
                 android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="16dp"
-                android:text="Continue with Free Plan"
+                android:layout_marginTop="20dp"
+                android:text="Continue"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:textSize="18sp"
                 app:backgroundTint="#1877F2"
-                app:cornerRadius="12dp" />
+                app:cornerRadius="12dp"
+                app:elevation="2dp" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
