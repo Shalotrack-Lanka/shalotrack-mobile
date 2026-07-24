@@ -79,21 +79,6 @@
             android:layout_marginTop="16dp"
             android:background="#E0E0E0" />
 
-<<<<<<< HEAD
-        <!-- Menu Items -->
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:text="Add New" android:textColor="#1877F2" android:textSize="16sp" />
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
-
-        <!-- Places Menu Item (Added ID here) -->
-        <TextView
-            android:id="@+id/tvMenuPlaces"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:text="Places"
-            android:textColor="#1877F2"
-            android:textSize="16sp" />
-=======
         <!-- Menu Items (Blue) -->
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuAddNew"
             android:text="Add New" android:textColor="#1877F2" android:textSize="16sp" />
@@ -101,7 +86,6 @@
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuPlaces"
             android:text="Places" android:textColor="#1877F2" android:textSize="16sp" />
->>>>>>> f6df12253b8ad698ab8d981a6c1e39a7139233a4
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuVehicleSubs"
@@ -120,12 +104,6 @@
             android:text="VoiceTrack with Alexa" android:textColor="#1877F2" android:textSize="16sp" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
 
-<<<<<<< HEAD
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:text="Shop" android:textColor="#D32F2F" android:textSize="16sp" />
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
-
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:text="Reports" android:textColor="#000000" android:textSize="16sp" />
-=======
         <!-- Menu Item (Red) -->
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuShop"
             android:text="Shop" android:textColor="#D32F2F" android:textSize="16sp" />
@@ -134,7 +112,6 @@
         <!-- Menu Items (Black) -->
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuReports"
             android:text="Reports" android:textColor="#000000" android:textSize="16sp" />
->>>>>>> f6df12253b8ad698ab8d981a6c1e39a7139233a4
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuHelpVideos"
