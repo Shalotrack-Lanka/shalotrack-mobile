@@ -172,7 +172,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
-     * Wires the full drawer menu including the newly added Places and Vehicle Subs menu.
+     * Wires the full drawer menu including the newly added Places, Vehicle Subs, and App Subs menu.
      */
     private void setupDrawerMenuItems() {
         View btnMenuAddNew = findViewById(R.id.btnMenuAddNew);
@@ -223,9 +223,17 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
+        // --- App Subscriptions Menu Item Wiring ---
+        View menuAppSubs = findViewById(R.id.btnMenuAppSubs);
+        if (menuAppSubs != null) {
+            menuAppSubs.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showAppSubscriptionBottomSheet();
+            });
+        }
+
         // Remaining coming soon items
         int[] comingSoonIds = {
-                R.id.btnMenuAppSubs,
                 R.id.btnMenuRefer,
                 R.id.btnMenuShop,
                 R.id.btnMenuHelpVideos,
@@ -356,7 +364,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Save button action
+        // Save button action -- now actually calls PUT /api/Customers/{customerId}.
         btnSave.setOnClickListener(v -> {
             if (currentCustomer == null || currentCustomerId == null) {
                 Toast.makeText(this, "Profile not loaded yet, try again in a moment", Toast.LENGTH_SHORT).show();
@@ -449,6 +457,39 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
+        dialog.show();
+    }
+
+    // ---------------------------------------------------------
+    // Method that opens the App Subscription Bottom Sheet
+    // ---------------------------------------------------------
+    private void showAppSubscriptionBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_app_subscription, null);
+        dialog.setContentView(view);
+
+        // Setup the close button
+        ImageView btnClose = view.findViewById(R.id.btnCloseAppSubs);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        // Setup the active plan / continue button
+        MaterialButton btnActivePlan = view.findViewById(R.id.btnActivePlan);
+        if (btnActivePlan != null) {
+            btnActivePlan.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        MaterialButton btnContinueAppSubs = view.findViewById(R.id.btnContinueAppSubs);
+        if (btnContinueAppSubs != null) {
+            btnContinueAppSubs.setOnClickListener(v -> {
+                Toast.makeText(this, "Continuing to payment...", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            });
+        }
+
+        // Expand fully to show the table properly
+        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
 
