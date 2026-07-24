@@ -157,7 +157,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (mapFragment != null) mapFragment.getMapAsync(this);
 
         // ---------------------------------------------------------
-        // මෙන්න Edit Profile Pen Icon එක ක්ලික් කළාම වෙන දේ කේතය
+        // Edit Profile Pen Icon එක ක්ලික් කළාම වෙන දේ කේතය
         // ---------------------------------------------------------
         ImageView ivEditProfileMenu = findViewById(R.id.ivEditProfileMenu);
         if (ivEditProfileMenu != null) {
@@ -165,6 +165,17 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 // Drawer එක close කරලා Bottom Sheet එක අරින්න
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
                 showEditProfileBottomSheet();
+            });
+        }
+
+        // ---------------------------------------------------------
+        // Places මෙනු අයිටම් එක ක්ලික් කළාම Places Bottom Sheet එක ඕපන් කිරීම
+        // ---------------------------------------------------------
+        TextView tvMenuPlaces = findViewById(R.id.tvMenuPlaces);
+        if (tvMenuPlaces != null) {
+            tvMenuPlaces.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showPlacesBottomSheet();
             });
         }
     }
@@ -253,7 +264,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     // ---------------------------------------------------------
-    // මෙන්න අලුත් Edit Profile Bottom Sheet එක ඕපන් කරන Method එක
+    // Edit Profile Bottom Sheet එක ඕපන් කරන Method එක
     // ---------------------------------------------------------
     private void showEditProfileBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
@@ -288,17 +299,35 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Close button action
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Save button action (දැනට බොත්තම එබුවම වැහෙන විදිහට හදලා තියෙන්නේ. පස්සේ API එකට Data යවන්න පුළුවන්)
+        // Save button action
         btnSave.setOnClickListener(v -> {
             Toast.makeText(this, "Profile Saved Successfully!", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
-        // Bottom sheet එක ෆුල් ස්ක්‍රීන් පේන්න (Keyboard එක ආවම අවුල් නොයන්න)
+        // Bottom sheet එක ෆුල් ස්ක්‍රීන් පේන්න
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
+
     // ---------------------------------------------------------
+    // අලුත් Places Bottom Sheet එක ඕපන් කරන Method එක
+    // ---------------------------------------------------------
+    private void showPlacesBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_places, null);
+        dialog.setContentView(view);
+
+        // Setup the close button
+        ImageView btnClose = view.findViewById(R.id.btnClosePlaces);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        // Expand the bottom sheet fully because the list is long
+        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        dialog.show();
+    }
 
     private void showCallCenterBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
