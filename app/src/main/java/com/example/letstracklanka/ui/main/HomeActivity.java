@@ -97,6 +97,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private RealtimeLocationClient realtimeClient;
     private AddressResolver addressResolver;
 
+    // App Subscription Tracker
+    private boolean isMonthlyBilling = false;
+
     // Drawer Variables
     private DrawerLayout drawerLayout;
     private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
@@ -159,7 +162,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
 
-        // What happens when the Edit Profile pen icon is clicked
         ImageView ivEditProfileMenu = findViewById(R.id.ivEditProfileMenu);
         if (ivEditProfileMenu != null) {
             ivEditProfileMenu.setOnClickListener(v -> {
@@ -171,9 +173,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         setupDrawerMenuItems();
     }
 
-    /**
-     * Wires the full drawer menu including the newly added Places, Vehicle Subs, and App Subs menu.
-     */
     private void setupDrawerMenuItems() {
         View btnMenuAddNew = findViewById(R.id.btnMenuAddNew);
         if (btnMenuAddNew != null) {
@@ -205,7 +204,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     Toast.makeText(this, "Not available for this app", Toast.LENGTH_SHORT).show());
         }
 
-        // --- Places Menu Item Wiring ---
         View menuPlaces = findViewById(R.id.btnMenuPlaces);
         if (menuPlaces != null) {
             menuPlaces.setOnClickListener(v -> {
@@ -214,7 +212,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // --- Vehicle Subscriptions Menu Item Wiring ---
         View menuVehicleSubs = findViewById(R.id.btnMenuVehicleSubs);
         if (menuVehicleSubs != null) {
             menuVehicleSubs.setOnClickListener(v -> {
@@ -223,7 +220,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // --- App Subscriptions Menu Item Wiring ---
         View menuAppSubs = findViewById(R.id.btnMenuAppSubs);
         if (menuAppSubs != null) {
             menuAppSubs.setOnClickListener(v -> {
@@ -232,7 +228,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Remaining coming soon items
         int[] comingSoonIds = {
                 R.id.btnMenuRefer,
                 R.id.btnMenuShop,
@@ -331,9 +326,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    // ---------------------------------------------------------
-    // Method that opens the Edit Profile bottom sheet
-    // ---------------------------------------------------------
     private void showEditProfileBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_edit_profile, null);
@@ -364,7 +356,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Save button action
         btnSave.setOnClickListener(v -> {
             if (currentCustomer == null || currentCustomerId == null) {
                 Toast.makeText(this, "Profile not loaded yet, try again in a moment", Toast.LENGTH_SHORT).show();
@@ -412,33 +403,24 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         });
 
-        // Make the bottom sheet appear full-screen
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
 
-    // ---------------------------------------------------------
-    // Method that opens the Places Bottom Sheet
-    // ---------------------------------------------------------
     private void showPlacesBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_places, null);
         dialog.setContentView(view);
 
-        // Setup the close button
         ImageView btnClose = view.findViewById(R.id.btnClosePlaces);
         if (btnClose != null) {
             btnClose.setOnClickListener(v -> dialog.dismiss());
         }
 
-        // Expand the bottom sheet fully because the list is long
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
 
-    // ---------------------------------------------------------
-    // Method that opens the Devices to Renew Bottom Sheet
-    // ---------------------------------------------------------
     private void showDevicesToRenewBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_devices_to_renew, null);
@@ -461,138 +443,229 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     // ---------------------------------------------------------
-    // Method to display the App Subscription Bottom Sheet with Interactive Feature Switching
+    // App Subscription Bottom Sheet with Animation & Dynamic Table
     // ---------------------------------------------------------
     private void showAppSubscriptionBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_app_subscription, null);
         dialog.setContentView(view);
 
-        // Close button logic
         ImageView btnClose = view.findViewById(R.id.btnCloseAppSubs);
-        if (btnClose != null) {
-            btnClose.setOnClickListener(v -> dialog.dismiss());
-        }
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // Toggle Buttons
+        MaterialCardView cardTabAnnually = view.findViewById(R.id.cardTabAnnually);
+        TextView tvTabAnnually = view.findViewById(R.id.tvTabAnnually);
+        MaterialCardView cardTabMonthly = view.findViewById(R.id.cardTabMonthly);
+        TextView tvTabMonthly = view.findViewById(R.id.tvTabMonthly);
 
         // Plan Cards
         MaterialCardView cardFree = view.findViewById(R.id.cardFree);
-        MaterialCardView card1Year = view.findViewById(R.id.card1Year);
-        MaterialCardView card3Year = view.findViewById(R.id.card3Year);
-        MaterialCardView card4Year = view.findViewById(R.id.card4Year);
+        MaterialCardView cardSilver = view.findViewById(R.id.cardSilver);
+        MaterialCardView cardGold = view.findViewById(R.id.cardGold);
+        MaterialCardView cardPlatinum = view.findViewById(R.id.cardPlatinum);
 
-        // Table Header Texts
-        TextView tvColFree = view.findViewById(R.id.tvColFree);
+        // Card Prices
+        TextView tvPriceFree = view.findViewById(R.id.tvPriceFree);
+        TextView tvPriceSilver = view.findViewById(R.id.tvPriceSilver);
+        TextView tvPriceGold = view.findViewById(R.id.tvPriceGold);
+        TextView tvPricePlatinum = view.findViewById(R.id.tvPricePlatinum);
+
+        // Badges
+        View badgeFree = view.findViewById(R.id.badgeFree);
+        View badgeSilver = view.findViewById(R.id.badgeSilver);
+        View badgeGold = view.findViewById(R.id.badgeGold);
+        View badgePlatinum = view.findViewById(R.id.badgePlatinum);
+
+        // Table Elements
         TextView tvColSelected = view.findViewById(R.id.tvColSelected);
+        TextView tvColNext = view.findViewById(R.id.tvColNext);
 
-        // Table Feature Background Columns (For highlighting)
-        LinearLayout bgCol1Row1 = view.findViewById(R.id.bgCol1Row1);
-        LinearLayout bgCol1Row2 = view.findViewById(R.id.bgCol1Row2);
-        LinearLayout bgCol1Row3 = view.findViewById(R.id.bgCol1Row3);
-        LinearLayout bgCol1Row4 = view.findViewById(R.id.bgCol1Row4);
-
-        // Table Feature Values (The text values that will change)
-        TextView tvVal1Row1 = view.findViewById(R.id.tvVal1Row1); // Private Calling
-        TextView tvVal1Row2 = view.findViewById(R.id.tvVal1Row2); // SOS
-        TextView tvVal1Row3 = view.findViewById(R.id.tvVal1Row3); // Emergency Contacts
-        TextView tvVal1Row4 = view.findViewById(R.id.tvVal1Row4); // Medical Profile
+        TextView tvVal1Row1 = view.findViewById(R.id.tvVal1Row1);
+        TextView tvVal2Row1 = view.findViewById(R.id.tvVal2Row1);
+        TextView tvVal1Row2 = view.findViewById(R.id.tvVal1Row2);
+        TextView tvVal2Row2 = view.findViewById(R.id.tvVal2Row2);
+        TextView tvVal1Row3 = view.findViewById(R.id.tvVal1Row3);
+        TextView tvVal2Row3 = view.findViewById(R.id.tvVal2Row3);
+        TextView tvVal1Row4 = view.findViewById(R.id.tvVal1Row4);
+        TextView tvVal2Row4 = view.findViewById(R.id.tvVal2Row4);
 
         View btnContinueView = view.findViewById(R.id.btnContinueAppSubs);
-        MaterialButton btnContinueAppSubs = null;
-        if (btnContinueView instanceof MaterialButton) {
-            btnContinueAppSubs = (MaterialButton) btnContinueView;
-        }
+        MaterialButton btnContinueAppSubs = (btnContinueView instanceof MaterialButton) ? (MaterialButton) btnContinueView : null;
 
-        // Function to reset all cards' stroke borders
-        Runnable resetCardBorders = () -> {
-            if (cardFree != null) { cardFree.setStrokeWidth(0); cardFree.setCardElevation(2f); }
-            if (card1Year != null) { card1Year.setStrokeWidth(0); card1Year.setCardElevation(2f); }
-            if (card3Year != null) { card3Year.setStrokeWidth(0); card3Year.setCardElevation(2f); }
-            if (card4Year != null) { card4Year.setStrokeWidth(0); card4Year.setCardElevation(2f); }
+        // Toggle Price Update Logic
+        Runnable updatePrices = () -> {
+            if (isMonthlyBilling) {
+                if (tvPriceFree != null) tvPriceFree.setText("L0/month\nL0/year");
+                if (tvPriceSilver != null) tvPriceSilver.setText("LKR 1,004.75/month\nor LKR 999.00/year");
+                if (tvPriceGold != null) tvPriceGold.setText("LKR 349.00/month\nor LKR 3,490.00/year");
+                if (tvPricePlatinum != null) tvPricePlatinum.setText("LKR 469.00/month\nor LKR 4,690.00/year");
+            } else {
+                if (tvPriceFree != null) tvPriceFree.setText("L0/year");
+                if (tvPriceSilver != null) tvPriceSilver.setText("LKR 999.00/year");
+                if (tvPriceGold != null) tvPriceGold.setText("LKR 3,490.00/year");
+                if (tvPricePlatinum != null) tvPricePlatinum.setText("LKR 4,690.00/year");
+            }
         };
 
-        // 1. Click Free Plan
+        if (cardTabAnnually != null && cardTabMonthly != null) {
+            cardTabAnnually.setOnClickListener(v -> {
+                if (!isMonthlyBilling) return;
+                isMonthlyBilling = false;
+                cardTabAnnually.setCardBackgroundColor(Color.parseColor("#1877F2"));
+                cardTabAnnually.setCardElevation(2f);
+                if (tvTabAnnually != null) tvTabAnnually.setTextColor(Color.WHITE);
+
+                cardTabMonthly.setCardBackgroundColor(Color.TRANSPARENT);
+                cardTabMonthly.setCardElevation(0f);
+                if (tvTabMonthly != null) tvTabMonthly.setTextColor(Color.parseColor("#9E9E9E"));
+                updatePrices.run();
+            });
+
+            cardTabMonthly.setOnClickListener(v -> {
+                if (isMonthlyBilling) return;
+                isMonthlyBilling = true;
+                cardTabMonthly.setCardBackgroundColor(Color.parseColor("#1877F2"));
+                cardTabMonthly.setCardElevation(2f);
+                if (tvTabMonthly != null) tvTabMonthly.setTextColor(Color.WHITE);
+
+                cardTabAnnually.setCardBackgroundColor(Color.TRANSPARENT);
+                cardTabAnnually.setCardElevation(0f);
+                if (tvTabAnnually != null) tvTabAnnually.setTextColor(Color.parseColor("#9E9E9E"));
+                updatePrices.run();
+            });
+        }
+
+        // Reset Card States
+        Runnable resetCards = () -> {
+            if (cardFree != null) { cardFree.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardFree.setStrokeWidth(0); if(badgeFree != null) badgeFree.setVisibility(View.GONE); }
+            if (cardSilver != null) { cardSilver.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardSilver.setStrokeWidth(0); if(badgeSilver != null) badgeSilver.setVisibility(View.GONE); }
+            if (cardGold != null) { cardGold.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardGold.setStrokeWidth(0); if(badgeGold != null) badgeGold.setVisibility(View.GONE); }
+            if (cardPlatinum != null) { cardPlatinum.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardPlatinum.setStrokeWidth(0); if(badgePlatinum != null) badgePlatinum.setVisibility(View.GONE); }
+        };
+
+        // Click Free Plan
         if (cardFree != null) {
-            MaterialButton finalBtnContinue = btnContinueAppSubs;
             cardFree.setOnClickListener(v -> {
-                resetCardBorders.run();
+                resetCards.run();
+                cardFree.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
                 cardFree.setStrokeWidth(6);
                 cardFree.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-                cardFree.setCardElevation(8f);
+                if (badgeFree != null) badgeFree.setVisibility(View.VISIBLE);
 
-                if (tvColSelected != null) { tvColSelected.setText(""); }
-                if (tvVal1Row1 != null) tvVal1Row1.setText("");
-                if (tvVal1Row2 != null) tvVal1Row2.setText("");
-                if (tvVal1Row3 != null) tvVal1Row3.setText("");
-                if (tvVal1Row4 != null) tvVal1Row4.setText("");
+                if (tvColSelected != null) tvColSelected.setText("Free");
+                if (tvColNext != null) tvColNext.setText("Silver");
 
-                if (finalBtnContinue != null) finalBtnContinue.setText("Active Plan");
+                if (tvVal1Row1 != null) { tvVal1Row1.setText("🔒"); tvVal1Row1.setTextColor(Color.parseColor("#9E9E9E")); }
+                if (tvVal2Row1 != null) { tvVal2Row1.setText("✔️"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
+
+                if (tvVal1Row2 != null) { tvVal1Row2.setText("🔒"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
+                if (tvVal2Row2 != null) { tvVal2Row2.setText("Message with\nlocation"); tvVal2Row2.setTextColor(Color.parseColor("#9E9E9E")); }
+
+                if (tvVal1Row3 != null) { tvVal1Row3.setText("1"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
+                if (tvVal2Row3 != null) { tvVal2Row3.setText("Up to 2"); tvVal2Row3.setTextColor(Color.parseColor("#9E9E9E")); }
+
+                if (tvVal1Row4 != null) { tvVal1Row4.setText("🔒"); tvVal1Row4.setTextColor(Color.parseColor("#9E9E9E")); }
+                if (tvVal2Row4 != null) { tvVal2Row4.setText("✔️"); tvVal2Row4.setTextColor(Color.parseColor("#4CAF50")); }
+
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Active Plan");
             });
         }
 
-        // 2. Click 1 Year Plan (Silver)
-        if (card1Year != null) {
-            MaterialButton finalBtnContinue1 = btnContinueAppSubs;
-            card1Year.setOnClickListener(v -> {
-                resetCardBorders.run();
-                card1Year.setStrokeWidth(6);
-                card1Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-                card1Year.setCardElevation(8f);
+        // Click Silver Plan
+        if (cardSilver != null) {
+            cardSilver.setOnClickListener(v -> {
+                resetCards.run();
+                cardSilver.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
+                cardSilver.setStrokeWidth(6);
+                cardSilver.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                if (badgeSilver != null) badgeSilver.setVisibility(View.VISIBLE);
 
-                if (tvColSelected != null) { tvColSelected.setText("1 Year"); tvColSelected.setTextColor(Color.parseColor("#000000")); tvColSelected.setTypeface(null, android.graphics.Typeface.BOLD); }
-                if (tvVal1Row1 != null) tvVal1Row1.setText("✔️");
-                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row3 != null) tvVal1Row3.setText("Up to 2");
-                if (tvVal1Row4 != null) tvVal1Row4.setText("✔️");
+                if (tvColSelected != null) tvColSelected.setText("Silver");
+                if (tvColNext != null) tvColNext.setText("Gold");
 
-                if (finalBtnContinue1 != null) finalBtnContinue1.setText("Continue");
+                if (tvVal1Row1 != null) { tvVal1Row1.setText("✔️"); tvVal1Row1.setTextColor(Color.parseColor("#4CAF50")); }
+                if (tvVal2Row1 != null) { tvVal2Row1.setText("✔️"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
+
+                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#555555")); }
+                if (tvVal2Row2 != null) { tvVal2Row2.setText("Message with\nlocation"); tvVal2Row2.setTextColor(Color.parseColor("#9E9E9E")); }
+
+                if (tvVal1Row3 != null) { tvVal1Row3.setText("Up to 2"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
+                if (tvVal2Row3 != null) { tvVal2Row3.setText("Up to 3 people"); tvVal2Row3.setTextColor(Color.parseColor("#9E9E9E")); }
+
+                if (tvVal1Row4 != null) { tvVal1Row4.setText("✔️"); tvVal1Row4.setTextColor(Color.parseColor("#4CAF50")); }
+                if (tvVal2Row4 != null) { tvVal2Row4.setText("✔️"); tvVal2Row4.setTextColor(Color.parseColor("#4CAF50")); }
+
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Continue");
             });
         }
 
-        // 3. Click 3 Years Plan (Gold)
-        if (card3Year != null) {
-            MaterialButton finalBtnContinue2 = btnContinueAppSubs;
-            card3Year.setOnClickListener(v -> {
-                resetCardBorders.run();
-                card3Year.setStrokeWidth(6);
-                card3Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-                card3Year.setCardElevation(8f);
+        // Click Gold Plan
+        if (cardGold != null) {
+            cardGold.setOnClickListener(v -> {
+                resetCards.run();
+                cardGold.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
+                cardGold.setStrokeWidth(6);
+                cardGold.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                if (badgeGold != null) badgeGold.setVisibility(View.VISIBLE);
 
-                if (tvColSelected != null) { tvColSelected.setText("3 Years"); tvColSelected.setTextColor(Color.parseColor("#000000")); tvColSelected.setTypeface(null, android.graphics.Typeface.BOLD); }
-                if (tvVal1Row1 != null) tvVal1Row1.setText("✔️");
-                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row3 != null) tvVal1Row3.setText("Up to 3 people");
-                if (tvVal1Row4 != null) tvVal1Row4.setText("✔️");
+                if (tvColSelected != null) tvColSelected.setText("Gold");
+                if (tvColNext != null) tvColNext.setText("Platinum");
 
-                if (finalBtnContinue2 != null) finalBtnContinue2.setText("Continue");
+                if (tvVal1Row1 != null) { tvVal1Row1.setText("✔️"); tvVal1Row1.setTextColor(Color.parseColor("#4CAF50")); }
+                if (tvVal2Row1 != null) { tvVal2Row1.setText("✔️"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
+
+                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#555555")); }
+                if (tvVal2Row2 != null) { tvVal2Row2.setText("Call and\nMessage"); tvVal2Row2.setTextColor(Color.parseColor("#9E9E9E")); }
+
+                if (tvVal1Row3 != null) { tvVal1Row3.setText("Up to 3 people"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
+                if (tvVal2Row3 != null) { tvVal2Row3.setText("Up to 5 people"); tvVal2Row3.setTextColor(Color.parseColor("#9E9E9E")); }
+
+                if (tvVal1Row4 != null) { tvVal1Row4.setText("✔️"); tvVal1Row4.setTextColor(Color.parseColor("#4CAF50")); }
+                if (tvVal2Row4 != null) { tvVal2Row4.setText("✔️"); tvVal2Row4.setTextColor(Color.parseColor("#4CAF50")); }
+
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Continue");
             });
         }
 
-        // 4. Click 4 Years Plan (Platinum)
-        if (card4Year != null) {
-            MaterialButton finalBtnContinue3 = btnContinueAppSubs;
-            card4Year.setOnClickListener(v -> {
-                resetCardBorders.run();
-                card4Year.setStrokeWidth(6);
-                card4Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-                card4Year.setCardElevation(8f);
+        // Click Platinum Plan
+        if (cardPlatinum != null) {
+            cardPlatinum.setOnClickListener(v -> {
+                resetCards.run();
+                cardPlatinum.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
+                cardPlatinum.setStrokeWidth(6);
+                cardPlatinum.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                if (badgePlatinum != null) badgePlatinum.setVisibility(View.VISIBLE);
 
-                if (tvColSelected != null) { tvColSelected.setText("4 Years"); tvColSelected.setTextColor(Color.parseColor("#000000")); tvColSelected.setTypeface(null, android.graphics.Typeface.BOLD); }
-                if (tvVal1Row1 != null) tvVal1Row1.setText("✔️");
-                if (tvVal1Row2 != null) { tvVal1Row2.setText("Call and\nMessage"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row3 != null) tvVal1Row3.setText("Up to 5 people");
-                if (tvVal1Row4 != null) tvVal1Row4.setText("✔️");
+                if (tvColSelected != null) tvColSelected.setText("Platinum");
+                if (tvColNext != null) tvColNext.setText("-");
 
-                if (finalBtnContinue3 != null) finalBtnContinue3.setText("Continue");
+                if (tvVal1Row1 != null) { tvVal1Row1.setText("✔️"); tvVal1Row1.setTextColor(Color.parseColor("#4CAF50")); }
+                if (tvVal2Row1 != null) { tvVal2Row1.setText("-"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
+
+                if (tvVal1Row2 != null) { tvVal1Row2.setText("Call and\nMessage"); tvVal1Row2.setTextColor(Color.parseColor("#555555")); }
+                if (tvVal2Row2 != null) { tvVal2Row2.setText("-"); }
+
+                if (tvVal1Row3 != null) { tvVal1Row3.setText("Up to 5 people"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
+                if (tvVal2Row3 != null) { tvVal2Row3.setText("-"); }
+
+                if (tvVal1Row4 != null) { tvVal1Row4.setText("✔️"); tvVal1Row4.setTextColor(Color.parseColor("#4CAF50")); }
+                if (tvVal2Row4 != null) { tvVal2Row4.setText("-"); }
+
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Continue");
             });
         }
 
-        // Bottom Continue Button Click
         if (btnContinueAppSubs != null) {
             btnContinueAppSubs.setOnClickListener(v -> {
-                Toast.makeText(this, "Proceeding to checkout...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Proceeding...", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
         }
+
+        // Initialize default view
+        if (cardFree != null) cardFree.performClick();
+        updatePrices.run();
 
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
