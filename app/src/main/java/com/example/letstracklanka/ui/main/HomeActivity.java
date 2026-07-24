@@ -206,8 +206,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         // --- Places Menu Item Wiring ---
-        View menuPlaces = findViewById(R.id.tvMenuPlaces);
-        if (menuPlaces == null) menuPlaces = findViewById(R.id.btnMenuPlaces); // Fallback if ID is different
+        View menuPlaces = findViewById(R.id.btnMenuPlaces);
         if (menuPlaces != null) {
             menuPlaces.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
