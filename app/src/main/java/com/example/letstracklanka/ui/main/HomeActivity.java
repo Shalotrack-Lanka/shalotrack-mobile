@@ -377,7 +377,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             String phone = etPhone.getText().toString().trim();
 
             if (fullName.isEmpty()) {
-                Toast.makeText(this, "Name can't be empty", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Name can be empty", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -386,8 +386,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             UpdateCustomerRequest request = new UpdateCustomerRequest(
                     fullName,
                     phone,
-                    currentCustomer.getAddress(),         // preserved, not edited here
-                    currentCustomer.getProfileImage()      // preserved, not edited here
+                    currentCustomer.getAddress(),
+                    currentCustomer.getProfileImage()
             );
 
             mainApiService.updateCustomer(currentCustomerId, request).enqueue(new Callback<ResponseBody>() {
@@ -480,104 +480,115 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         MaterialCardView card3Year = view.findViewById(R.id.card3Year);
         MaterialCardView card4Year = view.findViewById(R.id.card4Year);
 
-        // Feature Text Views
-        TextView tvTitle = view.findViewById(R.id.tvSelectedPlanTitle);
-        TextView tvLiveTracking = view.findViewById(R.id.tvFeatureLiveTracking);
-        TextView tvHistory = view.findViewById(R.id.tvFeatureHistory);
-        TextView tvGeofence = view.findViewById(R.id.tvFeatureGeofence);
-        TextView tvSos = view.findViewById(R.id.tvFeatureSos);
-        TextView tvSupport = view.findViewById(R.id.tvFeatureSupport);
+        // Table Header Texts
+        TextView tvColFree = view.findViewById(R.id.tvColFree);
+        TextView tvColSelected = view.findViewById(R.id.tvColSelected);
 
-        // Select Plan Button
-        View btnSelectView = view.findViewById(R.id.btnSelectPlan);
-        MaterialButton btnSelect = null;
-        if (btnSelectView instanceof MaterialButton) {
-            btnSelect = (MaterialButton) btnSelectView;
+        // Table Feature Background Columns (For highlighting)
+        LinearLayout bgCol1Row1 = view.findViewById(R.id.bgCol1Row1);
+        LinearLayout bgCol1Row2 = view.findViewById(R.id.bgCol1Row2);
+        LinearLayout bgCol1Row3 = view.findViewById(R.id.bgCol1Row3);
+        LinearLayout bgCol1Row4 = view.findViewById(R.id.bgCol1Row4);
+
+        // Table Feature Values (The text values that will change)
+        TextView tvVal1Row1 = view.findViewById(R.id.tvVal1Row1); // Private Calling
+        TextView tvVal1Row2 = view.findViewById(R.id.tvVal1Row2); // SOS
+        TextView tvVal1Row3 = view.findViewById(R.id.tvVal1Row3); // Emergency Contacts
+        TextView tvVal1Row4 = view.findViewById(R.id.tvVal1Row4); // Medical Profile
+
+        View btnContinueView = view.findViewById(R.id.btnContinueAppSubs);
+        MaterialButton btnContinueAppSubs = null;
+        if (btnContinueView instanceof MaterialButton) {
+            btnContinueAppSubs = (MaterialButton) btnContinueView;
         }
 
-        // Function to reset all cards stroke border
+        // Function to reset all cards' stroke borders
         Runnable resetCardBorders = () -> {
-            if (cardFree != null) cardFree.setStrokeWidth(0);
-            if (card1Year != null) card1Year.setStrokeWidth(0);
-            if (card3Year != null) card3Year.setStrokeWidth(0);
-            if (card4Year != null) card4Year.setStrokeWidth(0);
+            if (cardFree != null) { cardFree.setStrokeWidth(0); cardFree.setCardElevation(2f); }
+            if (card1Year != null) { card1Year.setStrokeWidth(0); card1Year.setCardElevation(2f); }
+            if (card3Year != null) { card3Year.setStrokeWidth(0); card3Year.setCardElevation(2f); }
+            if (card4Year != null) { card4Year.setStrokeWidth(0); card4Year.setCardElevation(2f); }
         };
 
         // 1. Click Free Plan
         if (cardFree != null) {
-            MaterialButton finalBtnSelect = btnSelect;
+            MaterialButton finalBtnContinue = btnContinueAppSubs;
             cardFree.setOnClickListener(v -> {
                 resetCardBorders.run();
                 cardFree.setStrokeWidth(6);
                 cardFree.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                cardFree.setCardElevation(8f);
 
-                if (tvTitle != null) tvTitle.setText("Free Plan Features");
-                if (tvLiveTracking != null) tvLiveTracking.setText("Basic (60s)");
-                if (tvHistory != null) tvHistory.setText("24 Hours");
-                if (tvGeofence != null) tvGeofence.setText("1 Zone");
-                if (tvSos != null) tvSos.setText("1 Contact");
-                if (tvSupport != null) tvSupport.setText("Standard");
-                if (finalBtnSelect != null) finalBtnSelect.setText("Continue with Free Plan");
+                if (tvColSelected != null) { tvColSelected.setText(""); }
+                if (tvVal1Row1 != null) tvVal1Row1.setText("");
+                if (tvVal1Row2 != null) tvVal1Row2.setText("");
+                if (tvVal1Row3 != null) tvVal1Row3.setText("");
+                if (tvVal1Row4 != null) tvVal1Row4.setText("");
+
+                if (finalBtnContinue != null) finalBtnContinue.setText("Active Plan");
             });
         }
 
-        // 2. Click 1 Year Plan
+        // 2. Click 1 Year Plan (Silver)
         if (card1Year != null) {
-            MaterialButton finalBtnSelect1 = btnSelect;
+            MaterialButton finalBtnContinue1 = btnContinueAppSubs;
             card1Year.setOnClickListener(v -> {
                 resetCardBorders.run();
                 card1Year.setStrokeWidth(6);
                 card1Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                card1Year.setCardElevation(8f);
 
-                if (tvTitle != null) tvTitle.setText("1 Year Plan Features");
-                if (tvLiveTracking != null) tvLiveTracking.setText("Fast (10s)");
-                if (tvHistory != null) tvHistory.setText("30 Days");
-                if (tvGeofence != null) tvGeofence.setText("5 Zones");
-                if (tvSos != null) tvSos.setText("Up to 3 Contacts");
-                if (tvSupport != null) tvSupport.setText("Priority");
-                if (finalBtnSelect1 != null) finalBtnSelect1.setText("Buy 1 Year Plan - LKR 1,490");
+                if (tvColSelected != null) { tvColSelected.setText("1 Year"); tvColSelected.setTextColor(Color.parseColor("#000000")); tvColSelected.setTypeface(null, android.graphics.Typeface.BOLD); }
+                if (tvVal1Row1 != null) tvVal1Row1.setText("✔️");
+                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
+                if (tvVal1Row3 != null) tvVal1Row3.setText("Up to 2");
+                if (tvVal1Row4 != null) tvVal1Row4.setText("✔️");
+
+                if (finalBtnContinue1 != null) finalBtnContinue1.setText("Continue");
             });
         }
 
-        // 3. Click 3 Years Plan
+        // 3. Click 3 Years Plan (Gold)
         if (card3Year != null) {
-            MaterialButton finalBtnSelect2 = btnSelect;
+            MaterialButton finalBtnContinue2 = btnContinueAppSubs;
             card3Year.setOnClickListener(v -> {
                 resetCardBorders.run();
                 card3Year.setStrokeWidth(6);
                 card3Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                card3Year.setCardElevation(8f);
 
-                if (tvTitle != null) tvTitle.setText("3 Years Pro Plan Features");
-                if (tvLiveTracking != null) tvLiveTracking.setText("Real-time (5s)");
-                if (tvHistory != null) tvHistory.setText("90 Days");
-                if (tvGeofence != null) tvGeofence.setText("15 Zones");
-                if (tvSos != null) tvSos.setText("Up to 5 Contacts");
-                if (tvSupport != null) tvSupport.setText("24/7 VIP Support");
-                if (finalBtnSelect2 != null) finalBtnSelect2.setText("Buy 3 Years Plan - LKR 3,990");
+                if (tvColSelected != null) { tvColSelected.setText("3 Years"); tvColSelected.setTextColor(Color.parseColor("#000000")); tvColSelected.setTypeface(null, android.graphics.Typeface.BOLD); }
+                if (tvVal1Row1 != null) tvVal1Row1.setText("✔️");
+                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
+                if (tvVal1Row3 != null) tvVal1Row3.setText("Up to 3 people");
+                if (tvVal1Row4 != null) tvVal1Row4.setText("✔️");
+
+                if (finalBtnContinue2 != null) finalBtnContinue2.setText("Continue");
             });
         }
 
-        // 4. Click 4 Years Plan
+        // 4. Click 4 Years Plan (Platinum)
         if (card4Year != null) {
-            MaterialButton finalBtnSelect3 = btnSelect;
+            MaterialButton finalBtnContinue3 = btnContinueAppSubs;
             card4Year.setOnClickListener(v -> {
                 resetCardBorders.run();
                 card4Year.setStrokeWidth(6);
                 card4Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                card4Year.setCardElevation(8f);
 
-                if (tvTitle != null) tvTitle.setText("4 Years Ultimate Plan Features");
-                if (tvLiveTracking != null) tvLiveTracking.setText("Instant Push (1s)");
-                if (tvHistory != null) tvHistory.setText("Unlimited History");
-                if (tvGeofence != null) tvGeofence.setText("Unlimited Zones");
-                if (tvSos != null) tvSos.setText("Unlimited Contacts");
-                if (tvSupport != null) tvSupport.setText("Dedicated Manager");
-                if (finalBtnSelect3 != null) finalBtnSelect3.setText("Buy 4 Years Plan - LKR 4,990");
+                if (tvColSelected != null) { tvColSelected.setText("4 Years"); tvColSelected.setTextColor(Color.parseColor("#000000")); tvColSelected.setTypeface(null, android.graphics.Typeface.BOLD); }
+                if (tvVal1Row1 != null) tvVal1Row1.setText("✔️");
+                if (tvVal1Row2 != null) { tvVal1Row2.setText("Call and\nMessage"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
+                if (tvVal1Row3 != null) tvVal1Row3.setText("Up to 5 people");
+                if (tvVal1Row4 != null) tvVal1Row4.setText("✔️");
+
+                if (finalBtnContinue3 != null) finalBtnContinue3.setText("Continue");
             });
         }
 
-        // Select Plan Button Click
-        if (btnSelect != null) {
-            btnSelect.setOnClickListener(v -> {
+        // Bottom Continue Button Click
+        if (btnContinueAppSubs != null) {
+            btnContinueAppSubs.setOnClickListener(v -> {
                 Toast.makeText(this, "Proceeding to checkout...", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
