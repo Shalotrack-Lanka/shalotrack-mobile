@@ -386,8 +386,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             UpdateCustomerRequest request = new UpdateCustomerRequest(
                     fullName,
                     phone,
-                    currentCustomer.getAddress(),
-                    currentCustomer.getProfileImage()
+                    currentCustomer.getAddress(),         // preserved, not edited here
+                    currentCustomer.getProfileImage()      // preserved, not edited here
             );
 
             mainApiService.updateCustomer(currentCustomerId, request).enqueue(new Callback<ResponseBody>() {
@@ -461,29 +461,128 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     // ---------------------------------------------------------
-    // Method that opens the App Subscription Bottom Sheet
+    // Method to display the App Subscription Bottom Sheet with Interactive Feature Switching
     // ---------------------------------------------------------
     private void showAppSubscriptionBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_app_subscription, null);
         dialog.setContentView(view);
 
-        // Setup the close button
+        // Close button logic
         ImageView btnClose = view.findViewById(R.id.btnCloseAppSubs);
         if (btnClose != null) {
             btnClose.setOnClickListener(v -> dialog.dismiss());
         }
 
-        // XML එකේ තියෙන බටන් එකේ ID එක මොකක් වුණත් වැඩ කරන්න අපි මේ විදිහට කේතය ලියනවා
-        MaterialButton btnActivePlan = view.findViewById(R.id.btnActivePlan);
-        if (btnActivePlan != null) {
-            btnActivePlan.setOnClickListener(v -> {
-                Toast.makeText(this, "Continuing...", Toast.LENGTH_SHORT).show();
+        // Plan Cards
+        MaterialCardView cardFree = view.findViewById(R.id.cardFree);
+        MaterialCardView card1Year = view.findViewById(R.id.card1Year);
+        MaterialCardView card3Year = view.findViewById(R.id.card3Year);
+        MaterialCardView card4Year = view.findViewById(R.id.card4Year);
+
+        // Feature Text Views
+        TextView tvTitle = view.findViewById(R.id.tvSelectedPlanTitle);
+        TextView tvLiveTracking = view.findViewById(R.id.tvFeatureLiveTracking);
+        TextView tvHistory = view.findViewById(R.id.tvFeatureHistory);
+        TextView tvGeofence = view.findViewById(R.id.tvFeatureGeofence);
+        TextView tvSos = view.findViewById(R.id.tvFeatureSos);
+        TextView tvSupport = view.findViewById(R.id.tvFeatureSupport);
+
+        // Select Plan Button
+        View btnSelectView = view.findViewById(R.id.btnSelectPlan);
+        MaterialButton btnSelect = null;
+        if (btnSelectView instanceof MaterialButton) {
+            btnSelect = (MaterialButton) btnSelectView;
+        }
+
+        // Function to reset all cards stroke border
+        Runnable resetCardBorders = () -> {
+            if (cardFree != null) cardFree.setStrokeWidth(0);
+            if (card1Year != null) card1Year.setStrokeWidth(0);
+            if (card3Year != null) card3Year.setStrokeWidth(0);
+            if (card4Year != null) card4Year.setStrokeWidth(0);
+        };
+
+        // 1. Click Free Plan
+        if (cardFree != null) {
+            MaterialButton finalBtnSelect = btnSelect;
+            cardFree.setOnClickListener(v -> {
+                resetCardBorders.run();
+                cardFree.setStrokeWidth(6);
+                cardFree.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+
+                if (tvTitle != null) tvTitle.setText("Free Plan Features");
+                if (tvLiveTracking != null) tvLiveTracking.setText("Basic (60s)");
+                if (tvHistory != null) tvHistory.setText("24 Hours");
+                if (tvGeofence != null) tvGeofence.setText("1 Zone");
+                if (tvSos != null) tvSos.setText("1 Contact");
+                if (tvSupport != null) tvSupport.setText("Standard");
+                if (finalBtnSelect != null) finalBtnSelect.setText("Continue with Free Plan");
+            });
+        }
+
+        // 2. Click 1 Year Plan
+        if (card1Year != null) {
+            MaterialButton finalBtnSelect1 = btnSelect;
+            card1Year.setOnClickListener(v -> {
+                resetCardBorders.run();
+                card1Year.setStrokeWidth(6);
+                card1Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+
+                if (tvTitle != null) tvTitle.setText("1 Year Plan Features");
+                if (tvLiveTracking != null) tvLiveTracking.setText("Fast (10s)");
+                if (tvHistory != null) tvHistory.setText("30 Days");
+                if (tvGeofence != null) tvGeofence.setText("5 Zones");
+                if (tvSos != null) tvSos.setText("Up to 3 Contacts");
+                if (tvSupport != null) tvSupport.setText("Priority");
+                if (finalBtnSelect1 != null) finalBtnSelect1.setText("Buy 1 Year Plan - LKR 1,490");
+            });
+        }
+
+        // 3. Click 3 Years Plan
+        if (card3Year != null) {
+            MaterialButton finalBtnSelect2 = btnSelect;
+            card3Year.setOnClickListener(v -> {
+                resetCardBorders.run();
+                card3Year.setStrokeWidth(6);
+                card3Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+
+                if (tvTitle != null) tvTitle.setText("3 Years Pro Plan Features");
+                if (tvLiveTracking != null) tvLiveTracking.setText("Real-time (5s)");
+                if (tvHistory != null) tvHistory.setText("90 Days");
+                if (tvGeofence != null) tvGeofence.setText("15 Zones");
+                if (tvSos != null) tvSos.setText("Up to 5 Contacts");
+                if (tvSupport != null) tvSupport.setText("24/7 VIP Support");
+                if (finalBtnSelect2 != null) finalBtnSelect2.setText("Buy 3 Years Plan - LKR 3,990");
+            });
+        }
+
+        // 4. Click 4 Years Plan
+        if (card4Year != null) {
+            MaterialButton finalBtnSelect3 = btnSelect;
+            card4Year.setOnClickListener(v -> {
+                resetCardBorders.run();
+                card4Year.setStrokeWidth(6);
+                card4Year.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+
+                if (tvTitle != null) tvTitle.setText("4 Years Ultimate Plan Features");
+                if (tvLiveTracking != null) tvLiveTracking.setText("Instant Push (1s)");
+                if (tvHistory != null) tvHistory.setText("Unlimited History");
+                if (tvGeofence != null) tvGeofence.setText("Unlimited Zones");
+                if (tvSos != null) tvSos.setText("Unlimited Contacts");
+                if (tvSupport != null) tvSupport.setText("Dedicated Manager");
+                if (finalBtnSelect3 != null) finalBtnSelect3.setText("Buy 4 Years Plan - LKR 4,990");
+            });
+        }
+
+        // Select Plan Button Click
+        if (btnSelect != null) {
+            btnSelect.setOnClickListener(v -> {
+                Toast.makeText(this, "Proceeding to checkout...", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
         }
 
-        // Expand fully to show the table properly
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
