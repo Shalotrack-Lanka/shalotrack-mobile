@@ -172,7 +172,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
-     * Wires the full drawer menu including the newly added Places menu.
+     * Wires the full drawer menu including the newly added Places and Vehicle Subs menu.
      */
     private void setupDrawerMenuItems() {
         View btnMenuAddNew = findViewById(R.id.btnMenuAddNew);
@@ -214,9 +214,17 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
+        // --- Vehicle Subscriptions Menu Item Wiring ---
+        View menuVehicleSubs = findViewById(R.id.btnMenuVehicleSubs);
+        if (menuVehicleSubs != null) {
+            menuVehicleSubs.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showDevicesToRenewBottomSheet();
+            });
+        }
+
         // Remaining coming soon items
         int[] comingSoonIds = {
-                R.id.btnMenuVehicleSubs,
                 R.id.btnMenuAppSubs,
                 R.id.btnMenuRefer,
                 R.id.btnMenuShop,
@@ -348,7 +356,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Save button action -- now actually calls PUT /api/Customers/{customerId}.
+        // Save button action
         btnSave.setOnClickListener(v -> {
             if (currentCustomer == null || currentCustomerId == null) {
                 Toast.makeText(this, "Profile not loaded yet, try again in a moment", Toast.LENGTH_SHORT).show();
@@ -417,6 +425,30 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Expand the bottom sheet fully because the list is long
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        dialog.show();
+    }
+
+    // ---------------------------------------------------------
+    // Method that opens the Devices to Renew Bottom Sheet
+    // ---------------------------------------------------------
+    private void showDevicesToRenewBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_devices_to_renew, null);
+        dialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseRenew);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        MaterialButton btnShopNow = view.findViewById(R.id.btnShopNow);
+        if (btnShopNow != null) {
+            btnShopNow.setOnClickListener(v -> {
+                Toast.makeText(this, "Opening Shop...", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            });
+        }
+
         dialog.show();
     }
 
