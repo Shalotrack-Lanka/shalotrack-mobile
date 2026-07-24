@@ -5,7 +5,8 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bottom_sheet_bg"
     android:orientation="vertical"
-    android:paddingBottom="20dp">
+    android:paddingBottom="20dp"
+    android:animateLayoutChanges="true">
 
     <!-- Top Drag Handle -->
     <View
@@ -67,7 +68,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Billed Annually / Monthly Toggle -->
+            <!-- Billed Annually / Monthly Toggle with Animation -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
@@ -85,6 +86,7 @@
                     android:padding="4dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardTabAnnually"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -92,6 +94,7 @@
                         app:cardCornerRadius="8dp"
                         app:cardElevation="2dp">
                         <TextView
+                            android:id="@+id/tvTabAnnually"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
@@ -100,14 +103,23 @@
                             android:textStyle="bold" />
                     </com.google.android.material.card.MaterialCardView>
 
-                    <TextView
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardTabMonthly"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="Billed Monthly"
-                        android:textColor="#9E9E9E"
-                        android:textStyle="bold" />
+                        app:cardBackgroundColor="@android:color/transparent"
+                        app:cardCornerRadius="8dp"
+                        app:cardElevation="0dp">
+                        <TextView
+                            android:id="@+id/tvTabMonthly"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="Billed Monthly"
+                            android:textColor="#9E9E9E"
+                            android:textStyle="bold" />
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -117,73 +129,115 @@
                 android:layout_height="wrap_content"
                 android:clipToPadding="false"
                 android:paddingHorizontal="12dp"
-                android:paddingBottom="16dp"
+                android:paddingBottom="20dp"
                 android:scrollbars="none">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:clipChildren="false"
                     android:orientation="horizontal">
 
-                    <!-- Free Plan Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardFree"
-                        android:layout_width="140dp"
-                        android:layout_height="100dp"
-                        android:layout_margin="8dp"
-                        app:cardBackgroundColor="#CCFF90"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp">
-                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="L0/month" android:textColor="#000000" android:textSize="14sp" android:textStyle="bold" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                    <!-- Free Plan Card with Badge -->
+                    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:clipChildren="false">
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardFree"
+                            android:layout_width="140dp"
+                            android:layout_height="100dp"
+                            android:layout_margin="10dp"
+                            app:cardBackgroundColor="#CCFF90"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical" android:padding="8dp">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
+                                <TextView android:id="@+id/tvPriceFree" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="L0/year" android:gravity="center" android:textColor="#000000" android:textSize="13sp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                        <!-- Green Check Badge -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/badgeFree"
+                            android:layout_width="24dp" android:layout_height="24dp"
+                            android:layout_gravity="top|end"
+                            android:layout_marginTop="2dp" android:layout_marginEnd="2dp"
+                            app:cardBackgroundColor="#4CAF50" app:cardCornerRadius="12dp" android:visibility="gone">
+                            <TextView android:layout_width="match_parent" android:layout_height="match_parent" android:text="✓" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:textSize="14sp"/>
+                        </com.google.android.material.card.MaterialCardView>
+                    </FrameLayout>
 
-                    <!-- 1 Year Plan Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card1Year"
-                        android:layout_width="140dp"
-                        android:layout_height="100dp"
-                        android:layout_margin="8dp"
-                        app:cardBackgroundColor="#F5F5F5"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp">
-                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1 Year" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 1,490/year" android:textColor="#000000" android:textSize="14sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                    <!-- Silver Plan Card -->
+                    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:clipChildren="false">
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardSilver"
+                            android:layout_width="140dp"
+                            android:layout_height="100dp"
+                            android:layout_margin="10dp"
+                            app:cardBackgroundColor="#F5F5F5"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical" android:padding="8dp">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Silver" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
+                                <TextView android:id="@+id/tvPriceSilver" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 999.00/year" android:gravity="center" android:textColor="#000000" android:textSize="13sp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/badgeSilver"
+                            android:layout_width="24dp" android:layout_height="24dp"
+                            android:layout_gravity="top|end"
+                            android:layout_marginTop="2dp" android:layout_marginEnd="2dp"
+                            app:cardBackgroundColor="#4CAF50" app:cardCornerRadius="12dp" android:visibility="gone">
+                            <TextView android:layout_width="match_parent" android:layout_height="match_parent" android:text="✓" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:textSize="14sp"/>
+                        </com.google.android.material.card.MaterialCardView>
+                    </FrameLayout>
 
-                    <!-- 3 Year Plan Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card3Year"
-                        android:layout_width="140dp"
-                        android:layout_height="100dp"
-                        android:layout_margin="8dp"
-                        app:cardBackgroundColor="#FFD54F"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp">
-                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3 Years" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 3,990/3yr" android:textColor="#000000" android:textSize="14sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                    <!-- Gold Plan Card -->
+                    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:clipChildren="false">
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardGold"
+                            android:layout_width="140dp"
+                            android:layout_height="100dp"
+                            android:layout_margin="10dp"
+                            app:cardBackgroundColor="#FFD54F"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical" android:padding="8dp">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Gold" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" />
+                                <TextView android:id="@+id/tvPriceGold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 3,490.00/year" android:gravity="center" android:textColor="#000000" android:textSize="13sp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/badgeGold"
+                            android:layout_width="24dp" android:layout_height="24dp"
+                            android:layout_gravity="top|end"
+                            android:layout_marginTop="2dp" android:layout_marginEnd="2dp"
+                            app:cardBackgroundColor="#4CAF50" app:cardCornerRadius="12dp" android:visibility="gone">
+                            <TextView android:layout_width="match_parent" android:layout_height="match_parent" android:text="✓" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:textSize="14sp"/>
+                        </com.google.android.material.card.MaterialCardView>
+                    </FrameLayout>
 
-                    <!-- 4 Year Plan Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card4Year"
-                        android:layout_width="140dp"
-                        android:layout_height="100dp"
-                        android:layout_margin="8dp"
-                        app:cardBackgroundColor="#424242"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp">
-                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4 Years" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 4,990/4yr" android:textColor="#FFFFFF" android:textSize="14sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                    <!-- Platinum Plan Card -->
+                    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:clipChildren="false">
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardPlatinum"
+                            android:layout_width="140dp"
+                            android:layout_height="100dp"
+                            android:layout_margin="10dp"
+                            app:cardBackgroundColor="#424242"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical" android:padding="8dp">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Platinum" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold" />
+                                <TextView android:id="@+id/tvPricePlatinum" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LKR 4,690.00/year" android:gravity="center" android:textColor="#FFFFFF" android:textSize="13sp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/badgePlatinum"
+                            android:layout_width="24dp" android:layout_height="24dp"
+                            android:layout_gravity="top|end"
+                            android:layout_marginTop="2dp" android:layout_marginEnd="2dp"
+                            app:cardBackgroundColor="#4CAF50" app:cardCornerRadius="12dp" android:visibility="gone">
+                            <TextView android:layout_width="match_parent" android:layout_height="match_parent" android:text="✓" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:textSize="14sp"/>
+                        </com.google.android.material.card.MaterialCardView>
+                    </FrameLayout>
 
                 </LinearLayout>
             </HorizontalScrollView>
@@ -205,10 +259,10 @@
                     android:layout_weight="1"
                     android:background="#E3F2FD"
                     android:gravity="center">
-                    <TextView android:id="@+id/tvColFree" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#000" android:textSize="16sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvColSelected" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Free" android:textColor="#000" android:textSize="16sp" android:textStyle="bold" />
                 </LinearLayout>
 
-                <TextView android:id="@+id/tvColSelected" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="1 Year" android:textColor="#555" android:textSize="16sp" />
+                <TextView android:id="@+id/tvColNext" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Silver" android:textColor="#555" android:textSize="16sp" />
             </LinearLayout>
 
             <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#E0E0E0" />
@@ -218,32 +272,32 @@
             <!-- Row 1: Private Calling -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="Private calling" android:textColor="#000" android:textStyle="bold" />
-                <LinearLayout android:id="@+id/bgCol1Row1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp"/></LinearLayout>
-                <TextView android:id="@+id/tvVal1Row1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="✔️" android:textColor="#4CAF50" android:textSize="16sp"/>
+                <LinearLayout android:id="@+id/bgCol1Row1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:id="@+id/tvVal1Row1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp"/></LinearLayout>
+                <TextView android:id="@+id/tvVal2Row1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="✔️" android:textColor="#4CAF50" android:textSize="16sp"/>
             </LinearLayout>
             <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#F5F5F5" />
 
             <!-- Row 2: SOS / emergency -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="SOS / emergency\ncall button" android:textColor="#000" android:textStyle="bold" />
-                <LinearLayout android:id="@+id/bgCol1Row2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp" /></LinearLayout>
-                <TextView android:id="@+id/tvVal1Row2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Message with\nlocation" android:textColor="#9E9E9E" android:textSize="12sp" />
+                <LinearLayout android:id="@+id/bgCol1Row2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:id="@+id/tvVal1Row2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp" /></LinearLayout>
+                <TextView android:id="@+id/tvVal2Row2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Message with\nlocation" android:textColor="#9E9E9E" android:textSize="12sp" />
             </LinearLayout>
             <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#F5F5F5" />
 
             <!-- Row 3: Emergency Contacts -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="Emergency contacts" android:textColor="#000" android:textStyle="bold" />
-                <LinearLayout android:id="@+id/bgCol1Row3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1" android:textColor="#555" android:textSize="13sp" /></LinearLayout>
-                <TextView android:id="@+id/tvVal1Row3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Up to 2" android:textColor="#9E9E9E" android:textSize="13sp" />
+                <LinearLayout android:id="@+id/bgCol1Row3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:id="@+id/tvVal1Row3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1" android:textColor="#555" android:textSize="13sp" /></LinearLayout>
+                <TextView android:id="@+id/tvVal2Row3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Up to 2" android:textColor="#9E9E9E" android:textSize="13sp" />
             </LinearLayout>
             <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginHorizontal="20dp" android:background="#F5F5F5" />
 
             <!-- Row 4: Medical Profile -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="20dp" android:paddingVertical="16dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.3" android:text="Medical profile" android:textColor="#000" android:textStyle="bold" />
-                <LinearLayout android:id="@+id/bgCol1Row4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp"/></LinearLayout>
-                <TextView android:id="@+id/tvVal1Row4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="✔️" android:textColor="#4CAF50" android:textSize="16sp"/>
+                <LinearLayout android:id="@+id/bgCol1Row4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#E3F2FD" android:gravity="center"><TextView android:id="@+id/tvVal1Row4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔒" android:textSize="16sp"/></LinearLayout>
+                <TextView android:id="@+id/tvVal2Row4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="✔️" android:textColor="#4CAF50" android:textSize="16sp"/>
             </LinearLayout>
 
             <!-- Bottom Button -->
