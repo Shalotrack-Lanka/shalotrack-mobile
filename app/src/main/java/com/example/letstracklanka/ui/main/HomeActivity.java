@@ -2,6 +2,9 @@ package com.example.letstracklanka.ui.main;
 
 import android.Manifest;
 import android.content.Intent;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -31,6 +34,10 @@ import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
+import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.example.letstracklanka.data.model.DashboardResponse;
 import com.example.letstracklanka.data.model.GpsDeviceResponse;
 import com.example.letstracklanka.data.model.LocationResponse;
@@ -107,6 +114,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestNotificationPermissionIfNeeded();
         setContentView(R.layout.activity_home);
 
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
@@ -1008,6 +1016,51 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Android 13+ requires runtime permission to show any notification at all.
+     * Harmless no-op on older versions -- the check itself prevents the request
+     * from firing where it isn't needed or supported.
+     */
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
+    }
+
+    /**
+     * Explicitly fetches and registers the current FCM token on every successful
+     * login -- not relying solely on FirebaseMessagingService.onNewToken(), which
+     * only fires when Firebase generates or rotates a token, not on every app
+     * open. This ensures the backend always has a fresh, correct token for
+     * whichever customer is currently logged in.
+     */
+    private void registerFcmToken() {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.w("HomeActivity", "Fetching FCM token failed", task.getException());
+                return;
+            }
+            String token = task.getResult();
+            mainApiService.registerFcmToken(new RegisterFcmTokenRequest(token, "android"))
+                    .enqueue(new Callback<ResponseBody>() {
+                        @Override
+                        public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                            if (!response.isSuccessful()) {
+                                Log.w("HomeActivity", "FCM token registration failed, code " + response.code());
+                            }
+                        }
+                        @Override
+                        public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                            Log.w("HomeActivity", "FCM token registration network error", t);
+                        }
+                    });
+        });
+    }
+
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -1044,6 +1097,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
                             currentCustomer = customer;
+                            registerFcmToken();   // NEW -- ensure the token is registered every login, not just on first-ever generation
                             fetchMyVehicles();
                             fetchDashboard();
                         }
