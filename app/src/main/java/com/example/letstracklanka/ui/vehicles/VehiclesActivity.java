@@ -107,6 +107,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ConnectivityManager.NetworkCallback networkCallback;
 
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
+    // NEW -- same threshold and reasoning as HomeActivity's fix. GPS drift/
+    // multipath can report small non-zero speeds even when stationary.
+    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 2.0;
     private static final String MAP_TYPE_PREF_KEY = "selected_map_type";
 
     @Override
@@ -578,10 +581,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
         });
 
-        String status = payload.getSpeed() > 0
+        String status = payload.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH
                 ? "Moving (" + (int) payload.getSpeed() + " km/h)"
                 : (payload.isIgnitionOn() ? "Idle" : "Parked");
-        int color = payload.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
+        int color = payload.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 
@@ -636,8 +639,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
         });
 
-        String status = loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
-        int color = loc.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
+        String status = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
+        int color = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 
