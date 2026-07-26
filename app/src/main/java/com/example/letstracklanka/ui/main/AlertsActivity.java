@@ -3,6 +3,7 @@ package com.example.letstracklanka.ui.main;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import androidx.core.content.ContextCompat;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -72,7 +73,7 @@ public class AlertsActivity extends AppCompatActivity {
         btnSearchAlerts.setOnClickListener(v -> Toast.makeText(this, "Search clicked", Toast.LENGTH_SHORT).show());
 
         btnTabAlerts.setOnClickListener(v -> {
-            btnTabAlerts.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+            btnTabAlerts.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary)));
             btnTabAlerts.setTextColor(Color.WHITE);
             btnTabPromotions.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
             btnTabPromotions.setTextColor(Color.BLACK);
@@ -83,7 +84,7 @@ public class AlertsActivity extends AppCompatActivity {
         });
 
         btnTabPromotions.setOnClickListener(v -> {
-            btnTabPromotions.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+            btnTabPromotions.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary)));
             btnTabPromotions.setTextColor(Color.WHITE);
             btnTabAlerts.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
             btnTabAlerts.setTextColor(Color.BLACK);

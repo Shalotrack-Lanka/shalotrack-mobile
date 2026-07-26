@@ -3,6 +3,7 @@ package com.example.letstracklanka.data.remote;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
+import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 
@@ -20,12 +21,9 @@ public interface ApiService {
     @POST("api/Customers")
     Call<ResponseBody> createCustomer(@Body CustomerRequest request);
 
-    // NEW: used by HomeActivity now. Resolves the caller's own profile from their
-    // token -- works for any authenticated customer, not just staff.
     @GET("api/Customers/me")
     Call<ResponseBody> getMyProfile();
 
-    // NEW -- used by the Edit Profile bottom sheet's Save button.
     @PUT("api/Customers/{customerId}")
     Call<ResponseBody> updateCustomer(@Path("customerId") String customerId, @Body UpdateCustomerRequest request);
 
@@ -46,15 +44,17 @@ public interface ApiService {
     @GET("api/Customers/{customerId}/dashboard")
     Call<ResponseBody> getCustomerDashboard(@Path("customerId") String customerId);
 
-    // NEW — customer-safe single-device lookup by IMEI, used for device linking.
-    // Replaces the staff-only getGpsDevices() full-list approach.
     @GET("api/GpsDevices/lookup/{imei}")
     Call<ResponseBody> lookupDeviceByImei(@Path("imei") String imei);
 
-    // NEW — Alerts (Stage 2: real data for AlertsActivity)
     @GET("api/Alerts")
     Call<ResponseBody> getMyAlerts(@Query("page") int page, @Query("pageSize") int pageSize);
 
     @PATCH("api/Alerts/{alertId}/read")
     Call<ResponseBody> markAlertAsRead(@Path("alertId") long alertId);
+
+    // NEW — was built on the API side during Alerts Stage 1 but never actually
+    // wired on the mobile side until now.
+    @POST("api/Alerts/register-token")
+    Call<ResponseBody> registerFcmToken(@Body RegisterFcmTokenRequest request);
 }
