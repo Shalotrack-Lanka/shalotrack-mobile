@@ -1027,10 +1027,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (tvDeviceAddress != null) tvDeviceAddress.setText(address);
         });
 
-        String status = payload.getSpeed() > 0
+        String status = payload.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH
                 ? "Moving (" + (int) payload.getSpeed() + " km/h)"
                 : (payload.isIgnitionOn() ? "Idle" : "Parked");
-        int color = payload.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary);
+        int color = payload.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary);
         if (tvDeviceStatus != null) {
             tvDeviceStatus.setText(status);
             tvDeviceStatus.setTextColor(color);
@@ -1111,8 +1111,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     tvDeviceAddress.setText(address));
         }
         if (tvDeviceStatus != null) {
-            tvDeviceStatus.setText(loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked"));
-            tvDeviceStatus.setTextColor(loc.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary));
+            tvDeviceStatus.setText(loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked"));
+            tvDeviceStatus.setTextColor(loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary));
         }
     }
 
@@ -1352,6 +1352,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
+    // NEW -- GPS receivers commonly report small non-zero speeds (drift,
+    // multipath reflection) even when genuinely stationary. Matches the same
+    // 2 km/h threshold already used in the trip/stop-detection logic, so
+    // "Moving" here means the same thing it means everywhere else in the app.
+    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 2.0;
     private static final String MAP_TYPE_PREF_KEY = "selected_map_type";
 
     private void changeMapType(int mapType, MaterialCardView selectedCard) {
