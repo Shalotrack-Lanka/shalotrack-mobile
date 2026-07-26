@@ -1,7 +1,10 @@
 package com.example.letstracklanka.ui.main;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -118,6 +121,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         errorBanner = findViewById(R.id.errorBanner);
         tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
         tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
+
+        registerNetworkMonitor();
 
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         addressResolver = new AddressResolver(this);
@@ -1165,6 +1170,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
+                        hideErrorBanner();   // NEW -- clear any previous error now that this succeeded
                         String json = body.string();
 
                         // Populate the drawer menu with the profile details
@@ -1199,7 +1205,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     } else if (response.code() == 404) {
                         Log.w("HomeActivity", "No customer profile exists yet for this account.");
                     } else {
+                        // NEW -- this was completely silent before. Since currentCustomerId
+                        // never gets set here on failure, fetchMyVehicles() and
+                        // fetchDashboard() never even run -- this was the actual root
+                        // cause of the app appearing to show nothing on a failed load,
+                        // upstream of everything else fixed tonight.
                         Log.w("HomeActivity", "getMyProfile failed with code " + response.code());
+                        showRetryDialog("Couldn't load your profile", HomeActivity.this::loadUserData);
                     }
                 } catch (Exception e) {
                     Log.e("HomeActivity", "loadUserData parse error", e);
@@ -1209,6 +1221,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("HomeActivity", "loadUserData network error", t);
+                showRetryDialog("Network error — couldn't load your profile", HomeActivity.this::loadUserData);
             }
         });
     }
@@ -1385,10 +1398,50 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         return list;
     }
 
+    private ConnectivityManager.NetworkCallback networkCallback;
+
+    /**
+     * Proactive network monitoring, not just reactive error handling. Uses
+     * ConnectivityManager's real-time callback API (the modern, recommended
+     * approach) rather than waiting for an API call to time out and fail --
+     * the banner now appears the instant connectivity is actually lost,
+     * anywhere in the app, regardless of whether anything happens to be
+     * loading at that moment. Reuses the same banner already built, so the
+     * visual language stays consistent whether the cause is "this specific
+     * request failed" or "the phone has no connection at all."
+     */
+    private void registerNetworkMonitor() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return;
+
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onLost(@NonNull Network network) {
+                runOnUiThread(() -> showRetryDialog("No internet connection", HomeActivity.this::loadUserData));
+            }
+
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                // Connection restored -- recover automatically, no need to
+                // wait for the user to tap Retry themselves.
+                runOnUiThread(() -> {
+                    hideErrorBanner();
+                    loadUserData();
+                });
+            }
+        };
+        cm.registerDefaultNetworkCallback(networkCallback);
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         if (realtimeClient != null) realtimeClient.stop();
+
+        if (networkCallback != null) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
+        }
     }
 }
