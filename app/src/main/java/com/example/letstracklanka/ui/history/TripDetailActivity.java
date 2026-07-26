@@ -195,28 +195,42 @@ public class TripDetailActivity extends AppCompatActivity {
                         points = parseList(body.string(), TrackingPoint.class);
                         Collections.sort(points, Comparator.comparing(TrackingPoint::getEventTime));
                         if (!points.isEmpty()) {
+                            tvPlaybackReadout.setOnClickListener(null);   // clear any previous retry state
                             drawFullRoute();
                             resolveEndpointAddresses();
                             seekPlayback.setMax(Math.max(points.size() - 1, 1));
                             currentIndex = 0;
                             updatePlaybackPosition(0);
                         } else {
-                            tvPlaybackReadout.setText("No tracking points found for this trip");
+                            showLoadError("No tracking points found for this trip");
                         }
                     } else {
-                        tvPlaybackReadout.setText("Could not load trip data (code " + response.code() + ")");
+                        showLoadError("Could not load trip data (code " + response.code() + ")");
                     }
                 } catch (Exception e) {
                     Log.e("TripDetailActivity", "loadTripPoints parse error", e);
-                    tvPlaybackReadout.setText("Something went wrong loading this trip");
+                    showLoadError("Something went wrong loading this trip");
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 progressTripDetail.setVisibility(View.GONE);
-                tvPlaybackReadout.setText("Network error — check your connection");
+                showLoadError("Network error — check your connection");
             }
+        });
+    }
+
+    /**
+     * Reuses the existing readout TextView for error messages, adding a real
+     * tap-to-retry action -- previously these were dead-end messages with no
+     * way to recover short of leaving and re-entering the screen.
+     */
+    private void showLoadError(String message) {
+        tvPlaybackReadout.setText(message + " — tap to retry");
+        tvPlaybackReadout.setOnClickListener(v -> {
+            tvPlaybackReadout.setOnClickListener(null);
+            loadTripPoints();
         });
     }
 
