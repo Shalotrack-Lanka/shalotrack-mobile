@@ -1,7 +1,20 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.LetsTrackLanka" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- NEW - same fix as the light theme. This app is designed to look
+             consistently navy-branded regardless of system dark/light mode
+             (matching the explicit-light-surface approach used elsewhere
+             tonight, e.g. the trip card background fix), not to have a
+             separate true dark palette. Without this, a phone in system dark
+             mode would show the default Material3 purple here too, even
+             after fixing the light variant. -->
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorPrimaryDark">@color/brand_primary</item>
+        <item name="colorOnPrimary">@color/text_on_dark</item>
+        <item name="colorSecondary">@color/brand_accent</item>
+        <item name="colorOnSecondary">@color/text_on_dark</item>
+
+        <item name="android:statusBarColor">@color/brand_primary</item>
+        <item name="android:navigationBarColor">@color/surface_white</item>
     </style>
 </resources>
