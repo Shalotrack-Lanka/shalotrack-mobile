@@ -19,19 +19,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
 
-        <!-- අලුතින් හදපු AlertsActivity එක මෙතනට එකතු කළා -->
         <activity
             android:name=".ui.main.AlertsActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
-        <!-- අලුතින් හදපු CirclesActivity එක -->
         <activity
             android:name=".ui.main.CirclesActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
-        <!-- අලුතින් හදපු TagsActivity එක -->
         <activity
             android:name=".ui.main.TagsActivity"
             android:exported="false"
@@ -47,16 +44,19 @@
         <activity android:name=".ui.history.TripHistoryActivity" android:exported="false" />
         <activity android:name=".ui.history.TripDetailActivity" android:exported="false" />
 
-        <!-- 🚀 මෙතනින් තමයි කෙලින්ම Dashboard (HomeActivity) එක Load වෙන්න හැදුවේ -->
+        <!-- ============================================================ -->
+        <!-- !! DO NOT ADD A LAUNCHER INTENT-FILTER TO HomeActivity !!      -->
+        <!-- The launcher (MAIN/LAUNCHER) belongs on SplashActivity, below. -->
+        <!-- HomeActivity is reached BY the splash screen navigating to it,-->
+        <!-- not by launching directly. This has been reverted by a team   -->
+        <!-- member at least twice already: if you're about to move the -->
+        <!-- launcher here again, please ask first. Confirmed decision:    -->
+        <!-- the splash screen must show on every app open.                -->
+        <!-- ============================================================ -->
         <activity
             android:name=".ui.main.HomeActivity"
-            android:exported="true"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
         <activity
             android:name=".ui.auth.ProcessingActivity"
@@ -87,11 +87,19 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
-        <!-- ❌ SplashActivity එකෙන් Launcher කෑල්ල අයින් කළා -->
+        <!-- ============================================================ -->
+        <!-- THE LAUNCHER LIVES HERE. This is the real app entry point.    -->
+        <!-- Do not remove this intent-filter or move it elsewhere.       -->
+        <!-- ============================================================ -->
         <activity
             android:name=".ui.main.SplashActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:exported="true"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.main.MainActivity"

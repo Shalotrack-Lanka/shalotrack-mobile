@@ -604,6 +604,36 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
+    private void showReportsMenuBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_reports_menu, null);
+        dialog.setContentView(view);
+        ImageView btnClose = view.findViewById(R.id.btnCloseReportsMenu);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+        View.OnClickListener comingSoon = v -> Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show();
+        int[] cardIds = {R.id.cardKmReport, R.id.cardTripReport, R.id.cardFuelReport, R.id.cardTempReport, R.id.cardAlertReport, R.id.cardFuelGraph, R.id.cardStopAlert};
+        for (int id : cardIds) {
+            View card = view.findViewById(id);
+            if (card != null) card.setOnClickListener(comingSoon);
+        }
+        dialog.show();
+    }
+    private void showVoiceTrackBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_voice_track, null);
+        dialog.setContentView(view);
+        ImageView btnClose = view.findViewById(R.id.btnCloseVoiceTrack);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+        MaterialButton btnSend = view.findViewById(R.id.btnSendAlexaVerification);
+        if (btnSend != null) {
+            btnSend.setOnClickListener(v -> {
+                Toast.makeText(this, "Verification email sent!", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            });
+        }
+        dialog.show();
+    }
+
     private void showCallCenterBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
