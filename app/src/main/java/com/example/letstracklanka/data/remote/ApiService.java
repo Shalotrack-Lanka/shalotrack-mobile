@@ -10,6 +10,7 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.PATCH;
 import retrofit2.http.POST;
@@ -57,4 +58,9 @@ public interface ApiService {
     // wired on the mobile side until now.
     @POST("api/Alerts/register-token")
     Call<ResponseBody> registerFcmToken(@Body RegisterFcmTokenRequest request);
+
+    // NEW — soft-deletes a vehicle (sets IsActive=false, frees its device's
+    // IMEI for reassignment). See VehicleService.DeleteAsync() on the API side.
+    @DELETE("api/Vehicles/{vehicleId}")
+    Call<ResponseBody> deleteVehicle(@Path("vehicleId") String vehicleId);
 }

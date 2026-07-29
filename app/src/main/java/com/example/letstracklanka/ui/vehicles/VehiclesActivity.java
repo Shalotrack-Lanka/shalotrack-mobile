@@ -109,7 +109,15 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
     // NEW -- same threshold and reasoning as HomeActivity's fix. GPS drift/
     // multipath can report small non-zero speeds even when stationary.
-    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 2.0;
+    // FIX: was 2.0, inconsistent with HomeActivity's 7.0 (raised earlier
+    // tonight after confirming a real vehicle parked indoors consistently
+    // read 5 km/h of GPS noise). Matched here so both screens agree.
+    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 7.0;
+
+    // NEW -- matches the dashboard endpoint's own online threshold (10
+    // minutes), so this screen doesn't show "Moving" based on stale data the
+    // way it could before -- speed alone was never enough on its own.
+    private static final long ONLINE_THRESHOLD_MINUTES = 10;
     private static final String MAP_TYPE_PREF_KEY = "selected_map_type";
 
     @Override
@@ -469,6 +477,26 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     }
 
     // Fetch the list of vehicles owned by this customer
+    /**
+     * Reads which vehicle was last selected in VehicleListActivity/Home. Falls
+     * back to the last vehicle in the list (previous default behavior) if
+     * nothing is selected yet, or the previously-selected one is no longer
+     * owned by this customer.
+     */
+    private VehicleResponse pickSelectedVehicle(List<VehicleResponse> list) {
+        String selectedId = getSharedPreferences(
+                com.example.letstracklanka.ui.vehicles.VehicleListActivity.VEHICLE_PREFS_NAME,
+                Context.MODE_PRIVATE)
+                .getString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, null);
+
+        if (selectedId != null) {
+            for (VehicleResponse v : list) {
+                if (selectedId.equalsIgnoreCase(v.getVehicleId())) return v;
+            }
+        }
+        return list.get(list.size() - 1);
+    }
+
     private void fetchVehicles() {
         if (currentCustomerId == null) return;
         mainApiService.getVehiclesByCustomer(currentCustomerId).enqueue(new Callback<ResponseBody>() {
@@ -479,8 +507,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         if (!list.isEmpty()) {
-                            // Select the most recently added vehicle
-                            VehicleResponse vehicle = list.get(list.size() - 1);
+                            // FIX: was always picking the LAST vehicle in the
+                            // list regardless of what was selected elsewhere
+                            // in the app. Now respects the same shared
+                            // "selected vehicle" preference Home uses, so
+                            // tapping a vehicle in Home's list actually shows
+                            // that specific vehicle here too.
+                            VehicleResponse vehicle = pickSelectedVehicle(list);
                             selectedVehicle = vehicle;
                             selectedVehicleId = vehicle.getVehicleId();
                             trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
@@ -639,8 +672,24 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
         });
 
-        String status = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
-        int color = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
+        // FIX: previously showed "Moving"/"Idle" based purely on the last
+        // known speed, regardless of how old that data actually was --
+        // confirmed via a real test that this could show "Moving" for a
+        // vehicle whose last report was 20+ minutes old. Now checks freshness
+        // first, matching the dashboard endpoint's own 10-minute rule.
+        boolean isStale = loc.getMinutesSinceUpdate() > ONLINE_THRESHOLD_MINUTES;
+        String status;
+        int color;
+        if (isStale) {
+            status = "Offline";
+            color = Color.parseColor("#F59E0B");
+        } else if (loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH) {
+            status = "Moving (" + (int) loc.getSpeed() + " km/h)";
+            color = ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving);
+        } else {
+            status = loc.isIgnitionOn() ? "Idle" : "Parked";
+            color = Color.parseColor("#1976D2");
+        }
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 

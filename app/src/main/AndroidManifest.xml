@@ -41,6 +41,8 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
+        <activity android:name=".ui.vehicles.VehicleListActivity" android:exported="false" />
+
         <activity android:name=".ui.history.TripHistoryActivity" android:exported="false" />
         <activity android:name=".ui.history.TripDetailActivity" android:exported="false" />
 
