@@ -1,25 +1,29 @@
 package com.example.letstracklanka.ui.main;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.database.Cursor;
 import android.graphics.Color;
-import androidx.core.content.ContextCompat;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,9 +31,12 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.letstracklanka.R;
@@ -38,9 +45,6 @@ import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import com.google.firebase.messaging.FirebaseMessaging;
 import com.example.letstracklanka.data.model.DashboardResponse;
 import com.example.letstracklanka.data.model.GpsDeviceResponse;
 import com.example.letstracklanka.data.model.LocationResponse;
@@ -48,9 +52,8 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
-import com.example.letstracklanka.ui.main.AddressResolver;
-import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.example.letstracklanka.ui.auth.LoginActivity;
+import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -65,6 +68,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -74,6 +78,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -83,18 +89,19 @@ import retrofit2.Response;
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int UPDATE_INTERVAL = 1000;
+    private static final int CONTACTS_PERMISSION_REQUEST_CODE = 2001;
 
     private GoogleMap mMap;
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable trackingRunnable;
 
     private String currentCustomerId = null;
     private CustomerResponse currentCustomer = null;
     private final Map<String, String> myVehicles = new HashMap<>();
     private final Map<String, Marker> mapMarkers = new HashMap<>();
-    private LatLng lastVehiclePosition = null;   // NEW -- the tracked vehicle's position, not the phone's own GPS
+    private LatLng lastVehiclePosition = null;
 
     private TextView tvDeviceStatus, tvDeviceAddress, tvDeviceName;
     private View errorBanner;
@@ -105,12 +112,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private RealtimeLocationClient realtimeClient;
     private AddressResolver addressResolver;
 
-    // App Subscription Tracker
     private boolean isMonthlyBilling = false;
+    private BottomSheetDialog referDialog;
 
-    // Drawer Variables
     private DrawerLayout drawerLayout;
     private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
+
+    private ConnectivityManager.NetworkCallback networkCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,7 +142,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         startRealTimeTracking();
         loadUserData();
 
-        // Detect a signal from another screen and automatically open the drawer menu
         if (getIntent().getBooleanExtra("open_drawer", false)) {
             if (drawerLayout != null) {
                 drawerLayout.post(() -> drawerLayout.openDrawer(GravityCompat.START));
@@ -241,8 +248,15 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
+        View menuRefer = findViewById(R.id.btnMenuRefer);
+        if (menuRefer != null) {
+            menuRefer.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showReferAndEarnBottomSheet();
+            });
+        }
+
         int[] comingSoonIds = {
-                R.id.btnMenuRefer,
                 R.id.btnMenuShop,
                 R.id.btnMenuHelpVideos,
                 R.id.btnMenuSettings,
@@ -285,10 +299,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             btnAddVehicle.setOnClickListener(v -> showAddVehicleDialog());
         }
 
-        // NEW -- these four were completely unwired (silently dead, same class
-        // of gap as Send Location before it was fixed). Honest "Coming soon"
-        // placeholders, matching the established pattern from the drawer menu
-        // and the Vehicles action grid -- not silently doing nothing.
         int[] comingSoonAddIds = {R.id.btnAddPerson, R.id.btnAddPet, R.id.btnAddTag, R.id.btnAddPlace};
         for (int id : comingSoonAddIds) {
             View item = findViewById(id);
@@ -308,14 +318,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
         if (btnHomeSOS != null) btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
 
-        // NEW -- these two were never wired to anything at all (confirmed by
-        // direct search -- zero references beyond findViewById in the entire
-        // file). Not a regression from any recent change, a genuine pre-existing gap.
         MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
         if (btnSendLocation != null) {
             btnSendLocation.setOnClickListener(v -> {
-                // FIX: this shares the TRACKED VEHICLE's position, not the phone's
-                // own GPS -- this is a GPS vehicle tracker, not a personal tracker.
                 if (lastVehiclePosition == null) {
                     Toast.makeText(this, "Vehicle location not available yet, try again in a moment", Toast.LENGTH_SHORT).show();
                     return;
@@ -323,12 +328,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 String locationLink = "https://www.google.com/maps?q=" + lastVehiclePosition.latitude + "," + lastVehiclePosition.longitude;
                 String message = "Here is my vehicle's current location:\n" + locationLink;
 
-                // FIX: the raw SMS-specific intent (vnd.android-dir/mms-sms) crashes
-                // with ActivityNotFoundException on any device with no default SMS
-                // app registered (common on emulators, and apparently on real
-                // devices too -- confirmed by an actual crash log). ACTION_SEND with
-                // a chooser works with whatever's actually installed (SMS, WhatsApp,
-                // email, etc.) and is wrapped in a try/catch as a final safety net.
                 try {
                     Intent shareIntent = new Intent(Intent.ACTION_SEND);
                     shareIntent.setType("text/plain");
@@ -508,9 +507,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
     }
 
-    // ---------------------------------------------------------
-    // App Subscription Bottom Sheet with Animation & Dynamic Table
-    // ---------------------------------------------------------
     private void showAppSubscriptionBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_app_subscription, null);
@@ -519,31 +515,26 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         ImageView btnClose = view.findViewById(R.id.btnCloseAppSubs);
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Toggle Buttons
         MaterialCardView cardTabAnnually = view.findViewById(R.id.cardTabAnnually);
         TextView tvTabAnnually = view.findViewById(R.id.tvTabAnnually);
         MaterialCardView cardTabMonthly = view.findViewById(R.id.cardTabMonthly);
         TextView tvTabMonthly = view.findViewById(R.id.tvTabMonthly);
 
-        // Plan Cards
         MaterialCardView cardFree = view.findViewById(R.id.cardFree);
         MaterialCardView cardSilver = view.findViewById(R.id.cardSilver);
         MaterialCardView cardGold = view.findViewById(R.id.cardGold);
         MaterialCardView cardPlatinum = view.findViewById(R.id.cardPlatinum);
 
-        // Card Prices
         TextView tvPriceFree = view.findViewById(R.id.tvPriceFree);
         TextView tvPriceSilver = view.findViewById(R.id.tvPriceSilver);
         TextView tvPriceGold = view.findViewById(R.id.tvPriceGold);
         TextView tvPricePlatinum = view.findViewById(R.id.tvPricePlatinum);
 
-        // Badges
         View badgeFree = view.findViewById(R.id.badgeFree);
         View badgeSilver = view.findViewById(R.id.badgeSilver);
         View badgeGold = view.findViewById(R.id.badgeGold);
         View badgePlatinum = view.findViewById(R.id.badgePlatinum);
 
-        // Table Elements
         TextView tvColSelected = view.findViewById(R.id.tvColSelected);
         TextView tvColNext = view.findViewById(R.id.tvColNext);
 
@@ -559,7 +550,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         View btnContinueView = view.findViewById(R.id.btnContinueAppSubs);
         MaterialButton btnContinueAppSubs = (btnContinueView instanceof MaterialButton) ? (MaterialButton) btnContinueView : null;
 
-        // Toggle Price Update Logic
         Runnable updatePrices = () -> {
             if (isMonthlyBilling) {
                 if (tvPriceFree != null) tvPriceFree.setText("L0/month\nL0/year");
@@ -602,7 +592,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Reset Card States
         Runnable resetCards = () -> {
             if (cardFree != null) { cardFree.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardFree.setStrokeWidth(0); if(badgeFree != null) badgeFree.setVisibility(View.GONE); }
             if (cardSilver != null) { cardSilver.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardSilver.setStrokeWidth(0); if(badgeSilver != null) badgeSilver.setVisibility(View.GONE); }
@@ -610,7 +599,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (cardPlatinum != null) { cardPlatinum.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardPlatinum.setStrokeWidth(0); if(badgePlatinum != null) badgePlatinum.setVisibility(View.GONE); }
         };
 
-        // Click Free Plan
         if (cardFree != null) {
             cardFree.setOnClickListener(v -> {
                 resetCards.run();
@@ -638,7 +626,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Click Silver Plan
         if (cardSilver != null) {
             cardSilver.setOnClickListener(v -> {
                 resetCards.run();
@@ -666,7 +653,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Click Gold Plan
         if (cardGold != null) {
             cardGold.setOnClickListener(v -> {
                 resetCards.run();
@@ -694,7 +680,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Click Platinum Plan
         if (cardPlatinum != null) {
             cardPlatinum.setOnClickListener(v -> {
                 resetCards.run();
@@ -729,7 +714,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // Initialize default view
         if (cardFree != null) cardFree.performClick();
         updatePrices.run();
 
@@ -756,6 +740,146 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
     }
 
+    private void showReferAndEarnBottomSheet() {
+        referDialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_refer_and_earn, null);
+        referDialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseRefer);
+        if (btnClose != null) btnClose.setOnClickListener(v -> referDialog.dismiss());
+
+        MaterialButton btnSelectPhoneContacts = view.findViewById(R.id.btnSelectPhoneContacts);
+        if (btnSelectPhoneContacts != null) {
+            btnSelectPhoneContacts.setOnClickListener(v -> {
+                checkContactsPermissionAndOpen();
+            });
+        }
+
+        referDialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        referDialog.show();
+    }
+
+    private void checkContactsPermissionAndOpen() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CONTACTS}, CONTACTS_PERMISSION_REQUEST_CODE);
+        } else {
+            if (referDialog != null && referDialog.isShowing()) {
+                referDialog.dismiss();
+            }
+            showInviteContactsBottomSheet();
+        }
+    }
+
+    private void showInviteContactsBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_invite_contacts, null);
+        dialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseContacts);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        RecyclerView recyclerView = view.findViewById(R.id.recyclerViewContacts);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            List<PhoneContact> contacts = getDeviceContacts();
+            runOnUiThread(() -> {
+                ContactsAdapter adapter = new ContactsAdapter(contacts);
+                recyclerView.setAdapter(adapter);
+            });
+        });
+
+        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        dialog.show();
+    }
+
+    private List<PhoneContact> getDeviceContacts() {
+        List<PhoneContact> contactList = new ArrayList<>();
+        ContentResolver contentResolver = getContentResolver();
+        Cursor cursor = contentResolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC");
+
+        if (cursor != null && cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                @SuppressLint("Range") String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                @SuppressLint("Range") String phone = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                if (name != null && !name.trim().isEmpty() && phone != null) {
+                    contactList.add(new PhoneContact(name, phone));
+                }
+            }
+            cursor.close();
+        }
+        return contactList;
+    }
+
+    private static class PhoneContact {
+        String name;
+        String phone;
+
+        PhoneContact(String name, String phone) {
+            this.name = name;
+            this.phone = phone;
+        }
+
+        String getInitials() {
+            String[] parts = name.trim().split("\\s+");
+            if (parts.length >= 2) {
+                return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase(Locale.ROOT);
+            } else if (name.length() > 0) {
+                return name.substring(0, 1).toUpperCase(Locale.ROOT);
+            }
+            return "?";
+        }
+    }
+
+    private class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHolder> {
+        private final List<PhoneContact> contacts;
+
+        ContactsAdapter(List<PhoneContact> contacts) {
+            this.contacts = contacts;
+        }
+
+        @NonNull
+        @Override
+        public ContactViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_contact, parent, false);
+            return new ContactViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ContactViewHolder holder, int position) {
+            PhoneContact contact = contacts.get(position);
+            holder.tvName.setText(contact.name);
+            holder.tvPhone.setText(contact.phone);
+            holder.tvInitials.setText(contact.getInitials());
+
+            holder.itemView.setOnClickListener(v -> {
+                holder.radioButton.setChecked(!holder.radioButton.isChecked());
+                if (holder.radioButton.isChecked()) {
+                    Toast.makeText(HomeActivity.this, "Selected: " + contact.name, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return contacts.size();
+        }
+
+        class ContactViewHolder extends RecyclerView.ViewHolder {
+            TextView tvInitials, tvName, tvPhone;
+            RadioButton radioButton;
+
+            ContactViewHolder(@NonNull View itemView) {
+                super(itemView);
+                tvInitials = itemView.findViewById(R.id.tvContactInitials);
+                tvName = itemView.findViewById(R.id.tvContactName);
+                tvPhone = itemView.findViewById(R.id.tvContactPhone);
+                radioButton = itemView.findViewById(R.id.radioContactSelect);
+            }
+        }
+    }
+
     private void showAddVehicleDialog() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_vehicle, null);
         EditText etVehicleNumber = dialogView.findViewById(R.id.etVehicleNumber);
@@ -774,9 +898,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .setView(dialogView)
                 .create();
 
-        // NEW -- custom, pinned buttons (MaterialButton) instead of AlertDialog's
-        // built-in setPositiveButton/setNegativeButton, so "Link Device" can be a
-        // genuinely prominent filled button rather than an equal-weight text link.
         MaterialButton btnLinkDevice = dialogView.findViewById(R.id.btnLinkDevice);
         MaterialButton btnCancelAddVehicle = dialogView.findViewById(R.id.btnCancelAddVehicle);
 
@@ -805,11 +926,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             dialog.dismiss();
         });
 
-        // NEW -- setOnShowListener, not resizing immediately after show(). Calling
-        // setLayout() right after show() can race with Android's own internal
-        // layout pass for the dialog, which is very likely why the button row
-        // wasn't reliably visible. setOnShowListener guarantees the dialog is
-        // fully displayed before we resize its window.
         dialog.setOnShowListener(d -> {
             if (dialog.getWindow() != null) {
                 int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92);
@@ -923,9 +1039,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 String locationLink = "https://www.google.com/maps?q=" + lastVehiclePosition.latitude + "," + lastVehiclePosition.longitude;
                 String message = "EMERGENCY SOS!\nHere is my vehicle's current location:\n" + locationLink;
 
-                // FIX: same crash risk as Send Location -- see that fix's comment
-                // for the full explanation. ACTION_SEND + chooser instead of a raw
-                // SMS-specific intent, wrapped in a try/catch as a final safety net.
                 try {
                     Intent shareIntent = new Intent(Intent.ACTION_SEND);
                     shareIntent.setType("text/plain");
@@ -963,12 +1076,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (!response.isSuccessful() || body == null) {
-                        // NEW -- was completely silent before, not even logged.
                         Log.e("HomeActivity", "fetchDashboard failed, code " + response.code());
                         showRetryDialog("Couldn't load dashboard data", HomeActivity.this::fetchDashboard);
                         return;
                     }
-                    hideErrorBanner();   // NEW -- clear any previous error now that this succeeded
+                    hideErrorBanner();
 
                     Gson gson = new Gson();
                     JsonObject root = gson.fromJson(body.string(), JsonObject.class);
@@ -1004,7 +1116,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                // NEW -- was completely silent before.
                 Log.e("HomeActivity", "fetchDashboard network error", t);
                 showRetryDialog("Network error — couldn't load dashboard data", HomeActivity.this::fetchDashboard);
             }
@@ -1015,7 +1126,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (payload.getVehicleId() == null || mMap == null) return;
         LatLng pos = new LatLng(payload.getLatitude(), payload.getLongitude());
         if (pos.latitude == 0 && pos.longitude == 0) return;
-        lastVehiclePosition = pos;   // NEW -- retained for Send Location
+        lastVehiclePosition = pos;
 
         String title = myVehicles.getOrDefault(payload.getVehicleId().toLowerCase(), "My Vehicle");
         trailRenderer.updatePosition(pos, (float) payload.getHeading(), title);
@@ -1053,7 +1164,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             if (loc != null && loc.getVehicleId() != null) {
                                 LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
                                 if (pos.latitude != 0 || pos.longitude != 0) {
-                                    lastVehiclePosition = pos;   // NEW -- retained for Send Location
+                                    lastVehiclePosition = pos;
                                     String title = myVehicles.getOrDefault(vehicleId, "My Vehicle");
                                     trailRenderer.updatePosition(pos, loc.getHeading(), title);
                                     updateUI(loc);
@@ -1116,11 +1227,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    /**
-     * Android 13+ requires runtime permission to show any notification at all.
-     * Harmless no-op on older versions -- the check itself prevents the request
-     * from firing where it isn't needed or supported.
-     */
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -1131,13 +1237,23 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    /**
-     * Explicitly fetches and registers the current FCM token on every successful
-     * login -- not relying solely on FirebaseMessagingService.onNewToken(), which
-     * only fires when Firebase generates or rotates a token, not on every app
-     * open. This ensures the backend always has a fresh, correct token for
-     * whichever customer is currently logged in.
-     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1001) {
+            // Handled notification permission if needed
+        } else if (requestCode == CONTACTS_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (referDialog != null && referDialog.isShowing()) {
+                    referDialog.dismiss();
+                }
+                showInviteContactsBottomSheet();
+            } else {
+                Toast.makeText(this, "Contacts permission is required to invite friends", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     private void registerFcmToken() {
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (!task.isSuccessful()) {
@@ -1170,10 +1286,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
-                        hideErrorBanner();   // NEW -- clear any previous error now that this succeeded
+                        hideErrorBanner();
                         String json = body.string();
 
-                        // Populate the drawer menu with the profile details
                         try {
                             Gson gson = new Gson();
                             JsonObject root = gson.fromJson(json, JsonObject.class);
@@ -1198,18 +1313,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
                             currentCustomer = customer;
-                            registerFcmToken();   // NEW -- ensure the token is registered every login, not just on first-ever generation
+                            registerFcmToken();
                             fetchMyVehicles();
                             fetchDashboard();
                         }
                     } else if (response.code() == 404) {
                         Log.w("HomeActivity", "No customer profile exists yet for this account.");
                     } else {
-                        // NEW -- this was completely silent before. Since currentCustomerId
-                        // never gets set here on failure, fetchMyVehicles() and
-                        // fetchDashboard() never even run -- this was the actual root
-                        // cause of the app appearing to show nothing on a failed load,
-                        // upstream of everything else fixed tonight.
                         Log.w("HomeActivity", "getMyProfile failed with code " + response.code());
                         showRetryDialog("Couldn't load your profile", HomeActivity.this::loadUserData);
                     }
@@ -1248,7 +1358,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
-                        hideErrorBanner();   // NEW -- clear any previous error now that this succeeded
+                        hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         myVehicles.clear();
                         for (VehicleResponse v : list) {
@@ -1265,10 +1375,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             fetchLocation();
                         }
                     } else {
-                        // NEW -- this is the app's first real data load. Failing
-                        // silently here means the user opens the app and sees an
-                        // empty map with zero explanation -- the worst possible
-                        // first impression. Real feedback + a genuine retry action.
                         Log.e("HomeActivity", "fetchMyVehicles failed, code " + response.code());
                         showRetryDialog("Couldn't load your vehicles", HomeActivity.this::fetchMyVehicles);
                     }
@@ -1286,30 +1392,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    /**
-     * Shared helper for one-time, user-facing data-load failures. Snackbar,
-     * not Toast, specifically because it supports a real "Retry" action --
-     * silently failing on the app's critical data loads (like the initial
-     * vehicle list) is exactly the kind of thing that makes an app feel
-     * broken/unfinished on first open.
-     */
-    /**
-     * A real popup dialog, not a Snackbar -- Snackbars render within the
-     * Activity's own view hierarchy and can end up hidden behind other
-     * elevated elements (confirmed happening on this screen, behind the
-     * persistent bottom vehicle-info card, even with an explicit elevation
-     * override). A dialog renders in its own separate window layer, on top
-     * of everything else, guaranteed -- the right tool when visibility
-     * absolutely cannot fail silently.
-     */
-    /**
-     * In-line error banner, matching the app's own design language -- not a
-     * system Toast/Dialog/Snackbar. This is the professional pattern for a
-     * real product: the same approach already used for empty/error states in
-     * TripHistoryActivity and AlertsActivity, applied consistently here too.
-     */
     private void showRetryDialog(String message, Runnable retryAction) {
-        if (errorBanner == null) return;   // views not ready yet, fail safely
+        if (errorBanner == null) return;
         tvErrorBannerMessage.setText(message);
         tvErrorBannerRetry.setOnClickListener(v -> {
             hideErrorBanner();
@@ -1323,9 +1407,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void getPhoneLocation() {
-        // FIX: per project rule -- this is a vehicle tracker, not a personal
-        // tracker. Recentering the map now uses the tracked vehicle's position,
-        // not the phone's own GPS.
         if (lastVehiclePosition != null && mMap != null) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(lastVehiclePosition, 15f));
         } else {
@@ -1339,8 +1420,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         trailRenderer = new VehicleTrailRenderer(this, mMap, trackingApi);
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f));
 
-        // NEW -- restore whichever map type the user last picked, instead of
-        // always resetting to Default on every app open.
         int savedMapType = getSharedPreferences(MAP_PREFS_NAME, MODE_PRIVATE)
                 .getInt(MAP_TYPE_PREF_KEY, GoogleMap.MAP_TYPE_NORMAL);
         MaterialCardView savedCard;
@@ -1352,10 +1431,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
-    // NEW -- GPS receivers commonly report small non-zero speeds (drift,
-    // multipath reflection) even when genuinely stationary. Matches the same
-    // 2 km/h threshold already used in the trip/stop-detection logic, so
-    // "Moving" here means the same thing it means everywhere else in the app.
     private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 2.0;
     private static final String MAP_TYPE_PREF_KEY = "selected_map_type";
 
@@ -1370,7 +1445,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             selectedCard.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary)));
             if (mapTypeMenu != null) mapTypeMenu.setVisibility(View.GONE);
 
-            // NEW -- persist the choice so it survives app restarts.
             getSharedPreferences(MAP_PREFS_NAME, MODE_PRIVATE)
                     .edit()
                     .putInt(MAP_TYPE_PREF_KEY, mapType)
@@ -1403,18 +1477,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         return list;
     }
 
-    private ConnectivityManager.NetworkCallback networkCallback;
-
-    /**
-     * Proactive network monitoring, not just reactive error handling. Uses
-     * ConnectivityManager's real-time callback API (the modern, recommended
-     * approach) rather than waiting for an API call to time out and fail --
-     * the banner now appears the instant connectivity is actually lost,
-     * anywhere in the app, regardless of whether anything happens to be
-     * loading at that moment. Reuses the same banner already built, so the
-     * visual language stays consistent whether the cause is "this specific
-     * request failed" or "the phone has no connection at all."
-     */
     private void registerNetworkMonitor() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return;
@@ -1427,8 +1489,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             @Override
             public void onAvailable(@NonNull Network network) {
-                // Connection restored -- recover automatically, no need to
-                // wait for the user to tap Retry themselves.
                 runOnUiThread(() -> {
                     hideErrorBanner();
                     loadUserData();
