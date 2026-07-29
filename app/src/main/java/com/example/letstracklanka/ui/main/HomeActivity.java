@@ -265,10 +265,18 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
+        // WIRE SETTINGS MENU
+        View menuSettings = findViewById(R.id.btnMenuSettings);
+        if (menuSettings != null) {
+            menuSettings.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showSettingsBottomSheet();
+            });
+        }
+
         int[] comingSoonIds = {
                 R.id.btnMenuShop,
                 R.id.btnMenuHelpVideos,
-                R.id.btnMenuSettings,
                 R.id.btnMenuPrivacy
         };
         for (int id : comingSoonIds) {
@@ -398,6 +406,88 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
             }
         }
+    }
+
+    // ---------------------------------------------------------
+    // SETTINGS BOTTOM SHEET
+    // ---------------------------------------------------------
+
+    private void showSettingsBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_settings, null);
+        dialog.setContentView(view);
+
+        // Allow real-time map background tracking to be clearly visible
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setDimAmount(0.15f);
+        }
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseSettings);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        View btnProfile = view.findViewById(R.id.btnSettingProfile);
+        View btnDevices = view.findViewById(R.id.btnSettingDevices);
+        View btnCircles = view.findViewById(R.id.btnSettingCircles);
+        View btnTags = view.findViewById(R.id.btnSettingTags);
+        View btnReports = view.findViewById(R.id.btnSettingReports);
+        View btnNotifications = view.findViewById(R.id.btnSettingNotifications);
+        View btnPayments = view.findViewById(R.id.btnSettingPayments);
+        View btnAppSettings = view.findViewById(R.id.btnSettingAppSettings);
+        View btnSOS = view.findViewById(R.id.btnSettingSOS);
+        View btnDocWallet = view.findViewById(R.id.btnSettingDocWallet);
+
+        if (btnProfile != null) btnProfile.setOnClickListener(v -> {
+            dialog.dismiss();
+            showEditProfileBottomSheet();
+        });
+
+        if (btnDevices != null) btnDevices.setOnClickListener(v -> {
+            dialog.dismiss();
+            startActivity(new Intent(HomeActivity.this, VehiclesActivity.class));
+        });
+
+        if (btnCircles != null) btnCircles.setOnClickListener(v -> {
+            dialog.dismiss();
+            startActivity(new Intent(HomeActivity.this, CirclesActivity.class));
+        });
+
+        if (btnTags != null) btnTags.setOnClickListener(v -> {
+            dialog.dismiss();
+            startActivity(new Intent(HomeActivity.this, TagsActivity.class));
+        });
+
+        if (btnReports != null) btnReports.setOnClickListener(v -> {
+            dialog.dismiss();
+            showReportsMenuBottomSheet();
+        });
+
+        if (btnNotifications != null) btnNotifications.setOnClickListener(v -> {
+            dialog.dismiss();
+            startActivity(new Intent(HomeActivity.this, AlertsActivity.class));
+        });
+
+        if (btnPayments != null) btnPayments.setOnClickListener(v -> {
+            Toast.makeText(this, "Opening Services & Payments...", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        if (btnAppSettings != null) btnAppSettings.setOnClickListener(v -> {
+            Toast.makeText(this, "Opening App Settings...", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        if (btnSOS != null) btnSOS.setOnClickListener(v -> {
+            dialog.dismiss();
+            showSOSBottomSheet();
+        });
+
+        if (btnDocWallet != null) btnDocWallet.setOnClickListener(v -> {
+            Toast.makeText(this, "Opening Document Wallet...", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        dialog.show();
     }
 
     // ---------------------------------------------------------
