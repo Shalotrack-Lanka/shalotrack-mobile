@@ -171,7 +171,7 @@
             </LinearLayout>
             <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE" />
 
-            <!-- Tags -->
+            <!-- Tags (FIXED ICON HERE) -->
             <LinearLayout
                 android:id="@+id/btnSettingTags"
                 android:layout_width="match_parent"
@@ -186,7 +186,7 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@android:drawable/ic_menu_tag"
+                    android:src="@android:drawable/ic_menu_agenda"
                     app:tint="#000000" />
 
                 <LinearLayout
@@ -228,7 +228,7 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@android:drawable/ic_menu_agenda"
+                    android:src="@android:drawable/ic_menu_sort_by_size"
                     app:tint="#000000" />
 
                 <LinearLayout
