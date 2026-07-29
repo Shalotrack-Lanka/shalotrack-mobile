@@ -43,7 +43,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        app:backgroundTint="#FFFFFF"
+                        app:backgroundTint="@color/surface_white"
                         app:fabSize="mini"
                         app:tint="@null"
                         app:srcCompat="@drawable/ic_layers" />
@@ -67,7 +67,7 @@
                             android:columnCount="2"
                             android:padding="12dp"
                             android:rowCount="2"
-                            android:background="#FFFFFF">
+                            android:background="@color/surface_white">
 
                             <com.google.android.material.card.MaterialCardView
                                 android:id="@+id/cardDefault"
@@ -79,7 +79,7 @@
                                 app:strokeColor="@color/brand_primary"
                                 app:strokeWidth="3dp">
 
-                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#FFFFFF">
+                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/surface_white">
                                     <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@drawable/map_default" android:scaleType="centerCrop"/>
                                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Default" android:textSize="15sp" android:textStyle="bold" android:textColor="#555555" android:layout_gravity="center" android:paddingVertical="6dp"/>
                                 </LinearLayout>
@@ -94,7 +94,7 @@
                                 app:cardElevation="0dp"
                                 app:strokeWidth="0dp">
 
-                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#FFFFFF">
+                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/surface_white">
                                     <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@drawable/map_terrain" android:scaleType="centerCrop"/>
                                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Terrain" android:textSize="15sp" android:textStyle="bold" android:textColor="#555555" android:layout_gravity="center" android:paddingVertical="6dp"/>
                                 </LinearLayout>
@@ -109,7 +109,7 @@
                                 app:cardElevation="0dp"
                                 app:strokeWidth="0dp">
 
-                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#FFFFFF">
+                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/surface_white">
                                     <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@drawable/map_satellite" android:scaleType="centerCrop"/>
                                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Satellite" android:textSize="15sp" android:textStyle="bold" android:textColor="#555555" android:layout_gravity="center" android:paddingVertical="6dp"/>
                                 </LinearLayout>
@@ -124,7 +124,7 @@
                                 app:cardElevation="0dp"
                                 app:strokeWidth="0dp">
 
-                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#FFFFFF">
+                                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/surface_white">
                                     <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:src="@drawable/map_hybrid" android:scaleType="centerCrop"/>
                                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hybrid" android:textSize="15sp" android:textStyle="bold" android:textColor="#555555" android:layout_gravity="center" android:paddingVertical="6dp"/>
                                 </LinearLayout>
@@ -137,73 +137,82 @@
                         android:id="@+id/fabLocation"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:backgroundTint="#FFFFFF"
+                        app:backgroundTint="@color/surface_white"
                         app:fabSize="mini"
                         app:tint="@null"
                         app:srcCompat="@drawable/ic_my_location" />
 
                 </LinearLayout>
 
-                <androidx.constraintlayout.widget.ConstraintLayout
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="145dp"
-                    android:paddingHorizontal="16dp"
+                    android:layout_marginHorizontal="12dp"
+                    app:cardBackgroundColor="@color/surface_white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="6dp"
                     app:layout_constraintBottom_toBottomOf="parent">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSendLocation"
-                        android:layout_width="0dp"
-                        android:layout_height="52dp"
-                        android:layout_marginEnd="8dp"
-                        android:text="Send Location"
-                        android:textAllCaps="false"
-                        android:textColor="@color/brand_primary"
-                        android:textSize="15sp"
-                        app:backgroundTint="#FFFFFF"
-                        app:cornerRadius="12dp"
-                        app:icon="@drawable/ic_my_location"
-                        app:iconTint="@color/brand_primary"
-                        app:layout_constraintHorizontal_weight="1.2"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@+id/btnSOS"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:strokeColor="@color/brand_primary"
-                        app:strokeWidth="1.5dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSOS"
-                        android:layout_width="0dp"
-                        android:layout_height="52dp"
-                        android:layout_marginEnd="12dp"
-                        android:text="SOS"
-                        android:textAllCaps="false"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        app:backgroundTint="#E53935"
-                        app:cornerRadius="12dp"
-                        app:layout_constraintHorizontal_weight="0.8"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@+id/fabRefresh"
-                        app:layout_constraintStart_toEndOf="@+id/btnSendLocation"
-                        app:layout_constraintTop_toTopOf="parent" />
-
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:id="@+id/fabRefresh"
-                        android:layout_width="wrap_content"
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        app:backgroundTint="#FFFFFF"
-                        app:elevation="4dp"
-                        app:fabSize="normal"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:srcCompat="@drawable/ic_refresh"
-                        app:tint="@color/brand_primary" />
+                        android:padding="8dp">
 
-                </androidx.constraintlayout.widget.ConstraintLayout>
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSendLocation"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_marginEnd="8dp"
+                            android:text="Send Location"
+                            android:textAllCaps="false"
+                            android:textColor="@color/brand_primary"
+                            android:textSize="15sp"
+                            app:backgroundTint="@color/surface_white"
+                            app:cornerRadius="12dp"
+                            app:icon="@drawable/ic_my_location"
+                            app:iconTint="@color/brand_primary"
+                            app:layout_constraintHorizontal_weight="1.2"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toStartOf="@+id/btnSOS"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:strokeColor="@color/brand_primary"
+                            app:strokeWidth="1.5dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSOS"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_marginEnd="8dp"
+                            android:text="SOS"
+                            android:textAllCaps="false"
+                            android:textColor="@color/surface_white"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            app:backgroundTint="@color/status_danger"
+                            app:cornerRadius="12dp"
+                            app:layout_constraintHorizontal_weight="0.8"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toStartOf="@+id/fabRefresh"
+                            app:layout_constraintStart_toEndOf="@+id/btnSendLocation"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/fabRefresh"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:backgroundTint="@color/surface_background"
+                            app:elevation="0dp"
+                            app:fabSize="normal"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:srcCompat="@drawable/ic_refresh"
+                            app:tint="@color/brand_primary" />
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </com.google.android.material.card.MaterialCardView>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -325,14 +334,14 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             app:cardCornerRadius="12dp"
-                            app:cardBackgroundColor="#1976D2"
+                            app:cardBackgroundColor="#BDBDBD"
                             app:cardElevation="0dp">
                             <ImageView
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_gravity="center"
-                                app:tint="#FFFFFF"
-                                android:src="@android:drawable/ic_menu_myplaces" />
+                                app:tint="@color/surface_white"
+                                android:src="@android:drawable/ic_menu_call" />
                         </androidx.cardview.widget.CardView>
 
                         <TextView
@@ -358,13 +367,13 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             app:cardCornerRadius="12dp"
-                            app:cardBackgroundColor="#1976D2"
+                            app:cardBackgroundColor="@color/brand_primary"
                             app:cardElevation="0dp">
                             <ImageView
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_gravity="center"
-                                app:tint="#FFFFFF"
+                                app:tint="@color/surface_white"
                                 android:src="@drawable/ic_car" />
                         </androidx.cardview.widget.CardView>
 
@@ -391,13 +400,13 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             app:cardCornerRadius="12dp"
-                            app:cardBackgroundColor="#1976D2"
+                            app:cardBackgroundColor="#BDBDBD"
                             app:cardElevation="0dp">
                             <ImageView
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_gravity="center"
-                                app:tint="#FFFFFF"
+                                app:tint="@color/surface_white"
                                 android:src="@android:drawable/ic_menu_add" />
                         </androidx.cardview.widget.CardView>
 
@@ -424,13 +433,13 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             app:cardCornerRadius="12dp"
-                            app:cardBackgroundColor="#1976D2"
+                            app:cardBackgroundColor="#BDBDBD"
                             app:cardElevation="0dp">
                             <ImageView
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_gravity="center"
-                                app:tint="#FFFFFF"
+                                app:tint="@color/surface_white"
                                 android:src="@drawable/ic_tag" />
                         </androidx.cardview.widget.CardView>
 
@@ -457,13 +466,13 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             app:cardCornerRadius="12dp"
-                            app:cardBackgroundColor="#1976D2"
+                            app:cardBackgroundColor="#BDBDBD"
                             app:cardElevation="0dp">
                             <ImageView
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_gravity="center"
-                                app:tint="#FFFFFF"
+                                app:tint="@color/surface_white"
                                 android:src="@android:drawable/ic_menu_myplaces" />
                         </androidx.cardview.widget.CardView>
 
@@ -488,14 +497,14 @@
             android:layout_height="wrap_content"
             android:minHeight="65dp"
             android:orientation="horizontal"
-            android:background="#FFFFFF"
+            android:background="@color/surface_white"
             android:elevation="16dp"
             app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
-                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#1976D2"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                <View android:layout_width="24dp" android:layout_height="3dp" android:background="@color/brand_primary" android:layout_marginBottom="4dp"/>
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="@color/brand_primary"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="@color/brand_primary" android:textStyle="bold" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
             <LinearLayout
@@ -526,6 +535,60 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
             </LinearLayout>
         </LinearLayout>
+
+        <!-- NEW: in-line error banner for data-load failures. Matches the
+             app's own design language (industry-standard pattern for a real
+             product), not a system Toast/Dialog/Snackbar. Sits at the top,
+             above everything else, shown/hidden programmatically. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/errorBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/status_danger"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="6dp"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/stat_notify_error"
+                    app:tint="@color/surface_white" />
+
+                <TextView
+                    android:id="@+id/tvErrorBannerMessage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:text="Couldn't load data"
+                    android:textColor="@color/surface_white"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvErrorBannerRetry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="RETRY"
+                    android:textColor="@color/surface_white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:padding="4dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
     <include layout="@layout/layout_drawer_menu" />

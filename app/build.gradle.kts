@@ -80,4 +80,7 @@ dependencies {
 
     //SignalR to get realtime location updates
     implementation("com.microsoft.signalr:signalr:7.0.20")
+
+    //FCM to get the push notifications via FCM
+    implementation("com.google.firebase:firebase-messaging")
 }

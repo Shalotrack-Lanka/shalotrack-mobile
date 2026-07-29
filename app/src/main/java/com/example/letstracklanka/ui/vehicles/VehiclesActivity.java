@@ -1,8 +1,11 @@
 package com.example.letstracklanka.ui.vehicles;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import androidx.core.content.ContextCompat;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -99,10 +102,25 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private VehicleResponse selectedVehicle = null;
     private LatLng lastKnownPosition = null;
 
+    private View errorBanner;
+    private TextView tvErrorBannerMessage, tvErrorBannerRetry;
+    private ConnectivityManager.NetworkCallback networkCallback;
+
+    private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
+    // NEW -- same threshold and reasoning as HomeActivity's fix. GPS drift/
+    // multipath can report small non-zero speeds even when stationary.
+    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 2.0;
+    private static final String MAP_TYPE_PREF_KEY = "selected_map_type";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vehicles);
+
+        errorBanner = findViewById(R.id.errorBanner);
+        tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
+        tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
+        registerNetworkMonitor();
 
         // Setup API connection
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
@@ -429,6 +447,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
+                        hideErrorBanner();
                         CustomerResponse customer = extractObject(body.string(), CustomerResponse.class);
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
@@ -436,6 +455,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         }
                     } else {
                         Log.w("VehiclesActivity", "getMyProfile failed with code " + response.code());
+                        showRetryDialog("Couldn't load your profile", VehiclesActivity.this::loadUserData);
                     }
                 } catch (Exception e) {
                     Log.e("VehiclesActivity", "Error loading user data", e);
@@ -443,6 +463,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             }
             @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("VehiclesActivity", "Failed to fetch user data", t);
+                showRetryDialog("Network error — couldn't load your profile", VehiclesActivity.this::loadUserData);
             }
         });
     }
@@ -455,6 +476,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
+                        hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         if (!list.isEmpty()) {
                             // Select the most recently added vehicle
@@ -489,13 +511,18 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
                             updateVehicleUI();
                         }
+                    } else {
+                        Log.w("VehiclesActivity", "fetchVehicles failed, code " + response.code());
+                        showRetryDialog("Couldn't load your vehicle", VehiclesActivity.this::fetchVehicles);
                     }
                 } catch (Exception e) {
                     Log.e("VehiclesActivity", "Error fetching vehicles", e);
+                    showRetryDialog("Something went wrong loading your vehicle", VehiclesActivity.this::fetchVehicles);
                 }
             }
             @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("VehiclesActivity", "Failed to fetch vehicles", t);
+                showRetryDialog("Network error — couldn't load your vehicle", VehiclesActivity.this::fetchVehicles);
             }
         });
     }
@@ -509,6 +536,14 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     @Override public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
         trailRenderer = new VehicleTrailRenderer(this, mMap, trackingApi);
+
+        // NEW -- silently apply whichever map type was last chosen on Home.
+        // Same SharedPreferences file/key as HomeActivity, so the choice is
+        // genuinely shared, not a separate, disconnected setting. No switcher
+        // UI on this screen -- just respects what was picked elsewhere.
+        int savedMapType = getSharedPreferences(MAP_PREFS_NAME, Context.MODE_PRIVATE)
+                .getInt(MAP_TYPE_PREF_KEY, GoogleMap.MAP_TYPE_NORMAL);
+        mMap.setMapType(savedMapType);
     }
 
     // Start fetching location every few seconds
@@ -546,10 +581,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
         });
 
-        String status = payload.getSpeed() > 0
+        String status = payload.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH
                 ? "Moving (" + (int) payload.getSpeed() + " km/h)"
                 : (payload.isIgnitionOn() ? "Idle" : "Parked");
-        int color = payload.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
+        int color = payload.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 
@@ -604,8 +639,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
         });
 
-        String status = loc.getSpeed() > 0 ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
-        int color = loc.getSpeed() > 0 ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
+        String status = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
+        int color = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 
@@ -656,9 +691,54 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
+    /**
+     * Same in-line banner pattern as HomeActivity, for a consistent,
+     * professional look across the app -- not a system Toast/Dialog/Snackbar.
+     */
+    private void showRetryDialog(String message, Runnable retryAction) {
+        if (errorBanner == null) return;
+        tvErrorBannerMessage.setText(message);
+        tvErrorBannerRetry.setOnClickListener(v -> {
+            hideErrorBanner();
+            retryAction.run();
+        });
+        errorBanner.setVisibility(View.VISIBLE);
+    }
+
+    private void hideErrorBanner() {
+        if (errorBanner != null) errorBanner.setVisibility(View.GONE);
+    }
+
+    /** Same real-time connectivity monitoring as HomeActivity. */
+    private void registerNetworkMonitor() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return;
+
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onLost(@NonNull Network network) {
+                runOnUiThread(() -> showRetryDialog("No internet connection", VehiclesActivity.this::loadUserData));
+            }
+
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                runOnUiThread(() -> {
+                    hideErrorBanner();
+                    loadUserData();
+                });
+            }
+        };
+        cm.registerDefaultNetworkCallback(networkCallback);
+    }
+
     @Override protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         if (realtimeClient != null) realtimeClient.stop();   // NEW
+
+        if (networkCallback != null) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
+        }
     }
 }

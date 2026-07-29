@@ -1,12 +1,14 @@
 package com.example.letstracklanka.ui.history;
 
 import android.app.DatePickerDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,6 +55,7 @@ public class TripHistoryActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private TripAdapter adapter;
     private AddressResolver addressResolver;
+    private ConnectivityManager.NetworkCallback networkCallback;
 
     // Current filter window, in UTC.
     private Date rangeFrom;
@@ -69,6 +72,7 @@ public class TripHistoryActivity extends AppCompatActivity {
 
         initViews();
         setupChips();
+        registerNetworkMonitor();
 
         // Default: today only, no filter applied yet.
         setRangeToday();
@@ -174,14 +178,24 @@ public class TripHistoryActivity extends AppCompatActivity {
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
                             fetchVehicleThenTrips();
+                        } else {
+                            showEmpty("Couldn't load your profile.", TripHistoryActivity.this::loadUserData);
                         }
+                    } else {
+                        // NEW -- this branch was missing entirely before.
+                        Log.w("TripHistory", "getMyProfile failed with code " + response.code());
+                        showEmpty("Couldn't load your profile.", TripHistoryActivity.this::loadUserData);
                     }
                 } catch (Exception e) {
                     Log.e("TripHistory", "loadUserData error", e);
+                    showEmpty("Something went wrong loading your profile.", TripHistoryActivity.this::loadUserData);
                 }
             }
             @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Toast.makeText(TripHistoryActivity.this, "Could not load profile", Toast.LENGTH_SHORT).show();
+                // FIX: was a Toast before -- now the same in-line pattern as
+                // the rest of this screen, with a genuine retry action.
+                Log.e("TripHistory", "loadUserData network error", t);
+                showEmpty("Network error — couldn't load your profile.", TripHistoryActivity.this::loadUserData);
             }
         });
     }
@@ -201,12 +215,21 @@ public class TripHistoryActivity extends AppCompatActivity {
                         } else {
                             showEmpty("No vehicle linked yet.");
                         }
+                    } else {
+                        // NEW -- this branch was missing entirely before.
+                        Log.w("TripHistory", "fetchVehicleThenTrips failed with code " + response.code());
+                        showEmpty("Couldn't load your vehicle.", TripHistoryActivity.this::fetchVehicleThenTrips);
                     }
                 } catch (Exception e) {
                     Log.e("TripHistory", "fetchVehicle error", e);
+                    showEmpty("Something went wrong loading your vehicle.", TripHistoryActivity.this::fetchVehicleThenTrips);
                 }
             }
-            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) { }
+            @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                // FIX: was completely empty before -- silent, no feedback at all.
+                Log.e("TripHistory", "fetchVehicleThenTrips network error", t);
+                showEmpty("Network error — couldn't load your vehicle.", TripHistoryActivity.this::fetchVehicleThenTrips);
+            }
         });
     }
 
@@ -233,16 +256,16 @@ public class TripHistoryActivity extends AppCompatActivity {
                             showEmpty("No trips found for this period.");
                         }
                     } else {
-                        showEmpty("Could not load trips (code " + response.code() + ")");
+                        showEmpty("Could not load trips (code " + response.code() + ")", TripHistoryActivity.this::fetchTrips);
                     }
                 } catch (Exception e) {
                     Log.e("TripHistory", "fetchTrips parse error", e);
-                    showEmpty("Something went wrong loading trips.");
+                    showEmpty("Something went wrong loading trips.", TripHistoryActivity.this::fetchTrips);
                 }
             }
             @Override public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
-                showEmpty("Network error — check your connection.");
+                showEmpty("Network error — check your connection.", TripHistoryActivity.this::fetchTrips);
             }
         });
     }
@@ -289,13 +312,51 @@ public class TripHistoryActivity extends AppCompatActivity {
     }
 
     private void showEmpty(String message) {
+        showEmpty(message, null);
+    }
+
+    /**
+     * Same tvEmptyState element already used throughout this screen -- now
+     * optionally clickable to retry, instead of being a dead end. No new UI,
+     * no Toast: reusing the existing, already-correct in-line pattern.
+     */
+    private void showEmpty(String message, Runnable retryAction) {
         recyclerView.setVisibility(View.GONE);
         tvEmptyState.setVisibility(View.VISIBLE);
-        tvEmptyState.setText(message);
+        tvEmptyState.setText(retryAction != null ? message + " Tap to retry." : message);
+        tvEmptyState.setOnClickListener(retryAction != null ? v -> retryAction.run() : null);
         tvTripCount.setText("0");
         tvStopCount.setText("0");
         tvDistance.setText("0.0 km");
         tvDrivingTime.setText("0m");
+    }
+
+    /** Same real-time connectivity monitoring pattern as Home/Vehicles. */
+    private void registerNetworkMonitor() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return;
+
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onLost(@NonNull Network network) {
+                runOnUiThread(() -> showEmpty("No internet connection.", TripHistoryActivity.this::loadUserData));
+            }
+
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                runOnUiThread(TripHistoryActivity.this::loadUserData);
+            }
+        };
+        cm.registerDefaultNetworkCallback(networkCallback);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (networkCallback != null) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
+        }
     }
 
     // ---- Helpers ----
