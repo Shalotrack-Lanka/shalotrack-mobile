@@ -220,10 +220,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
+        // WIRE VOICE TRACK MENU
         View btnMenuVoiceTrack = findViewById(R.id.btnMenuVoiceTrack);
         if (btnMenuVoiceTrack != null) {
-            btnMenuVoiceTrack.setOnClickListener(v ->
-                    Toast.makeText(this, "Not available for this app", Toast.LENGTH_SHORT).show());
+            btnMenuVoiceTrack.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showVoiceTrackBottomSheet();
+            });
         }
 
         View menuPlaces = findViewById(R.id.btnMenuPlaces);
@@ -391,6 +394,41 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
             }
         }
+    }
+
+    // ---------------------------------------------------------
+    // Bottom Sheets Methods
+    // ---------------------------------------------------------
+
+    private void showVoiceTrackBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_voice_track, null);
+        dialog.setContentView(view);
+
+        // Make the background map clearly visible (Real-time tracking continues running)
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setDimAmount(0.1f);
+        }
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseVoiceTrack);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        EditText etAlexaEmail = view.findViewById(R.id.etAlexaEmail);
+        MaterialButton btnSend = view.findViewById(R.id.btnSendAlexaVerification);
+
+        if (btnSend != null) {
+            btnSend.setOnClickListener(v -> {
+                String email = etAlexaEmail != null ? etAlexaEmail.getText().toString().trim() : "";
+                if (email.isEmpty()) {
+                    Toast.makeText(this, "Please enter your email", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Toast.makeText(this, "Verification email sent to " + email, Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            });
+        }
+
+        dialog.show();
     }
 
     private void showEditProfileBottomSheet() {
