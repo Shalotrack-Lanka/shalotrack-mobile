@@ -31,6 +31,13 @@ public class LocationResponse {
     @SerializedName(value = "IgnitionStatus", alternate = {"ignitionStatus"})
     private JsonElement ignitionStatus;
 
+    // NEW -- was already present in the underlying database column and the
+    // API's SQL SELECT this whole night, just never actually exposed to the
+    // Android model. Needed to check data freshness (e.g. distinguishing a
+    // genuinely moving vehicle from stale "Moving" data from 20 minutes ago).
+    @SerializedName(value = "LastUpdate", alternate = {"lastUpdate"})
+    private String lastUpdate;
+
     public String getVehicleId() {
         return vehicleId;
     }
@@ -63,6 +70,28 @@ public class LocationResponse {
             }
         } catch (Exception e) { return false; }
         return false;
+    }
+
+    /** Raw ISO-8601 UTC timestamp string, e.g. "2026-07-28T18:04:52Z". Null if not present. */
+    public String getLastUpdate() {
+        return lastUpdate;
+    }
+
+    /**
+     * Minutes since this location was last actually reported, comparing
+     * against real current UTC time. Returns Long.MAX_VALUE if the timestamp
+     * is missing/unparseable, so a freshness check safely treats it as "not
+     * fresh" rather than crashing or defaulting to "fresh".
+     */
+    public long getMinutesSinceUpdate() {
+        if (lastUpdate == null || lastUpdate.trim().isEmpty()) return Long.MAX_VALUE;
+        try {
+            java.time.Instant then = java.time.Instant.parse(lastUpdate);
+            java.time.Instant now = java.time.Instant.now();
+            return java.time.Duration.between(then, now).toMinutes();
+        } catch (Exception e) {
+            return Long.MAX_VALUE;
+        }
     }
 
     private double parseToDouble(JsonElement element) {

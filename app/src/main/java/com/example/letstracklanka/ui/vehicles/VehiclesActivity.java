@@ -21,10 +21,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CustomerResponse;
+import com.example.letstracklanka.data.model.DashboardVehicle;
 import com.example.letstracklanka.data.model.LocationResponse;
 import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiService;
@@ -71,34 +74,33 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ApiService mainApiService;
 
     private VehicleTrailRenderer trailRenderer;
-    private RealtimeLocationClient realtimeClient;   // NEW — Option B push client
+    private RealtimeLocationClient realtimeClient;
 
-    // UI components
-    private View layoutCollapsed;              // FIX: was LinearLayout, XML root is RelativeLayout — see MIGRATION notes
+    private View layoutCollapsed;
     private LinearLayout layoutExpanded, layoutLeftFabs;
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
     private View fabAdd, fabHistory, btnRefresh;
     private BottomSheetBehavior<View> bottomSheetBehavior;
 
-    // Text tags and dots to show data
     private TextView tvCollapsedStatus, tvCollapsedAddress;
     private TextView tvExpandedStatus, tvExpandedAddress, tvLastUpdated, tvVehicleNameCollapsed, tvVehicleNameExpanded;
     private TextView tvVehicleImei, tvGpsDeviceStatus;
     private CardView dotIgnition, dotAC;
     private AddressResolver addressResolver;
 
-    // Variables for updating map automatically
+    private RecyclerView recyclerVehiclesTabList;
+    private VehicleListAdapter vehiclesTabAdapter;
+
     private final Handler handler = new Handler();
     private Runnable trackingRunnable;
-    private final int UPDATE_INTERVAL = 1000;   // NEW — was 10000. SignalR push is now primary; this is just a safety-net fallback poll in case the push connection drops.
+    private final int UPDATE_INTERVAL = 1000;
 
     private String currentCustomerId = null;
     private String selectedVehicleId = null;
     private String selectedVehicleName = "No vehicle yet";
     private boolean hasRealVehicle = false;
 
-    // Kept for Details/Nav grid actions.
     private VehicleResponse selectedVehicle = null;
     private LatLng lastKnownPosition = null;
 
@@ -107,9 +109,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private ConnectivityManager.NetworkCallback networkCallback;
 
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
-    // NEW -- same threshold and reasoning as HomeActivity's fix. GPS drift/
-    // multipath can report small non-zero speeds even when stationary.
-    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 2.0;
+    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 7.0;
+    private static final long ONLINE_THRESHOLD_MINUTES = 10;
     private static final String MAP_TYPE_PREF_KEY = "selected_map_type";
 
     @Override
@@ -122,27 +123,22 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
         registerNetworkMonitor();
 
-        // Setup API connection
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         mainApiService = ApiClient.getClient().create(ApiService.class);
-        addressResolver = new AddressResolver(this); //object
+        addressResolver = new AddressResolver(this);
 
-        // Link code with XML design
         initViews();
         setupBottomSheet();
         setupGridMenu();
 
-        // Load the Google Map
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mapVehicles);
         if (mapFragment != null) mapFragment.getMapAsync(this);
 
-        // Fetch user data and start tracking
         loadUserData();
         startRealTimeTracking();
     }
 
-    // Connect variables to XML IDs
     private void initViews() {
         layoutCollapsed = findViewById(R.id.layoutCollapsed);
         layoutExpanded = findViewById(R.id.layoutExpanded);
@@ -151,9 +147,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         fabAdd = findViewById(R.id.fabAdd);
         fabHistory = findViewById(R.id.fabHistory);
 
-        // FIX: fabHistory now lives permanently in the top-right FAB stack (see XML),
-        // always visible, same as Letstrack's reference UI. No visibility toggling
-        // needed here anymore — it never moves or disappears with the sheet's state.
         if (fabHistory != null) {
             fabHistory.setOnClickListener(v -> openTripHistory());
         }
@@ -172,9 +165,15 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         btnCloseExpanded = findViewById(R.id.btnCloseExpanded);
         btnRefresh = findViewById(R.id.btnRefresh);
+
+        recyclerVehiclesTabList = findViewById(R.id.recyclerVehiclesTabList);
+        if (recyclerVehiclesTabList != null) {
+            recyclerVehiclesTabList.setLayoutManager(new LinearLayoutManager(this));
+            vehiclesTabAdapter = new VehicleListAdapter(new ArrayList<>(), this::onVehiclesTabVehicleSelected, this::confirmRemoveVehicleFromVehiclesTab);
+            recyclerVehiclesTabList.setAdapter(vehiclesTabAdapter);
+        }
     }
 
-    // Setup how the bottom sheet moves and button clicks
     private void setupBottomSheet() {
         View bottomSheet = findViewById(R.id.bottomSheetVehicleDetails);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
@@ -183,24 +182,18 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    // Show full menu when swiped all the way up
                     gridMenu.setVisibility(View.VISIBLE);
                 } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    // Show small card when swiped down
                     layoutExpanded.setVisibility(View.GONE);
                     gridMenu.setVisibility(View.GONE);
                     layoutCollapsed.setVisibility(View.VISIBLE);
                     if (fabAdd != null) fabAdd.setVisibility(View.VISIBLE);
-                    // FIX: fabHistory visibility no longer tied to sheet state — removed
-                    // the two toggle lines that used to live here and in the expand
-                    // block below. It stays permanently visible in the top-right stack.
                     if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.GONE);
                 }
             }
             @Override public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
         });
 
-        // Open to half-screen when clicking the small bottom card
         if (layoutCollapsed != null) {
             layoutCollapsed.setOnClickListener(v -> {
                 layoutCollapsed.setVisibility(View.GONE);
@@ -209,21 +202,12 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 gridMenu.setVisibility(View.VISIBLE);
                 if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.VISIBLE);
 
-                // FIX round 2: setting visibility and calling setState() in the same
-                // click let BottomSheetBehavior calculate the expanded height from a
-                // STALE measurement taken before gridMenu became visible -- the sheet
-                // expanded to its old, smaller size and the new grid content had
-                // nowhere to go (looked "stuck", nothing left to scroll into).
-                // Deferring setState() with post() lets the layout pass that makes
-                // the grid visible complete FIRST, so the behavior re-measures
-                // including the grid before deciding the expanded height.
                 View bottomSheetView = findViewById(R.id.bottomSheetVehicleDetails);
                 bottomSheetView.post(() ->
                         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED));
             });
         }
 
-        // Close back to small card when 'X' is clicked
         if (btnCloseExpanded != null) {
             btnCloseExpanded.setOnClickListener(v -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED));
         }
@@ -247,7 +231,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Click Vehicles (Just close the sheet if it's open)
         View navVehicles = findViewById(R.id.nav_vehicles);
         if (navVehicles != null) {
             navVehicles.setOnClickListener(v -> {
@@ -257,7 +240,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Go to Tags Screen
         View navTags = findViewById(R.id.nav_tags);
         if (navTags != null) {
             navTags.setOnClickListener(v -> {
@@ -268,7 +250,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Go to Circles Screen
         View navCircles = findViewById(R.id.nav_circles);
         if (navCircles != null) {
             navCircles.setOnClickListener(v -> {
@@ -279,7 +260,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Go to Alerts Screen (Updated)
         View navAlerts = findViewById(R.id.nav_alerts);
         if (navAlerts != null) {
             navAlerts.setOnClickListener(v -> {
@@ -290,9 +270,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // ----------------------------------------------------------------------
-        // මෙන්න වෙනස් කරපු Menu Button කේතය (Home එකට ගිහින් Drawer එක අරින්න)
-        // ----------------------------------------------------------------------
         View navMenu = findViewById(R.id.nav_menu);
         if (navMenu != null) {
             navMenu.setOnClickListener(v -> {
@@ -304,7 +281,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        // Refresh location button
         if (btnRefresh != null) {
             btnRefresh.setOnClickListener(v -> {
                 Toast.makeText(this, "Refreshing location...", Toast.LENGTH_SHORT).show();
@@ -313,16 +289,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
-    /**
-     * Wires the action grid (History / Alerts / VoiceTrack / Value / Places /
-     * Immobilize / Nav / Details), matching Letstrack's reference layout.
-     *
-     * Only History, Nav, and Details do something real right now. VoiceTrack,
-     * Value, and Places are grayed out in the XML and show a placeholder message —
-     * they aren't built features yet, not broken ones. Immobilize is Engine Cut:
-     * it is DELIBERATELY never wired to any real command. Do not change this
-     * without an explicit, written safety specification from the client.
-     */
     private void setupGridMenu() {
         View btnMenuHistory = findViewById(R.id.btnMenuHistory);
         if (btnMenuHistory != null) {
@@ -347,9 +313,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
         }
 
-        // SAFETY: Immobilize = Engine Cut. Never wire this to a real command without
-        // an explicit safety spec (speed threshold, confirmation flow, PIN, fallback
-        // behavior) agreed with the client. This handler only informs the user.
         View btnMenuImmobilize = findViewById(R.id.btnMenuImmobilize);
         if (btnMenuImmobilize != null) {
             btnMenuImmobilize.setOnClickListener(v -> new AlertDialog.Builder(this)
@@ -388,7 +351,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (mapIntent.resolveActivity(getPackageManager()) != null) {
             startActivity(mapIntent);
         } else {
-            // Google Maps app not installed — fall back to a browser-based maps URL.
             Uri webUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=" +
                     lastKnownPosition.latitude + "," + lastKnownPosition.longitude);
             startActivity(new Intent(Intent.ACTION_VIEW, webUri));
@@ -423,11 +385,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         dialog.setContentView(view);
 
         ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
-        if (viewPager != null) {
-            // NOTE: Ensure CallCenterPagerAdapter exists in your project
-            // viewPager.setAdapter(new CallCenterPagerAdapter());
-        }
-
         ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
 
@@ -437,7 +394,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         dialog.show();
     }
 
-    // customers). Now uses the /me endpoint, same fix already applied in HomeActivity.
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -452,6 +408,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
                             fetchVehicles();
+                            fetchVehiclesTabList();
                         }
                     } else {
                         Log.w("VehiclesActivity", "getMyProfile failed with code " + response.code());
@@ -468,7 +425,20 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
-    // Fetch the list of vehicles owned by this customer
+    private VehicleResponse pickSelectedVehicle(List<VehicleResponse> list) {
+        String selectedId = getSharedPreferences(
+                com.example.letstracklanka.ui.vehicles.VehicleListActivity.VEHICLE_PREFS_NAME,
+                Context.MODE_PRIVATE)
+                .getString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, null);
+
+        if (selectedId != null) {
+            for (VehicleResponse v : list) {
+                if (selectedId.equalsIgnoreCase(v.getVehicleId())) return v;
+            }
+        }
+        return list.get(list.size() - 1);
+    }
+
     private void fetchVehicles() {
         if (currentCustomerId == null) return;
         mainApiService.getVehiclesByCustomer(currentCustomerId).enqueue(new Callback<ResponseBody>() {
@@ -479,13 +449,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         if (!list.isEmpty()) {
-                            // Select the most recently added vehicle
-                            VehicleResponse vehicle = list.get(list.size() - 1);
+                            VehicleResponse vehicle = pickSelectedVehicle(list);
                             selectedVehicle = vehicle;
                             selectedVehicleId = vehicle.getVehicleId();
                             trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
 
-                            // NEW — start real-time push for this vehicle (Option B)
                             if (realtimeClient == null) {
                                 realtimeClient = new RealtimeLocationClient();
                                 realtimeClient.connect(selectedVehicleId, payload ->
@@ -494,7 +462,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                             selectedVehicleName = vehicle.getMake() + " " + vehicle.getModel();
                             hasRealVehicle = true;
 
-                            // Vehicle Information display
                             if (vehicle.hasGpsDevice() && vehicle.getImei() != null) {
                                 if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: " + vehicle.getImei());
                                 if (tvGpsDeviceStatus != null) {
@@ -510,6 +477,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                             }
 
                             updateVehicleUI();
+                            fetchLocationData();
                         }
                     } else {
                         Log.w("VehiclesActivity", "fetchVehicles failed, code " + response.code());
@@ -527,7 +495,68 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
-    // Update the vehicle name on the screen
+    private void fetchVehiclesTabList() {
+        if (currentCustomerId == null || vehiclesTabAdapter == null) return;
+        mainApiService.getCustomerDashboard(currentCustomerId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (!response.isSuccessful() || body == null) return;
+                    Gson gson = new Gson();
+                    JsonObject root = gson.fromJson(body.string(), JsonObject.class);
+                    if (root == null || !root.has("data") || root.get("data").isJsonNull()) return;
+                    JsonObject data = root.getAsJsonObject("data");
+                    if (!data.has("vehicles") || !data.get("vehicles").isJsonArray()) return;
+
+                    List<DashboardVehicle> vehicles = gson.fromJson(data.getAsJsonArray("vehicles"),
+                            TypeToken.getParameterized(List.class, DashboardVehicle.class).getType());
+                    vehiclesTabAdapter.updateVehicles(vehicles);
+                } catch (Exception e) {
+                    Log.e("VehiclesActivity", "fetchVehiclesTabList parse error", e);
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("VehiclesActivity", "fetchVehiclesTabList network error", t);
+            }
+        });
+    }
+
+    private void onVehiclesTabVehicleSelected(DashboardVehicle vehicle) {
+        getSharedPreferences(
+                com.example.letstracklanka.ui.vehicles.VehicleListActivity.VEHICLE_PREFS_NAME,
+                Context.MODE_PRIVATE)
+                .edit()
+                .putString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, vehicle.getVehicleId())
+                .apply();
+        fetchVehicles();
+    }
+
+    private void confirmRemoveVehicleFromVehiclesTab(DashboardVehicle vehicle) {
+        new AlertDialog.Builder(this)
+                .setTitle("Remove " + vehicle.getVehicleNumber() + "?")
+                .setMessage("This removes the vehicle from your account and frees its GPS device so it can be linked to a new vehicle. Trip history and alerts are kept. This can't be undone from the app.")
+                .setPositiveButton("Remove", (dialog, which) -> {
+                    mainApiService.deleteVehicle(vehicle.getVehicleId()).enqueue(new Callback<ResponseBody>() {
+                        @Override
+                        public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                            if (response.isSuccessful()) {
+                                fetchVehiclesTabList();
+                                fetchVehicles();
+                            } else {
+                                showRetryDialog("Couldn't remove vehicle (code " + response.code() + ")", null);
+                            }
+                        }
+                        @Override
+                        public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                            showRetryDialog("Network error — couldn't remove vehicle", null);
+                        }
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private void updateVehicleUI() {
         if (tvVehicleNameCollapsed != null) tvVehicleNameCollapsed.setText(selectedVehicleName);
         if (tvVehicleNameExpanded != null) tvVehicleNameExpanded.setText(selectedVehicleName);
@@ -537,16 +566,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         mMap = googleMap;
         trailRenderer = new VehicleTrailRenderer(this, mMap, trackingApi);
 
-        // NEW -- silently apply whichever map type was last chosen on Home.
-        // Same SharedPreferences file/key as HomeActivity, so the choice is
-        // genuinely shared, not a separate, disconnected setting. No switcher
-        // UI on this screen -- just respects what was picked elsewhere.
         int savedMapType = getSharedPreferences(MAP_PREFS_NAME, Context.MODE_PRIVATE)
                 .getInt(MAP_TYPE_PREF_KEY, GoogleMap.MAP_TYPE_NORMAL);
         mMap.setMapType(savedMapType);
     }
 
-    // Start fetching location every few seconds
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         trackingRunnable = new Runnable() {
@@ -558,14 +582,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         handler.post(trackingRunnable);
     }
 
-    // FIX: was trackingApi.getAllCurrentLocations() — the staff-only endpoint that 403s
-    // for regular customers (the exact bug fixed in HomeActivity earlier tonight).
-    // Now polls the single selected vehicle via the scoped, ownership-checked endpoint.
-    /**
-     * Handles a location pushed via SignalR (Option B). Mirrors fetchLocationData()'s
-     * success path, but reads from RealtimeLocationPayload instead of LocationResponse
-     * since the latter has no setters and can't be constructed from pushed data.
-     */
     private void handlePushedLocation(RealtimeLocationPayload payload) {
         if (payload.getVehicleId() == null || mMap == null || !hasRealVehicle) return;
         LatLng pos = new LatLng(payload.getLatitude(), payload.getLongitude());
@@ -608,12 +624,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
                         LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
                         if (pos.latitude != 0 || pos.longitude != 0) {
-                            lastKnownPosition = pos;   // used by the Nav grid action
+                            lastKnownPosition = pos;
                             trailRenderer.updatePosition(pos, loc.getHeading(), selectedVehicleName);
                             updateUI(loc);
                         }
                     } else if (response.code() == 404) {
-                        // No location reported yet for this vehicle — normal, not an error.
                         Log.d("VehiclesActivity", "No current location yet for " + selectedVehicleId);
                     }
                 } catch (Exception e) {
@@ -626,7 +641,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
-    // Change text, colors, and camera based on location data
     private void updateUI(LocationResponse loc) {
         LatLng pos = new LatLng(loc.getLatitude(), loc.getLongitude());
         if (pos.latitude == 0 && pos.longitude == 0) return;
@@ -639,8 +653,19 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             if (tvExpandedAddress != null) tvExpandedAddress.setText(address);
         });
 
-        String status = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? "Moving (" + (int) loc.getSpeed() + " km/h)" : (loc.isIgnitionOn() ? "Idle" : "Parked");
-        int color = loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH ? ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving) : Color.parseColor("#1976D2");
+        boolean isStale = loc.getMinutesSinceUpdate() > ONLINE_THRESHOLD_MINUTES;
+        String status;
+        int color;
+        if (isStale) {
+            status = "Offline";
+            color = Color.parseColor("#F59E0B");
+        } else if (loc.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH) {
+            status = "Moving (" + (int) loc.getSpeed() + " km/h)";
+            color = ContextCompat.getColor(this, com.example.letstracklanka.R.color.status_moving);
+        } else {
+            status = loc.isIgnitionOn() ? "Idle" : "Parked";
+            color = Color.parseColor("#1976D2");
+        }
         if (tvCollapsedStatus != null) { tvCollapsedStatus.setText(status); tvCollapsedStatus.setTextColor(color); }
         if (tvExpandedStatus != null) { tvExpandedStatus.setText(status); tvExpandedStatus.setTextColor(color); }
 
@@ -648,17 +673,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (dotIgnition != null) dotIgnition.setCardBackgroundColor(dotColor);
         if (dotAC != null) dotAC.setCardBackgroundColor(dotColor);
 
-        // Update the 'Last Updated' time text
         if (tvLastUpdated != null) tvLastUpdated.setText(String.format(Locale.getDefault(), "Sync: %s", new SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(new Date())));
     }
 
-    /**
-     * FIX: the old parseList() never unwrapped the API's envelope
-     * ({"success":true,...,"data":[...]}) — it parsed the WHOLE envelope object as if it
-     * were a single VehicleResponse/CustomerResponse, producing an object with every
-     * field null. Both parseList (for arrays) and extractObject (for single objects)
-     * now correctly reach into "data" first.
-     */
     private <T> List<T> parseList(String json, Class<T> clazz) {
         List<T> list = new ArrayList<>();
         if (json == null || json.trim().isEmpty()) return list;
@@ -691,17 +708,18 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
-    /**
-     * Same in-line banner pattern as HomeActivity, for a consistent,
-     * professional look across the app -- not a system Toast/Dialog/Snackbar.
-     */
     private void showRetryDialog(String message, Runnable retryAction) {
         if (errorBanner == null) return;
         tvErrorBannerMessage.setText(message);
-        tvErrorBannerRetry.setOnClickListener(v -> {
-            hideErrorBanner();
-            retryAction.run();
-        });
+        if (retryAction != null) {
+            tvErrorBannerRetry.setVisibility(View.VISIBLE);
+            tvErrorBannerRetry.setOnClickListener(v -> {
+                hideErrorBanner();
+                retryAction.run();
+            });
+        } else {
+            tvErrorBannerRetry.setVisibility(View.GONE);
+        }
         errorBanner.setVisibility(View.VISIBLE);
     }
 
@@ -709,7 +727,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (errorBanner != null) errorBanner.setVisibility(View.GONE);
     }
 
-    /** Same real-time connectivity monitoring as HomeActivity. */
     private void registerNetworkMonitor() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return;
@@ -734,7 +751,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     @Override protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
-        if (realtimeClient != null) realtimeClient.stop();   // NEW
+        if (realtimeClient != null) realtimeClient.stop();
 
         if (networkCallback != null) {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);

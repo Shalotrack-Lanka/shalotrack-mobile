@@ -328,6 +328,29 @@
 
                     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginTop="16dp" android:layout_marginBottom="12dp"/>
 
+                    <!-- NEW: vehicle switcher list, same component as Home's
+                         stacked list. Tapping an item here switches which
+                         vehicle this entire screen (map + details + grid)
+                         is currently showing. -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="MY VEHICLES"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.05"
+                        android:textColor="@color/brand_primary"
+                        android:layout_marginBottom="8dp"/>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recyclerVehiclesTabList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:layout_marginBottom="12dp" />
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginBottom="12dp"/>
+
                     <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnRefresh"
@@ -615,8 +638,6 @@
 
     </LinearLayout>
 
-    <!-- Same in-line error banner pattern as HomeActivity, for consistency
-         across the app: not a system Toast, Dialog, or Snackbar. -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/errorBanner"
         android:layout_width="match_parent"
