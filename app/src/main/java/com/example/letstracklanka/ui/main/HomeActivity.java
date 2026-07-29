@@ -220,7 +220,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        // WIRE VOICE TRACK MENU
         View btnMenuVoiceTrack = findViewById(R.id.btnMenuVoiceTrack);
         if (btnMenuVoiceTrack != null) {
             btnMenuVoiceTrack.setOnClickListener(v -> {
@@ -405,7 +404,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_voice_track, null);
         dialog.setContentView(view);
 
-        // Make the background map clearly visible (Real-time tracking continues running)
         if (dialog.getWindow() != null) {
             dialog.getWindow().setDimAmount(0.1f);
         }
