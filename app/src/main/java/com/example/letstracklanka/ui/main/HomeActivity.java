@@ -1,5 +1,8 @@
 package com.example.letstracklanka.ui.main;
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.DatePickerDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -7,27 +10,39 @@ import android.net.Network;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.content.res.ColorStateList;
+import android.database.Cursor;
 import android.graphics.Color;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
+import android.provider.ContactsContract;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
@@ -43,9 +58,8 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
-import com.example.letstracklanka.ui.main.AddressResolver;
-import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.example.letstracklanka.ui.auth.LoginActivity;
+import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -60,10 +74,12 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -77,7 +93,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable trackingRunnable;
     private String currentCustomerId = null;
     private CustomerResponse currentCustomer = null;
@@ -168,7 +184,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (btnMenuReports != null) {
             btnMenuReports.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
-                startActivity(new Intent(HomeActivity.this, com.example.letstracklanka.ui.history.TripHistoryActivity.class));
+                showReportsMenuBottomSheet();
             });
         }
         View btnMenuChatSupport = findViewById(R.id.btnMenuChatSupport);
@@ -180,8 +196,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         View btnMenuVoiceTrack = findViewById(R.id.btnMenuVoiceTrack);
         if (btnMenuVoiceTrack != null) {
-            btnMenuVoiceTrack.setOnClickListener(v ->
-                    Toast.makeText(this, "Not available for this app", Toast.LENGTH_SHORT).show());
+            btnMenuVoiceTrack.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showVoiceTrackBottomSheet();
+            });
         }
         View menuPlaces = findViewById(R.id.btnMenuPlaces);
         if (menuPlaces != null) {
@@ -205,10 +223,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
         int[] comingSoonIds = {
-                R.id.btnMenuRefer,
                 R.id.btnMenuShop,
                 R.id.btnMenuHelpVideos,
-                R.id.btnMenuSettings,
                 R.id.btnMenuPrivacy
         };
         for (int id : comingSoonIds) {
