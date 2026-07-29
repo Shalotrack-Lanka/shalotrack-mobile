@@ -2,6 +2,7 @@ package com.example.letstracklanka.ui.main;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.DatePickerDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -22,10 +23,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -76,6 +79,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -116,6 +120,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private boolean isMonthlyBilling = false;
     private BottomSheetDialog referDialog;
+    private BottomSheetDialog reportsMenuDialog;
 
     private DrawerLayout drawerLayout;
     private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
@@ -208,7 +213,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (btnMenuReports != null) {
             btnMenuReports.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
-                startActivity(new Intent(HomeActivity.this, com.example.letstracklanka.ui.history.TripHistoryActivity.class));
+                showReportsMenuBottomSheet();
             });
         }
 
@@ -396,7 +401,108 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     // ---------------------------------------------------------
-    // Bottom Sheets Methods
+    // REPORTS BOTTOM SHEETS
+    // ---------------------------------------------------------
+
+    private void showReportsMenuBottomSheet() {
+        reportsMenuDialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_reports_menu, null);
+        reportsMenuDialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseReportsMenu);
+        if (btnClose != null) btnClose.setOnClickListener(v -> reportsMenuDialog.dismiss());
+
+        View cardKmReport = view.findViewById(R.id.cardKmReport);
+        View cardTripReport = view.findViewById(R.id.cardTripReport);
+        View cardFuelReport = view.findViewById(R.id.cardFuelReport);
+        View cardTempReport = view.findViewById(R.id.cardTempReport);
+        View cardAlertReport = view.findViewById(R.id.cardAlertReport);
+        View cardFuelGraph = view.findViewById(R.id.cardFuelGraph);
+        View cardStopAlert = view.findViewById(R.id.cardStopAlert);
+
+        if (cardKmReport != null) cardKmReport.setOnClickListener(v -> openReportFilter("KM Report"));
+        if (cardTripReport != null) cardTripReport.setOnClickListener(v -> openReportFilter("Trip Report"));
+        if (cardFuelReport != null) cardFuelReport.setOnClickListener(v -> openReportFilter("Fuel Report"));
+        if (cardTempReport != null) cardTempReport.setOnClickListener(v -> openReportFilter("Temperature Report"));
+        if (cardAlertReport != null) cardAlertReport.setOnClickListener(v -> openReportFilter("Alert Report"));
+        if (cardFuelGraph != null) cardFuelGraph.setOnClickListener(v -> openReportFilter("Fuel Graph"));
+        if (cardStopAlert != null) cardStopAlert.setOnClickListener(v -> openReportFilter("Stop Alert"));
+
+        reportsMenuDialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        reportsMenuDialog.show();
+    }
+
+    private void openReportFilter(String reportTitle) {
+        if (reportsMenuDialog != null && reportsMenuDialog.isShowing()) {
+            reportsMenuDialog.dismiss();
+        }
+        showReportFilterBottomSheet(reportTitle);
+    }
+
+    private void showReportFilterBottomSheet(String reportTitle) {
+        BottomSheetDialog filterDialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_report_filter, null);
+        filterDialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnCloseFilter);
+        if (btnClose != null) btnClose.setOnClickListener(v -> filterDialog.dismiss());
+
+        TextView tvTitle = view.findViewById(R.id.tvSelectedReportTitle);
+        if (tvTitle != null) tvTitle.setText(reportTitle);
+
+        Spinner spinnerDevices = view.findViewById(R.id.spinnerDevices);
+        List<String> deviceNames = new ArrayList<>();
+        deviceNames.add("None selected");
+        deviceNames.addAll(myVehicles.values());
+
+        ArrayAdapter<String> deviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, deviceNames);
+        deviceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        if (spinnerDevices != null) spinnerDevices.setAdapter(deviceAdapter);
+
+        Spinner spinnerRecords = view.findViewById(R.id.spinnerRecords);
+        String[] recordsArray = {"10", "25", "50", "100"};
+        ArrayAdapter<String> recordsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, recordsArray);
+        recordsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        if (spinnerRecords != null) {
+            spinnerRecords.setAdapter(recordsAdapter);
+            spinnerRecords.setSelection(1);
+        }
+
+        TextView tvFromDate = view.findViewById(R.id.tvFromDate);
+        TextView tvToDate = view.findViewById(R.id.tvToDate);
+
+        View.OnClickListener dateClickListener = v -> {
+            Calendar calendar = Calendar.getInstance();
+            new DatePickerDialog(this, (view1, year, month, dayOfMonth) -> {
+                String dateStr = String.format(Locale.US, "%d-%02d-%02d", year, month + 1, dayOfMonth);
+                if (v instanceof TextView) {
+                    ((TextView) v).setText(dateStr);
+                }
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
+        };
+
+        if (tvFromDate != null) tvFromDate.setOnClickListener(dateClickListener);
+        if (tvToDate != null) tvToDate.setOnClickListener(dateClickListener);
+
+        MaterialButton btnSubmit = view.findViewById(R.id.btnSubmitReport);
+        if (btnSubmit != null) {
+            btnSubmit.setOnClickListener(v -> {
+                String selectedDevice = spinnerDevices != null ? spinnerDevices.getSelectedItem().toString() : "None";
+                if ("None selected".equals(selectedDevice)) {
+                    Toast.makeText(this, "Please select a Device / Vehicle", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Toast.makeText(this, "Generating " + reportTitle + " for " + selectedDevice + "...", Toast.LENGTH_SHORT).show();
+                filterDialog.dismiss();
+            });
+        }
+
+        filterDialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        filterDialog.show();
+    }
+
+    // ---------------------------------------------------------
+    // OTHER BOTTOM SHEETS
     // ---------------------------------------------------------
 
     private void showVoiceTrackBottomSheet() {
