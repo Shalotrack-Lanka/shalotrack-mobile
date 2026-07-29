@@ -45,10 +45,16 @@
         <activity android:name=".ui.history.TripHistoryActivity" android:exported="false" />
         <activity android:name=".ui.history.TripDetailActivity" android:exported="false" />
 
+        <!-- 🚀 මෙතනින් තමයි කෙලින්ම Dashboard (HomeActivity) එක Load වෙන්න හැදුවේ -->
         <activity
             android:name=".ui.main.HomeActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:exported="true"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.auth.ProcessingActivity"
@@ -79,15 +85,11 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
+        <!-- ❌ SplashActivity එකෙන් Launcher කෑල්ල අයින් කළා -->
         <activity
             android:name=".ui.main.SplashActivity"
-            android:exported="true"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
         <activity
             android:name=".ui.main.MainActivity"

@@ -16,6 +16,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.ContactsContract;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -778,15 +780,40 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         ImageView btnClose = view.findViewById(R.id.btnCloseContacts);
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
 
+        EditText etSearchContacts = view.findViewById(R.id.etSearchContacts);
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewContacts);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
-            List<PhoneContact> contacts = getDeviceContacts();
+            List<PhoneContact> fullContactList = getDeviceContacts();
+
             runOnUiThread(() -> {
-                ContactsAdapter adapter = new ContactsAdapter(contacts);
+                ContactsAdapter adapter = new ContactsAdapter(fullContactList);
                 recyclerView.setAdapter(adapter);
+
+                if (etSearchContacts != null) {
+                    etSearchContacts.addTextChangedListener(new TextWatcher() {
+                        @Override
+                        public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+                        @Override
+                        public void onTextChanged(CharSequence s, int start, int before, int count) {
+                            String query = s.toString().toLowerCase(Locale.ROOT).trim();
+                            List<PhoneContact> filteredList = new ArrayList<>();
+
+                            for (PhoneContact contact : fullContactList) {
+                                if (contact.name.toLowerCase(Locale.ROOT).contains(query) || contact.phone.contains(query)) {
+                                    filteredList.add(contact);
+                                }
+                            }
+                            adapter.updateList(filteredList);
+                        }
+
+                        @Override
+                        public void afterTextChanged(Editable s) { }
+                    });
+                }
             });
         });
 
@@ -833,10 +860,16 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHolder> {
-        private final List<PhoneContact> contacts;
+        private List<PhoneContact> contacts;
 
         ContactsAdapter(List<PhoneContact> contacts) {
-            this.contacts = contacts;
+            this.contacts = new ArrayList<>(contacts);
+        }
+
+        public void updateList(List<PhoneContact> newList) {
+            this.contacts.clear();
+            this.contacts.addAll(newList);
+            notifyDataSetChanged();
         }
 
         @NonNull
