@@ -1205,4 +1205,4 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         if (realtimeClient != null) realtimeClient.stop();
     }
-}
+}git add .
