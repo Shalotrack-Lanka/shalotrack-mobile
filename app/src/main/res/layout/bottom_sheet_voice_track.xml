@@ -99,8 +99,9 @@
         android:textColor="#777777"
         android:textSize="13sp" />
 
+    <!-- 🚀 ID එක වෙනස් කළා: btnSendAlexaVerification -->
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnMenuVoiceTrack"
+        android:id="@+id/btnSendAlexaVerification"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_marginTop="24dp"
