@@ -91,6 +91,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private RecyclerView recyclerVehiclesTabList;
     private VehicleListAdapter vehiclesTabAdapter;
+    private android.widget.EditText etVehicleSearch;
+    private TextView tvCountMoving, tvCountIdle, tvCountParked, tvCountOffline;
 
     private final Handler handler = new Handler();
     private Runnable trackingRunnable;
@@ -169,9 +171,66 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         recyclerVehiclesTabList = findViewById(R.id.recyclerVehiclesTabList);
         if (recyclerVehiclesTabList != null) {
             recyclerVehiclesTabList.setLayoutManager(new LinearLayoutManager(this));
+            // FIX: the XML nestedScrollingEnabled="false" attribute alone
+            // wasn't reliably enough -- confirmed via a real screenshot
+            // showing the list squished/cut off inside the NestedScrollView.
+            // Setting this explicitly in code is the more reliable fix for
+            // this well-known RecyclerView-inside-scrolling-container issue.
+            recyclerVehiclesTabList.setNestedScrollingEnabled(false);
+            recyclerVehiclesTabList.setHasFixedSize(false);
             vehiclesTabAdapter = new VehicleListAdapter(new ArrayList<>(), this::onVehiclesTabVehicleSelected, this::confirmRemoveVehicleFromVehiclesTab);
             recyclerVehiclesTabList.setAdapter(vehiclesTabAdapter);
         }
+
+        // NEW (Letstrack parity): search bar filters the vehicle list
+        // client-side, no extra network call per keystroke.
+        etVehicleSearch = findViewById(R.id.etVehicleSearch);
+        if (etVehicleSearch != null) {
+            etVehicleSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (vehiclesTabAdapter != null) vehiclesTabAdapter.filter(s.toString());
+                }
+                @Override public void afterTextChanged(android.text.Editable s) {}
+            });
+        }
+
+        tvCountMoving = findViewById(R.id.tvCountMoving);
+        tvCountIdle = findViewById(R.id.tvCountIdle);
+        tvCountParked = findViewById(R.id.tvCountParked);
+        tvCountOffline = findViewById(R.id.tvCountOffline);
+    }
+
+    // NEW (Letstrack parity): classifies every vehicle into exactly one of
+    // the four summary buckets and updates the count chips. Counts are
+    // always computed from ALL vehicles (adapter.getAllVehicles()), not
+    // the currently search-filtered subset -- the summary should reflect
+    // the whole fleet regardless of what's typed in the search box.
+    // "No Device" vehicles are folded into "Offline": Letstrack's own
+    // reference only has these four categories, no fifth "No Device"
+    // chip, and a vehicle with nothing assigned is, at minimum, also not
+    // reporting.
+    private void updateVehicleStatusCounts() {
+        if (vehiclesTabAdapter == null) return;
+        List<DashboardVehicle> all = vehiclesTabAdapter.getAllVehicles();
+        int moving = 0, idle = 0, parked = 0, offline = 0;
+        if (all != null) {
+            for (DashboardVehicle v : all) {
+                if (!v.hasDevice() || !v.isOnline()) {
+                    offline++;
+                } else if (v.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH) {
+                    moving++;
+                } else if (v.isIgnitionOn()) {
+                    idle++;
+                } else {
+                    parked++;
+                }
+            }
+        }
+        if (tvCountMoving != null) tvCountMoving.setText(String.valueOf(moving));
+        if (tvCountIdle != null) tvCountIdle.setText(String.valueOf(idle));
+        if (tvCountParked != null) tvCountParked.setText(String.valueOf(parked));
+        if (tvCountOffline != null) tvCountOffline.setText(String.valueOf(offline));
     }
 
     private void setupBottomSheet() {
@@ -195,17 +254,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
 
         if (layoutCollapsed != null) {
-            layoutCollapsed.setOnClickListener(v -> {
-                layoutCollapsed.setVisibility(View.GONE);
-                if (fabAdd != null) fabAdd.setVisibility(View.GONE);
-                layoutExpanded.setVisibility(View.VISIBLE);
-                gridMenu.setVisibility(View.VISIBLE);
-                if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.VISIBLE);
-
-                View bottomSheetView = findViewById(R.id.bottomSheetVehicleDetails);
-                bottomSheetView.post(() ->
-                        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED));
-            });
+            layoutCollapsed.setOnClickListener(v -> expandVehicleDetails());
         }
 
         if (btnCloseExpanded != null) {
@@ -425,18 +474,28 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 
-    private VehicleResponse pickSelectedVehicle(List<VehicleResponse> list) {
-        String selectedId = getSharedPreferences(
-                com.example.letstracklanka.ui.vehicles.VehicleListActivity.VEHICLE_PREFS_NAME,
-                Context.MODE_PRIVATE)
-                .getString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, null);
+    // REMOVED: pickSelectedVehicle(). Confirmed via actual logged API
+    // responses that /api/Vehicles/customer/{customerId} sometimes omits
+    // offline vehicles entirely (Honda Vezel was missing from it while
+    // present in the dashboard endpoint), so its old fallback of
+    // "list.get(list.size()-1)" was really "silently show whichever
+    // vehicle happens to be the only one this incomplete endpoint
+    // returned" -- which is exactly why tapping Honda Vezel always
+    // displayed JAPAN Mazda. Selection now comes from the dashboard list
+    // (vehiclesTabAdapter.getAllVehicles(), same data already backing the
+    // switcher list you tap, confirmed complete), via findDashboardVehicle()
+    // below. This is a client-side workaround for a server-side gap --
+    // /api/Vehicles/customer/{customerId} still needs fixing on the API
+    // side so it stops omitting offline vehicles.
 
-        if (selectedId != null) {
-            for (VehicleResponse v : list) {
-                if (selectedId.equalsIgnoreCase(v.getVehicleId())) return v;
-            }
+    private DashboardVehicle findDashboardVehicle(String vehicleId) {
+        if (vehicleId == null || vehiclesTabAdapter == null) return null;
+        List<DashboardVehicle> all = vehiclesTabAdapter.getAllVehicles();
+        if (all == null) return null;
+        for (DashboardVehicle v : all) {
+            if (vehicleId.equalsIgnoreCase(v.getVehicleId())) return v;
         }
-        return list.get(list.size() - 1);
+        return null;
     }
 
     private void fetchVehicles() {
@@ -448,37 +507,104 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     if (response.isSuccessful() && body != null) {
                         hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
-                        if (!list.isEmpty()) {
-                            VehicleResponse vehicle = pickSelectedVehicle(list);
-                            selectedVehicle = vehicle;
-                            selectedVehicleId = vehicle.getVehicleId();
-                            trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
 
-                            if (realtimeClient == null) {
-                                realtimeClient = new RealtimeLocationClient();
-                                realtimeClient.connect(selectedVehicleId, payload ->
-                                        runOnUiThread(() -> handlePushedLocation(payload)));
+                        String targetId = getSharedPreferences(
+                                com.example.letstracklanka.ui.vehicles.VehicleListActivity.VEHICLE_PREFS_NAME,
+                                Context.MODE_PRIVATE)
+                                .getString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, null);
+
+                        // Reliable source of truth for WHICH vehicle is
+                        // selected (see class-level comment above).
+                        DashboardVehicle dashboardMatch = findDashboardVehicle(targetId);
+
+                        // Supplementary only -- may legitimately be null even
+                        // for a real, linked vehicle, if this specific
+                        // endpoint's known gap is why it's missing.
+                        VehicleResponse detailMatch = null;
+                        if (targetId != null) {
+                            for (VehicleResponse v : list) {
+                                if (targetId.equalsIgnoreCase(v.getVehicleId())) { detailMatch = v; break; }
                             }
-                            selectedVehicleName = vehicle.getMake() + " " + vehicle.getModel();
-                            hasRealVehicle = true;
-
-                            if (vehicle.hasGpsDevice() && vehicle.getImei() != null) {
-                                if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: " + vehicle.getImei());
-                                if (tvGpsDeviceStatus != null) {
-                                    tvGpsDeviceStatus.setText("GPS Device: Linked");
-                                    tvGpsDeviceStatus.setTextColor(ContextCompat.getColor(VehiclesActivity.this, com.example.letstracklanka.R.color.status_moving));
-                                }
-                            } else {
-                                if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: Not linked");
-                                if (tvGpsDeviceStatus != null) {
-                                    tvGpsDeviceStatus.setText("GPS Device: Not linked");
-                                    tvGpsDeviceStatus.setTextColor(Color.parseColor("#E53935"));
-                                }
-                            }
-
-                            updateVehicleUI();
-                            fetchLocationData();
                         }
+
+                        if (dashboardMatch == null && detailMatch == null && !list.isEmpty()) {
+                            // No saved selection yet (e.g. very first launch,
+                            // before the switcher list/dashboard data has
+                            // loaded) -- fall back to the old behavior rather
+                            // than showing nothing.
+                            detailMatch = list.get(list.size() - 1);
+                        }
+
+                        if (dashboardMatch == null && detailMatch == null) {
+                            return; // genuinely nothing available to show yet
+                        }
+
+                        selectedVehicle = detailMatch; // may be null; showVehicleDetails() already null-checks this
+                        selectedVehicleId = dashboardMatch != null ? dashboardMatch.getVehicleId() : detailMatch.getVehicleId();
+                        trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
+
+                        // FIX: previously "if (realtimeClient == null)" only ever
+                        // connected once, at app launch. Switching vehicles
+                        // afterward updated selectedVehicleId but left the
+                        // realtime connection permanently subscribed to whatever
+                        // vehicle was selected FIRST -- its live pushes kept
+                        // arriving and overwriting the newly-selected vehicle's
+                        // status/address moments after switching, which is why
+                        // "currently tracking" looked stuck. Now torn down and
+                        // reconnected to the actual current selection every time.
+                        //
+                        // IMPORTANT: RealtimeLocationClient.stop() calls
+                        // hubConnection.stop().timeout(3, SECONDS).blockingAwait()
+                        // -- a genuinely blocking call, up to 3 seconds. This
+                        // onResponse() callback runs on the main thread (Retrofit's
+                        // Android default), so calling stop() directly here would
+                        // risk freezing the UI, or an ANR, on every vehicle switch.
+                        // The old client's teardown doesn't need to finish before
+                        // the new one starts (the vehicle-ID guard added in
+                        // handlePushedLocation() already protects against any
+                        // stale message arriving during the brief overlap), so
+                        // it's pushed onto a background thread instead.
+                        RealtimeLocationClient oldRealtimeClient = realtimeClient;
+                        if (oldRealtimeClient != null) {
+                            new Thread(oldRealtimeClient::stop, "RealtimeClient-Stop").start();
+                        }
+                        realtimeClient = new RealtimeLocationClient();
+                        realtimeClient.connect(selectedVehicleId, payload ->
+                                runOnUiThread(() -> handlePushedLocation(payload)));
+
+                        selectedVehicleName = dashboardMatch != null
+                                ? (dashboardMatch.getMake() + " " + dashboardMatch.getModel()).trim()
+                                : (detailMatch.getMake() + " " + detailMatch.getModel()).trim();
+                        hasRealVehicle = true;
+
+                        if (detailMatch != null && detailMatch.hasGpsDevice() && detailMatch.getImei() != null) {
+                            if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: " + detailMatch.getImei());
+                            if (tvGpsDeviceStatus != null) {
+                                tvGpsDeviceStatus.setText("GPS Device: Linked");
+                                tvGpsDeviceStatus.setTextColor(ContextCompat.getColor(VehiclesActivity.this, com.example.letstracklanka.R.color.status_moving));
+                            }
+                        } else if (dashboardMatch != null && dashboardMatch.hasDevice()) {
+                            // FIX: the vehicle IS linked -- confirmed via the
+                            // reliable dashboard data -- but this specific
+                            // endpoint's known gap means it didn't come back
+                            // with an IMEI this time. Say so honestly instead
+                            // of "Not linked", which would be a flatly false
+                            // statement about a real, linked device.
+                            if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: Pending sync");
+                            if (tvGpsDeviceStatus != null) {
+                                tvGpsDeviceStatus.setText("GPS Device: Linked");
+                                tvGpsDeviceStatus.setTextColor(ContextCompat.getColor(VehiclesActivity.this, com.example.letstracklanka.R.color.status_moving));
+                            }
+                        } else {
+                            if (tvVehicleImei != null) tvVehicleImei.setText("IMEI: Not linked");
+                            if (tvGpsDeviceStatus != null) {
+                                tvGpsDeviceStatus.setText("GPS Device: Not linked");
+                                tvGpsDeviceStatus.setTextColor(Color.parseColor("#E53935"));
+                            }
+                        }
+
+                        updateVehicleUI();
+                        fetchLocationData();
                     } else {
                         Log.w("VehiclesActivity", "fetchVehicles failed, code " + response.code());
                         showRetryDialog("Couldn't load your vehicle", VehiclesActivity.this::fetchVehicles);
@@ -511,6 +637,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     List<DashboardVehicle> vehicles = gson.fromJson(data.getAsJsonArray("vehicles"),
                             TypeToken.getParameterized(List.class, DashboardVehicle.class).getType());
                     vehiclesTabAdapter.updateVehicles(vehicles);
+                    updateVehicleStatusCounts();
                 } catch (Exception e) {
                     Log.e("VehiclesActivity", "fetchVehiclesTabList parse error", e);
                 }
@@ -530,6 +657,27 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 .putString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, vehicle.getVehicleId())
                 .apply();
         fetchVehicles();
+        // NEW: tapping a vehicle in the switcher list now opens the same
+        // expanded detail panel that tapping the collapsed summary bar
+        // already did -- previously this only updated the selection
+        // silently in the background, leaving the user looking at the
+        // same list with no visible confirmation anything happened.
+        expandVehicleDetails();
+    }
+
+    // Shared by both layoutCollapsed's own tap and the vehicle-switcher
+    // list's row tap -- previously duplicated inline only in the former.
+    private void expandVehicleDetails() {
+        if (layoutCollapsed != null) layoutCollapsed.setVisibility(View.GONE);
+        if (fabAdd != null) fabAdd.setVisibility(View.GONE);
+        if (layoutExpanded != null) layoutExpanded.setVisibility(View.VISIBLE);
+        if (gridMenu != null) gridMenu.setVisibility(View.VISIBLE);
+        if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.VISIBLE);
+
+        View bottomSheetView = findViewById(R.id.bottomSheetVehicleDetails);
+        if (bottomSheetView != null && bottomSheetBehavior != null) {
+            bottomSheetView.post(() -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED));
+        }
     }
 
     private void confirmRemoveVehicleFromVehiclesTab(DashboardVehicle vehicle) {
@@ -544,6 +692,25 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                                 fetchVehiclesTabList();
                                 fetchVehicles();
                             } else {
+                                // FIX: previously only logged/showed response.code(),
+                                // discarding response.errorBody() entirely -- which is
+                                // exactly where the API's actual validation message
+                                // lives. Reading it here doesn't fix the 400 itself
+                                // (that needs ApiService.java + the C# controller to
+                                // diagnose properly, not a guess), but it turns the
+                                // NEXT occurrence into an actionable message instead
+                                // of a bare, useless code.
+                                String serverMessage = null;
+                                try {
+                                    if (response.errorBody() != null) {
+                                        serverMessage = response.errorBody().string();
+                                    }
+                                } catch (Exception e) {
+                                    Log.e("VehiclesActivity", "Failed to read error body", e);
+                                }
+                                Log.e("VehiclesActivity", "deleteVehicle failed, code " + response.code()
+                                        + ", vehicleId=" + vehicle.getVehicleId()
+                                        + ", body=" + serverMessage);
                                 showRetryDialog("Couldn't remove vehicle (code " + response.code() + ")", null);
                             }
                         }
@@ -584,6 +751,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private void handlePushedLocation(RealtimeLocationPayload payload) {
         if (payload.getVehicleId() == null || mMap == null || !hasRealVehicle) return;
+        // FIX: guards against a message already in flight from the OLD
+        // realtime connection landing just after we've reconnected to a
+        // newly-selected vehicle -- without this, that one stale message
+        // could still briefly flash the previous vehicle's data.
+        if (selectedVehicleId == null || !selectedVehicleId.equalsIgnoreCase(payload.getVehicleId())) return;
         LatLng pos = new LatLng(payload.getLatitude(), payload.getLongitude());
         if (pos.latitude == 0 && pos.longitude == 0) return;
 
@@ -751,7 +923,15 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     @Override protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
-        if (realtimeClient != null) realtimeClient.stop();
+        // Same blocking-call concern as the reconnect fix above: stop() can
+        // block up to 3 seconds. onDestroy() runs on the main thread too, so
+        // this is pushed to a background thread rather than left inline.
+        // Pre-existing code (not introduced by this session's changes), but
+        // worth fixing now that stop()'s actual blocking behavior is confirmed.
+        RealtimeLocationClient clientToStop = realtimeClient;
+        if (clientToStop != null) {
+            new Thread(clientToStop::stop, "RealtimeClient-Stop-OnDestroy").start();
+        }
 
         if (networkCallback != null) {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
