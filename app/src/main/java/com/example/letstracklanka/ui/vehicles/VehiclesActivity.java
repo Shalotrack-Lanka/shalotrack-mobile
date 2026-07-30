@@ -393,6 +393,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private void openTripHistory() {
         Intent intent = new Intent(VehiclesActivity.this, TripHistoryActivity.class);
+        // FIX: previously passed NOTHING -- TripHistoryActivity had to guess
+        // the vehicle itself via a confirmed-buggy endpoint that silently
+        // omits offline vehicles, so History always showed one arbitrary
+        // vehicle's trips regardless of which one you were actually
+        // viewing. Now passes the vehicle actually on screen.
+        intent.putExtra(TripHistoryActivity.EXTRA_VEHICLE_ID, selectedVehicleId);
+        intent.putExtra(TripHistoryActivity.EXTRA_VEHICLE_NAME, selectedVehicleName);
         startActivity(intent);
     }
 

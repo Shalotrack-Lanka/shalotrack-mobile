@@ -63,7 +63,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:layout_alignParentEnd="true"
-                android:text="Post"
+                android:text="Share"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
@@ -111,6 +111,25 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Map thumbnail: a STATIC image (Google Static Maps API), not a
+             live embedded MapView, a scrolling list of live interactive
+             maps is a well-known performance/memory problem. Shows start
+             (green)/end (red) markers with a straight connecting line, NOT
+             the actual driven route (that needs the full per-trip GPS
+             point array, which this list-row granularity intentionally
+             doesn't fetch, see TripHistoryAdapter for the real curved
+             route in TripDetailActivity instead). Loaded/cached by
+             StaticMapLoader, using the same Maps API key already
+             configured for the SDK elsewhere in this app. -->
+        <ImageView
+            android:id="@+id/ivTripMap"
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:layout_marginTop="10dp"
+            android:background="#E2E8F0"
+            android:scaleType="centerCrop"
+            android:contentDescription="Trip route map" />
+
         <!-- Save Place Buttons (Start & End) -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -132,7 +151,8 @@
                     android:background="@drawable/bg_edit_text_rounded"
                     android:backgroundTint="#FED7AA"
                     android:gravity="center"
-                    android:paddingHorizontal="12dp">
+                    android:paddingHorizontal="12dp"
+                    android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -171,7 +191,8 @@
                     android:background="@drawable/bg_edit_text_rounded"
                     android:backgroundTint="#FED7AA"
                     android:gravity="center"
-                    android:paddingHorizontal="12dp">
+                    android:paddingHorizontal="12dp"
+                    android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"

@@ -52,7 +52,30 @@ public class VehicleTrailRenderer {
 
     private static final String TAG = "VehicleTrailRenderer";
     private static final int HISTORY_WINDOW_HOURS = 2;
-    private static final int ANIMATION_DURATION_MS = 400; //to make the movement very smooth lower the better
+
+    // FIX: previously a FIXED 400ms animation regardless of how much real
+    // time had passed since the last fix. With the device reporting every
+    // ~20s, that meant a quick 400ms slide followed by ~19.6s of the marker
+    // sitting frozen, then another quick dash -- which reads exactly as
+    // "jumping" because the animation duration had no relationship to the
+    // real reporting interval. Now the animation duration is the ACTUAL
+    // elapsed time since the last accepted fix, clamped to a sane range, so
+    // the marker glides continuously across the real ~20s window instead.
+    private static final long MIN_ANIMATION_DURATION_MS = 500;
+    private static final long MAX_ANIMATION_DURATION_MS = 25_000; // caps it if the app was backgrounded for a while
+
+    // Jitter filter: NOT road-snapping (see conversation -- Google Roads
+    // API / self-hosted map-matching were deliberately skipped given cost
+    // and deployment timeline). This is a much cheaper, purely
+    // physics-based sanity check: reject a fix only if the implied speed
+    // between it and the last ACCEPTED fix is beyond anything a real
+    // vehicle could do, which is the classic signature of a noisy/
+    // multipath GPS point rather than genuine movement. Won't guarantee
+    // the marker sits exactly on the road, but stops the worst, most
+    // visible "teleported off the road" jumps.
+    private static final double MIN_MEANINGFUL_MOVEMENT_METERS = 3.0; // below this, treat as "hasn't moved"
+    private static final long MIN_INTERVAL_FOR_SPEED_CHECK_MS = 2000;  // too short an interval to sanity-check reliably
+    private static final double MAX_PLAUSIBLE_SPEED_MPS = 55.6; // ~200 km/h, deliberately generous -- only catches genuine GPS errors
 
     private static final float ICON_ROTATION_OFFSET = -90f; // to make the vehicle look aligned to the respective heading of the map
 
@@ -63,6 +86,7 @@ public class VehicleTrailRenderer {
     private Marker marker;
     private Polyline polyline;
     private float currentBearing = 0f;
+    private long lastAcceptedFixTimeMs = 0L;
     private final List<LatLng> pathPoints = new ArrayList<>();
 
     public VehicleTrailRenderer(Context context, GoogleMap map, ShaloTrackApi api) {
@@ -136,6 +160,8 @@ public class VehicleTrailRenderer {
      * @param heading compass bearing in degrees (0 = north). Pass 0 if unknown/stationary.
      */
     public void updatePosition(LatLng newPos, float heading, String title) {
+        long now = System.currentTimeMillis();
+
         if (marker == null) {
             marker = map.addMarker(new MarkerOptions()
                     .position(newPos)
@@ -145,23 +171,78 @@ public class VehicleTrailRenderer {
                     .rotation(heading + ICON_ROTATION_OFFSET) //fixes the heading of the car img
                     .title(title));
             currentBearing = heading;
-        } else {
-            animateMarkerTo(marker, marker.getPosition(), newPos, currentBearing, heading);
-            currentBearing = heading;
+            lastAcceptedFixTimeMs = now;
+            appendToPathIfNew(newPos);
+            return;
         }
 
+        double distanceMeters = haversineMeters(marker.getPosition(), newPos);
+
+        if (distanceMeters < MIN_MEANINGFUL_MOVEMENT_METERS) {
+            // Effectively the same position (GPS noise floor even when
+            // stationary) -- nothing to animate, and NOT touching
+            // lastAcceptedFixTimeMs here is deliberate: it should keep
+            // tracking time since the last position that actually changed,
+            // not reset on every duplicate poll of an unmoving vehicle.
+            return;
+        }
+
+        long elapsedMs = now - lastAcceptedFixTimeMs;
+
+        if (elapsedMs >= MIN_INTERVAL_FOR_SPEED_CHECK_MS) {
+            double impliedSpeedMps = distanceMeters / (elapsedMs / 1000.0);
+            if (impliedSpeedMps > MAX_PLAUSIBLE_SPEED_MPS) {
+                // Rejected as noise -- a real vehicle cannot plausibly have
+                // covered this distance in this time. Deliberately NOT
+                // updating the marker, polyline, or lastAcceptedFixTimeMs:
+                // we just wait for the next fix rather than accept a fix
+                // that would visibly yank the marker off the road.
+                Log.w(TAG, "Rejected fix as GPS jitter: " + String.format(Locale.US,
+                        "%.0fm in %.1fs implies %.0f km/h (max plausible %.0f km/h)",
+                        distanceMeters, elapsedMs / 1000.0,
+                        impliedSpeedMps * 3.6, MAX_PLAUSIBLE_SPEED_MPS * 3.6));
+                return;
+            }
+        }
+        // If elapsedMs is too short to sanity-check reliably (e.g. a
+        // realtime push landing right after a poll tick), the fix is
+        // accepted unfiltered rather than risk a false rejection from an
+        // unstable near-zero-time-denominator speed calculation.
+
+        long animationDurationMs = Math.max(MIN_ANIMATION_DURATION_MS,
+                Math.min(elapsedMs, MAX_ANIMATION_DURATION_MS));
+        animateMarkerTo(marker, marker.getPosition(), newPos, currentBearing, heading, animationDurationMs);
+        currentBearing = heading;
+        lastAcceptedFixTimeMs = now;
+
+        appendToPathIfNew(newPos);
+    }
+
+    private void appendToPathIfNew(LatLng newPos) {
         if (pathPoints.isEmpty() || !pathPoints.get(pathPoints.size() - 1).equals(newPos)) {
             pathPoints.add(newPos);
             redrawPolyline();
         }
     }
 
-    private void animateMarkerTo(Marker marker, LatLng from, LatLng to, float fromBearing, float toBearing) {
+    /** Great-circle distance in meters between two points (Haversine formula). */
+    private double haversineMeters(LatLng a, LatLng b) {
+        final double EARTH_RADIUS_M = 6_371_000;
+        double lat1 = Math.toRadians(a.latitude);
+        double lat2 = Math.toRadians(b.latitude);
+        double dLat = Math.toRadians(b.latitude - a.latitude);
+        double dLng = Math.toRadians(b.longitude - a.longitude);
+        double h = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return 2 * EARTH_RADIUS_M * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    }
+
+    private void animateMarkerTo(Marker marker, LatLng from, LatLng to, float fromBearing, float toBearing, long durationMs) {
         // Take the shorter rotation path (e.g. 350 deg -> 10 deg should turn +20, not -340).
         float bearingDelta = ((toBearing - fromBearing + 540) % 360) - 180;
 
         ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(ANIMATION_DURATION_MS);
+        animator.setDuration(durationMs);
         animator.addUpdateListener(animation -> {
             float f = (float) animation.getAnimatedValue();
             double lat = from.latitude + (to.latitude - from.latitude) * f;
