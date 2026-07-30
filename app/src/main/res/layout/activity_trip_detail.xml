@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Redesigned to match Letstrack's actual playback screen (real reference
+     screenshots): floating journey-info card + speedometer over the map,
+     floating circular controls (recenter/speed/play-pause) instead of a
+     below-map bar, and a "Drive events" chip row in the bottom detail
+     panel. All chip values are either real existing data (Distance,
+     Duration, Top Speed, Avg Speed) or clearly labeled as an estimate
+     (Idle Count) computed from actual GPS points, see TripDetailActivity.java
+     for exactly why "Ignition On" and "Driver Score" are NOT included:
+     no ignition data exists anywhere in this pipeline, and no scoring
+     feature exists in this backend at all. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -49,105 +59,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Trip stats row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@color/surface_white"
-        android:padding="14dp"
-        android:elevation="1dp"
-        android:weightSum="4">
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
-            <TextView
-                android:id="@+id/tvStatDistance"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0.0 km"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="@color/brand_primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Distance"
-                android:textSize="10sp"
-                android:textColor="@color/text_muted" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
-            <TextView
-                android:id="@+id/tvStatDuration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0m"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="@color/brand_primary" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Duration"
-                android:textSize="10sp"
-                android:textColor="@color/text_muted" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
-            <TextView
-                android:id="@+id/tvStatMaxSpeed"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0 km/h"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="@color/status_danger" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Max Speed"
-                android:textSize="10sp"
-                android:textColor="@color/text_muted" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
-            <TextView
-                android:id="@+id/tvStatAvgSpeed"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0 km/h"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="@color/status_moving" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Avg Speed"
-                android:textSize="10sp"
-                android:textColor="@color/text_muted" />
-        </LinearLayout>
-    </LinearLayout>
-
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -159,138 +70,408 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-    </FrameLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@color/surface_white"
-        android:padding="16dp"
-        android:elevation="4dp">
-
-        <LinearLayout
+        <!-- Floating journey-info pill, matching the reference's
+             "3 km Journey / time range" card at the top of the map. -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_gravity="top"
+            android:layout_margin="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/tvJourneyDistance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="0.0 km Journey"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:id="@+id/tvJourneyTimeRange"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text=" "
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Floating speedometer, real playback speed + timestamp for
+             whichever GPS point is currently shown, replacing the old
+             plain "tvPlaybackReadout" text line with a proper dial-style
+             widget matching the reference. -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="76dp"
+            app:cardCornerRadius="44dp"
+            app:cardElevation="6dp"
+            app:cardBackgroundColor="@color/surface_white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/tvSpeedometerValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="START"
+                    android:text="km/h"
                     android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/status_moving" />
-
-                <TextView
-                    android:id="@+id/tvDetailStartAddress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Resolving..."
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:textColor="@color/text_muted" />
             </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="12dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="END"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/status_danger" />
-
-                <TextView
-                    android:id="@+id/tvDetailEndAddress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Resolving..."
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="12dp"
-            android:background="@color/surface_stroke" />
+        </androidx.cardview.widget.CardView>
 
         <TextView
-            android:id="@+id/tvPlaybackReadout"
-            android:layout_width="match_parent"
+            android:id="@+id/tvSpeedometerTime"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center"
-            android:text="-- : -- -- · 0 km/h"
-            android:textSize="14sp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="168dp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:background="@color/brand_primary"
+            android:text="--:--:-- --"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:textColor="@color/brand_primary" />
+            android:textColor="@color/text_on_dark" />
 
+        <!-- Floating circular controls, matching the reference's
+             recenter/speed-multiplier/pause stack on the right edge of
+             the map. Same FloatingActionButton styling already used
+             throughout the rest of the app (Home/Vehicles map screens),
+             not a new pattern. -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="4dp">
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="16dp"
+            android:orientation="vertical">
 
-            <ImageView
-                android:id="@+id/btnPlayPause"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@android:drawable/ic_media_play"
-                app:tint="@color/brand_primary"
-                android:contentDescription="Play" />
-
-            <SeekBar
-                android:id="@+id/seekPlayback"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:max="100"
-                android:progress="0" />
-
-            <TextView
-                android:id="@+id/btnPlaybackSpeed"
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/btnRecenter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:text="1x"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/brand_primary"
-                android:background="@color/surface_chip_selected_bg" />
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@color/surface_white"
+                app:fabSize="mini"
+                app:tint="@color/brand_primary"
+                app:srcCompat="@drawable/ic_my_location"
+                android:contentDescription="Recenter map" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/surface_white">
+
+                <TextView
+                    android:id="@+id/btnPlaybackSpeed"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="1x"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/brand_primary" />
+            </androidx.cardview.widget.CardView>
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/btnPlayPause"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:backgroundTint="@color/brand_primary"
+                app:fabSize="normal"
+                app:tint="@color/text_on_dark"
+                app:srcCompat="@android:drawable/ic_media_play"
+                android:contentDescription="Play" />
         </LinearLayout>
 
         <ProgressBar
             android:id="@+id/progressTripDetail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp" />
-    </LinearLayout>
+            android:layout_gravity="center" />
+
+    </FrameLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="320dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/surface_white"
+            android:padding="16dp"
+            android:elevation="4dp">
+
+            <SeekBar
+                android:id="@+id/seekPlayback"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="0" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="START"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/status_moving" />
+
+                    <TextView
+                        android:id="@+id/tvDetailStartAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Resolving..."
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
+
+                    <TextView
+                        android:id="@+id/tvDetailStartTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text=" "
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="END"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/status_danger" />
+
+                    <TextView
+                        android:id="@+id/tvDetailEndAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Resolving..."
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
+
+                    <TextView
+                        android:id="@+id/tvDetailEndTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text=" "
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/surface_stroke" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Average Speed"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tvStatAvgSpeed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 km/h"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/status_moving" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/surface_stroke" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DRIVE EVENTS"
+                android:textStyle="bold"
+                android:textSize="11sp"
+                android:letterSpacing="0.05"
+                android:textColor="@color/brand_primary"
+                android:layout_marginBottom="10dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="4">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <TextView
+                        android:id="@+id/tvStatMaxSpeed"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 km/h"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/status_danger" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Top Speed"
+                        android:textSize="9sp"
+                        android:textColor="@color/text_muted" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <!-- Client-side estimate from real GPS points (sustained
+                         near-zero speed). Labeled "Idle Count" rather than
+                         "Stops": this only detects the vehicle not moving,
+                         with no way to tell idling (engine running,
+                         stationary) apart from a genuine parked stop, since
+                         no ignition field exists anywhere in the GpsTracking
+                         data. Also distinct from the report-level
+                         "stopCount" field elsewhere in the app; TripSummary
+                         has no per-trip stop field at all, confirmed by
+                         reading the actual model. -->
+                    <TextView
+                        android:id="@+id/tvStatIdleCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Idle Count"
+                        android:textSize="9sp"
+                        android:textColor="@color/text_muted" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <TextView
+                        android:id="@+id/tvStatDuration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0m"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/brand_primary" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Duration"
+                        android:textSize="9sp"
+                        android:textColor="@color/text_muted" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <TextView
+                        android:id="@+id/tvStatDistance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0.0 km"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/brand_primary" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Distance"
+                        android:textSize="9sp"
+                        android:textColor="@color/text_muted" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

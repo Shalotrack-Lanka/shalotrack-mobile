@@ -96,7 +96,15 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private final Handler handler = new Handler();
     private Runnable trackingRunnable;
+    private Runnable vehicleListRefreshRunnable;
     private final int UPDATE_INTERVAL = 1000;
+    // Matches UPDATE_INTERVAL per explicit request. Real cost tradeoff: this
+    // fires a full dashboard API call (ALL of the customer's vehicles) every
+    // second the Vehicles screen is open, not the lightweight single-vehicle
+    // poll the "Currently Tracking" panel uses. Fine for a couple of test
+    // vehicles; worth revisiting if a customer's vehicle count grows, or if
+    // this shows up as meaningful load on the dashboard endpoint.
+    private static final int VEHICLE_LIST_REFRESH_INTERVAL_MS = 1000;
 
     private String currentCustomerId = null;
     private String selectedVehicleId = null;
@@ -747,6 +755,21 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             }
         };
         handler.post(trackingRunnable);
+
+        // FIX: fetchVehiclesTabList() was previously only ever called once,
+        // at initial load (plus once more after a delete) -- meaning the
+        // switcher list's speed/status went stale the moment the screen
+        // opened, while the "Currently Tracking" panel kept updating every
+        // second via a completely separate pipeline. That's exactly why the
+        // same vehicle could show two different speeds at the same moment.
+        if (vehicleListRefreshRunnable != null) handler.removeCallbacks(vehicleListRefreshRunnable);
+        vehicleListRefreshRunnable = new Runnable() {
+            @Override public void run() {
+                fetchVehiclesTabList();
+                handler.postDelayed(this, VEHICLE_LIST_REFRESH_INTERVAL_MS);
+            }
+        };
+        handler.postDelayed(vehicleListRefreshRunnable, VEHICLE_LIST_REFRESH_INTERVAL_MS);
     }
 
     private void handlePushedLocation(RealtimeLocationPayload payload) {
@@ -923,6 +946,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     @Override protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+        if (vehicleListRefreshRunnable != null) handler.removeCallbacks(vehicleListRefreshRunnable);
         // Same blocking-call concern as the reconnect fix above: stop() can
         // block up to 3 seconds. onDestroy() runs on the main thread too, so
         // this is pushed to a background thread rather than left inline.
