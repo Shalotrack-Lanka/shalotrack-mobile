@@ -35,6 +35,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/btnToggleDay"
         android:layout_width="wrap_content"
         android:layout_height="36dp"
         android:background="@drawable/bg_edit_text_rounded"
@@ -43,6 +44,7 @@
         android:paddingHorizontal="14dp">
 
         <TextView
+            android:id="@+id/tvToggleDayLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="▶ Day"
