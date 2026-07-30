@@ -125,85 +125,291 @@
                     android:layout_marginTop="12dp"
                     android:layout_marginBottom="12dp"/>
 
-                <RelativeLayout
-                    android:id="@+id/layoutCollapsed"
+                <!-- NEW (Letstrack parity, real reference screenshots):
+                     search bar + Moving/Idle/Parked/Offline count chips,
+                     shown ONLY on the Vehicles tab (Home's reference
+                     screenshot doesn't have these), so these live here,
+                     not in the shared item_vehicle_list.xml/adapter that
+                     both tabs use. Counts are computed client-side from
+                     the already-fetched vehicle list, no extra network
+                     call. -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:paddingHorizontal="20dp"
                     android:paddingBottom="12dp">
 
-                    <androidx.cardview.widget.CardView
-                        android:id="@+id/cardVehicleIcon"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardBackgroundColor="#E6F0FA"
-                        app:cardElevation="0dp">
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_car"
-                            android:contentDescription="@string/desc_car_icon"
-                            app:tint="#1976D2"/>
-                    </androidx.cardview.widget.CardView>
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@android:drawable/ic_menu_search"
+                        android:contentDescription="Search vehicles"
+                        app:tint="#9E9E9E" />
+
+                    <EditText
+                        android:id="@+id/etVehicleSearch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:background="@null"
+                        android:hint="Search vehicles"
+                        android:textSize="14sp"
+                        android:textColorHint="#9E9E9E"
+                        android:textColor="@color/text_primary"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:imeOptions="actionSearch" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="#F0F0F0" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="20dp"
+                    android:paddingBottom="12dp">
 
                     <LinearLayout
-                        android:id="@+id/layoutCollapsedInfo"
-                        android:layout_width="match_parent"
+                        android:id="@+id/chipMoving"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
                         android:orientation="vertical"
-                        android:layout_marginStart="16dp"
-                        android:layout_toEndOf="@id/cardVehicleIcon"
-                        android:layout_toStartOf="@+id/imgFavorite"
-                        android:baselineAligned="false">
-
+                        android:gravity="center"
+                        android:paddingVertical="10dp"
+                        android:background="@drawable/bg_status_chip_moving">
                         <TextView
-                            android:id="@+id/tvVehicleNameCollapsed"
+                            android:id="@+id/tvCountMoving"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/loading"
-                            android:textColor="#000000"
+                            android:text="0"
                             android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginTop="2dp"
-                            android:baselineAligned="false">
-                            <TextView
-                                android:id="@+id/tvCollapsedStatus"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/syncing"
-                                android:textColor="#1976D2"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-
+                            android:textStyle="bold"
+                            android:textColor="@color/surface_white" />
                         <TextView
-                            android:id="@+id/tvCollapsedAddress"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/locating"
-                            android:textColor="#888888"
-                            android:textSize="13sp"
-                            android:layout_marginTop="2dp"
-                            android:maxLines="1"
-                            android:ellipsize="end"/>
+                            android:text="Moving"
+                            android:textSize="11sp"
+                            android:textColor="@color/surface_white" />
                     </LinearLayout>
 
-                    <ImageView
-                        android:id="@+id/imgFavorite"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/btn_star_big_off"
-                        android:contentDescription="@string/desc_favorite"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        app:tint="#BDBDBD" />
-                </RelativeLayout>
+                    <LinearLayout
+                        android:id="@+id/chipIdle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingVertical="10dp"
+                        android:background="@drawable/bg_status_chip_idle">
+                        <TextView
+                            android:id="@+id/tvCountIdle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/surface_white" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Idle"
+                            android:textSize="11sp"
+                            android:textColor="@color/surface_white" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/chipParked"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingVertical="10dp"
+                        android:background="@drawable/bg_status_chip_parked">
+                        <TextView
+                            android:id="@+id/tvCountParked"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/surface_white" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Parked"
+                            android:textSize="11sp"
+                            android:textColor="@color/surface_white" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/chipOffline"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingVertical="10dp"
+                        android:background="@drawable/bg_status_chip_offline">
+                        <TextView
+                            android:id="@+id/tvCountOffline"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/surface_white" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Offline"
+                            android:textSize="11sp"
+                            android:textColor="@color/surface_white" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- FIXED (v2): vehicle switcher list, embedded inline in the
+                     sheet's own scroll content, same technique as Home's
+                     recyclerHomeVehicles (activity_home.xml lines 243-248).
+                     "MY VEHICLES" header removed entirely per explicit user
+                     request; each row now visually matches the collapsed
+                     vehicle-detail row below it directly, so no separate
+                     labeled section is needed. Item rows are now full-bleed
+                     (no horizontal margin, see item_vehicle_list.xml), so no
+                     wrapping paddingHorizontal here either. -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerVehiclesTabList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="8dp"
+                    android:nestedScrollingEnabled="false" />
+
+                <!-- NEW: this section (label + tinted background + the
+                     existing layoutCollapsed/layoutExpanded below) is the
+                     CURRENTLY TRACKED vehicle's live detail, a completely
+                     different thing from the switcher list above it. Both
+                     ended up sharing the same icon/name/status/caption
+                     visual language after the list redesign, and a real
+                     screenshot showed a user reading the tail end of this
+                     section as a third, duplicate-looking list row. The
+                     label + tint here is the fix: a real, demonstrated
+                     confusion, not a guessed cosmetic tweak. -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:background="#F0F0F0"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#F7FAFD">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CURRENTLY TRACKING"
+                        android:textStyle="bold"
+                        android:textSize="11sp"
+                        android:letterSpacing="0.05"
+                        android:textColor="@color/brand_primary"
+                        android:paddingHorizontal="20dp"
+                        android:paddingTop="10dp"/>
+
+                    <RelativeLayout
+                        android:id="@+id/layoutCollapsed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="20dp"
+                        android:paddingBottom="12dp">
+
+                        <androidx.cardview.widget.CardView
+                            android:id="@+id/cardVehicleIcon"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardBackgroundColor="#E6F0FA"
+                            app:cardElevation="0dp">
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_car"
+                                android:contentDescription="@string/desc_car_icon"
+                                app:tint="#1976D2"/>
+                        </androidx.cardview.widget.CardView>
+
+                        <LinearLayout
+                            android:id="@+id/layoutCollapsedInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginStart="16dp"
+                            android:layout_toEndOf="@id/cardVehicleIcon"
+                            android:layout_toStartOf="@+id/imgFavorite"
+                            android:baselineAligned="false">
+
+                            <TextView
+                                android:id="@+id/tvVehicleNameCollapsed"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/loading"
+                                android:textColor="#000000"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_marginTop="2dp"
+                                android:baselineAligned="false">
+                                <TextView
+                                    android:id="@+id/tvCollapsedStatus"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/syncing"
+                                    android:textColor="#1976D2"
+                                    android:textSize="14sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvCollapsedAddress"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/locating"
+                                android:textColor="#888888"
+                                android:textSize="13sp"
+                                android:layout_marginTop="2dp"
+                                android:maxLines="1"
+                                android:ellipsize="end"/>
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/imgFavorite"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/btn_star_big_off"
+                            android:contentDescription="@string/desc_favorite"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            app:tint="#BDBDBD" />
+                    </RelativeLayout>
+
+                </LinearLayout>
 
                 <LinearLayout
                     android:id="@+id/layoutExpanded"
@@ -327,6 +533,8 @@
                     </LinearLayout>
 
                     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginTop="16dp" android:layout_marginBottom="12dp"/>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginBottom="12dp"/>
 
                     <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
                         <com.google.android.material.button.MaterialButton
@@ -509,6 +717,7 @@
             app:srcCompat="@android:drawable/ic_menu_recent_history"
             app:layout_anchor="@id/bottomSheetVehicleDetails"
             app:layout_anchorGravity="top|end" />
+
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <LinearLayout
@@ -615,8 +824,6 @@
 
     </LinearLayout>
 
-    <!-- Same in-line error banner pattern as HomeActivity, for consistency
-         across the app: not a system Toast, Dialog, or Snackbar. -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/errorBanner"
         android:layout_width="match_parent"
