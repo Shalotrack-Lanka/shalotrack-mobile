@@ -28,6 +28,9 @@ import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.main.AddressResolver;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -138,6 +141,51 @@ public class TripHistoryActivity extends AppCompatActivity {
         cal.set(Calendar.MILLISECOND, 0);
         rangeFrom = cal.getTime();
         rangeTo = new Date();
+    }
+
+    // ---- SHOW SHARE PREVIEW BOTTOM SHEET ----
+    private void showTripPreviewBottomSheet(TripCardItem tripItem) {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_trip_preview, null);
+        dialog.setContentView(view);
+
+        ImageView btnClose = view.findViewById(R.id.btnClosePreview);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        TextView tvDist = view.findViewById(R.id.tvPreviewDist);
+        TextView tvTime = view.findViewById(R.id.tvPreviewTime);
+        TextView tvStart = view.findViewById(R.id.tvPreviewStart);
+        TextView tvEnd = view.findViewById(R.id.tvPreviewEnd);
+        TextView tvAddresses = view.findViewById(R.id.tvPreviewAddresses);
+
+        if (tvDist != null) tvDist.setText(tripItem.distanceText);
+        if (tvTime != null) tvTime.setText(tripItem.timeDuration);
+        if (tvStart != null) tvStart.setText("Start");
+        if (tvEnd != null) tvEnd.setText("End");
+        if (tvAddresses != null) tvAddresses.setText("From " + tripItem.startPlace + " To " + tripItem.endPlace);
+
+        MaterialButton btnCancel = view.findViewById(R.id.btnCancelPreview);
+        if (btnCancel != null) btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        MaterialButton btnConfirm = view.findViewById(R.id.btnConfirmPost);
+        if (btnConfirm != null) {
+            btnConfirm.setOnClickListener(v -> {
+                String shareText = "Trip done! 🚗 Check out my route 👉 https://www.letstrack.com #Letstrack\n"
+                        + "From " + tripItem.startPlace + " To " + tripItem.endPlace;
+
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+                sendIntent.setType("text/plain");
+
+                Intent shareIntent = Intent.createChooser(sendIntent, "Share your Trip via");
+                startActivity(shareIntent);
+                dialog.dismiss();
+            });
+        }
+
+        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        dialog.show();
     }
 
     // ---- Backend API integration ----
@@ -252,18 +300,15 @@ public class TripHistoryActivity extends AppCompatActivity {
             totalMinutes += t.getDurationMinutes();
         }
 
-        // Add Day Header Summary
         String dayHeaderTitle = displayDayHeader(rangeFrom) + " - " + trips.size() + " Trips";
         String daySummary = String.format(Locale.US, "Total - %.0f km in %s", totalDistance, formatDuration(totalMinutes));
         historyItems.add(new DayHeaderItem(dayHeaderTitle, daySummary));
 
-        // Add Trips as Timeline Cards
         for (TripSummary trip : trips) {
             String distText = String.format(Locale.US, "%.0f km Trip", trip.getDistanceKm());
             String timeDuration = formatTimeRange(trip.getStartTime(), trip.getEndTime()) + " (" + formatDuration(trip.getDurationMinutes()) + ")";
             String topSpeedText = String.format(Locale.US, "%.0f kph", trip.getMaxSpeed());
 
-            // Add real trip item (AddressResolver will resolve coordinates if string address is empty)
             historyItems.add(new TripCardItem(
                     distText,
                     "Loading route address...",
@@ -318,8 +363,6 @@ public class TripHistoryActivity extends AppCompatActivity {
             if (cm != null) cm.unregisterNetworkCallback(networkCallback);
         }
     }
-
-    // ---- Date / Time formatting helpers ----
 
     private String formatDuration(double totalMinutes) {
         int hours = (int) (totalMinutes / 60);
@@ -464,7 +507,6 @@ public class TripHistoryActivity extends AppCompatActivity {
                 th.tvTime.setText(tripItem.timeDuration);
                 th.tvTopSpeed.setText("Top Speed: " + tripItem.topSpeed);
 
-                // Resolve real start/end addresses from AddressResolver
                 if (tripItem.tripSummary != null) {
                     addressResolver.resolveAddress(0.0, 0.0, address -> {
                         tripItem.fullAddress = address;
@@ -481,8 +523,11 @@ public class TripHistoryActivity extends AppCompatActivity {
                         Toast.makeText(TripHistoryActivity.this, "Saved Place: " + tripItem.startPlace, Toast.LENGTH_SHORT).show());
                 th.btnSaveEnd.setOnClickListener(v ->
                         Toast.makeText(TripHistoryActivity.this, "Saved Place: " + tripItem.endPlace, Toast.LENGTH_SHORT).show());
-                th.btnPost.setOnClickListener(v ->
-                        Toast.makeText(TripHistoryActivity.this, "Posting Trip...", Toast.LENGTH_SHORT).show());
+
+                // Wire BOTH Post button and Left Icon to show the Share Preview Bottom Sheet
+                View.OnClickListener previewListener = v -> showTripPreviewBottomSheet(tripItem);
+                if (th.btnPost != null) th.btnPost.setOnClickListener(previewListener);
+                if (th.layoutTripIconClick != null) th.layoutTripIconClick.setOnClickListener(previewListener);
             }
         }
 
@@ -503,7 +548,7 @@ public class TripHistoryActivity extends AppCompatActivity {
 
         class TripViewHolder extends RecyclerView.ViewHolder {
             TextView tvDistance, tvAddresses, tvTime, tvTopSpeed, tvStartPlaceName, tvEndPlaceName;
-            View btnSaveStart, btnSaveEnd, btnPost;
+            View btnSaveStart, btnSaveEnd, btnPost, layoutTripIconClick;
 
             TripViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -516,6 +561,7 @@ public class TripHistoryActivity extends AppCompatActivity {
                 btnSaveStart = itemView.findViewById(R.id.btnSavePlaceStart);
                 btnSaveEnd = itemView.findViewById(R.id.btnSavePlaceEnd);
                 btnPost = itemView.findViewById(R.id.btnPostTrip);
+                layoutTripIconClick = itemView.findViewById(R.id.layoutTripIconClick);
             }
         }
     }
