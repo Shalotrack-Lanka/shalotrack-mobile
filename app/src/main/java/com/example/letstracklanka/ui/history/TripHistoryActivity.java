@@ -124,7 +124,8 @@ public class TripHistoryActivity extends AppCompatActivity {
         if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchTrips());
 
         rvTripHistory.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new TripHistoryAdapter(this::openTripDetail);
+        adapter = new TripHistoryAdapter(this::openTripDetail, trackingApi);
+        adapter.setVehicleId(selectedVehicleId);
         rvTripHistory.setAdapter(adapter);
     }
 
