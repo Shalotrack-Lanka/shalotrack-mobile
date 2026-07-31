@@ -1,6 +1,7 @@
 package com.example.letstracklanka.ui.history;
 
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,9 +12,17 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.data.model.TrackingPoint;
 import com.example.letstracklanka.data.model.TripSummary;
+import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.main.AddressResolver;
 import com.google.android.material.button.MaterialButton;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -29,6 +38,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * Groups a flat List<TripSummary> into day-header + trip-card rows for
@@ -76,6 +90,8 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     private final OnTripClickListener clickListener;
+    private final ShaloTrackApi trackingApi;
+    private String vehicleId;
     private final Map<String, List<TripSummary>> tripsByDay = new LinkedHashMap<>();
     private final Map<String, String> dayTitles = new HashMap<>();
     private final Map<String, String> daySummaries = new HashMap<>();
@@ -97,13 +113,22 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private final SimpleDateFormat dayTitleFormat;
     private final SimpleDateFormat timeFormat;
 
-    public TripHistoryAdapter(OnTripClickListener clickListener) {
+    public TripHistoryAdapter(OnTripClickListener clickListener, ShaloTrackApi trackingApi) {
         this.clickListener = clickListener;
+        this.trackingApi = trackingApi;
         isoParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         isoParser.setTimeZone(TimeZone.getTimeZone("UTC"));
         dayKeyFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         dayTitleFormat = new SimpleDateFormat("EEE, d MMM", Locale.getDefault());
         timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+    }
+
+    /** Needed because TripSummary itself carries no vehicle ID -- every
+     * trip in this screen belongs to whichever vehicle the whole screen is
+     * showing, held at the Activity level. Must be set before any row with
+     * a real route fetch gets bound. */
+    public void setVehicleId(String vehicleId) {
+        this.vehicleId = vehicleId;
     }
 
     public void updateTrips(List<TripSummary> trips) {
@@ -287,12 +312,84 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             float density = h.itemView.getResources().getDisplayMetrics().density;
             int widthPx = h.itemView.getResources().getDisplayMetrics().widthPixels;
             int heightPx = (int) (140 * density);
-            StaticMapLoader.load(h.ivTripMap, trip.getStartLatitude(), trip.getStartLongitude(),
-                    trip.getEndLatitude(), trip.getEndLongitude(), widthPx, heightPx);
+            loadRealRouteMap(h, trip, tripKey, widthPx, heightPx);
         }
 
         if (h.btnPostTrip != null) {
             h.btnPostTrip.setOnClickListener(v -> shareTrip(h.itemView.getContext(), trip, h));
+        }
+    }
+
+    // Fetches this trip's actual GPS point history (same endpoint
+    // TripDetailActivity's playback screen uses) so the thumbnail shows
+    // the real driven route, not a straight line between start/end. Real
+    // cost tradeoff, stated plainly: this is one extra network call PER
+    // VISIBLE trip row, on top of everything else already fetched for it.
+    // RecyclerView only binds rows on/near screen, so it's bounded by what
+    // the user actually scrolls through, not the whole date range at once
+    // -- but it is a genuine per-row cost increase, not free.
+    private void loadRealRouteMap(TripCardViewHolder h, TripSummary trip, String tripKey, int widthPx, int heightPx) {
+        if (vehicleId == null || trackingApi == null) {
+            // Fall back to the cheap straight-line version rather than
+            // silently showing nothing, if this adapter wasn't given what
+            // it needs to fetch real points.
+            StaticMapLoader.load(h.ivTripMap, trip.getStartLatitude(), trip.getStartLongitude(),
+                    trip.getEndLatitude(), trip.getEndLongitude(), widthPx, heightPx);
+            return;
+        }
+
+        trackingApi.getTrackingHistory(vehicleId, trip.getStartTime(), trip.getEndTime(), 500)
+                .enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                        try (ResponseBody body = response.body()) {
+                            if (response.isSuccessful() && body != null) {
+                                List<TrackingPoint> points = parseList(body.string());
+                                // Guards against a slow response landing on
+                                // a row that's since been recycled to a
+                                // different trip.
+                                if (!tripKey.equals(h.itemView.getTag())) return;
+                                if (points != null && points.size() >= 2) {
+                                    StaticMapLoader.loadRoute(h.ivTripMap, points, widthPx, heightPx);
+                                    return;
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e("TripHistoryAdapter", "loadRealRouteMap parse error", e);
+                        }
+                        // Fall back to the straight-line version if the
+                        // fetch failed or came back with too few points to
+                        // draw a meaningful route.
+                        if (tripKey.equals(h.itemView.getTag())) {
+                            StaticMapLoader.load(h.ivTripMap, trip.getStartLatitude(), trip.getStartLongitude(),
+                                    trip.getEndLatitude(), trip.getEndLongitude(), widthPx, heightPx);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                        Log.e("TripHistoryAdapter", "loadRealRouteMap network error", t);
+                        if (tripKey.equals(h.itemView.getTag())) {
+                            StaticMapLoader.load(h.ivTripMap, trip.getStartLatitude(), trip.getStartLongitude(),
+                                    trip.getEndLatitude(), trip.getEndLongitude(), widthPx, heightPx);
+                        }
+                    }
+                });
+    }
+
+    private List<TrackingPoint> parseList(String json) {
+        if (json == null || json.trim().isEmpty()) return new ArrayList<>();
+        Gson gson = new Gson();
+        try {
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            JsonArray data = root != null && root.has("data") ? root.getAsJsonArray("data") : null;
+            if (data == null) return new ArrayList<>();
+            Type listType = new TypeToken<List<TrackingPoint>>() {}.getType();
+            List<TrackingPoint> list = gson.fromJson(data, listType);
+            return list != null ? list : new ArrayList<>();
+        } catch (Exception e) {
+            Log.e("TripHistoryAdapter", "parseList error", e);
+            return new ArrayList<>();
         }
     }
 
