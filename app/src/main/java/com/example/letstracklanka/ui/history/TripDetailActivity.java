@@ -90,9 +90,12 @@ public class TripDetailActivity extends AppCompatActivity {
 
     private SeekBar seekPlayback;
     private ImageView btnPlayPause;
-    private TextView tvPlaybackReadout, tvDetailStartAddress, tvDetailEndAddress;
+    private View btnRecenter;
+    private TextView tvSpeedometerValue, tvSpeedometerTime;
+    private TextView tvJourneyDistance, tvJourneyTimeRange;
+    private TextView tvDetailStartAddress, tvDetailEndAddress, tvDetailStartTime, tvDetailEndTime;
     private TextView tvDetailVehicleName, tvDetailDate, btnPlaybackSpeed;
-    private TextView tvStatDistance, tvStatDuration, tvStatMaxSpeed, tvStatAvgSpeed;
+    private TextView tvStatDistance, tvStatDuration, tvStatMaxSpeed, tvStatAvgSpeed, tvStatIdleCount;
     private View progressTripDetail;
 
     @Override
@@ -120,18 +123,36 @@ public class TripDetailActivity extends AppCompatActivity {
         seekPlayback = findViewById(R.id.seekPlayback);
         btnPlayPause = findViewById(R.id.btnPlayPause);
         btnPlaybackSpeed = findViewById(R.id.btnPlaybackSpeed);
-        tvPlaybackReadout = findViewById(R.id.tvPlaybackReadout);
+        btnRecenter = findViewById(R.id.btnRecenter);
+        tvSpeedometerValue = findViewById(R.id.tvSpeedometerValue);
+        tvSpeedometerTime = findViewById(R.id.tvSpeedometerTime);
+        tvJourneyDistance = findViewById(R.id.tvJourneyDistance);
+        tvJourneyTimeRange = findViewById(R.id.tvJourneyTimeRange);
         tvDetailStartAddress = findViewById(R.id.tvDetailStartAddress);
         tvDetailEndAddress = findViewById(R.id.tvDetailEndAddress);
+        tvDetailStartTime = findViewById(R.id.tvDetailStartTime);
+        tvDetailEndTime = findViewById(R.id.tvDetailEndTime);
         tvDetailVehicleName = findViewById(R.id.tvDetailVehicleName);
         tvDetailDate = findViewById(R.id.tvDetailDate);
         tvStatDistance = findViewById(R.id.tvStatDistance);
         tvStatDuration = findViewById(R.id.tvStatDuration);
         tvStatMaxSpeed = findViewById(R.id.tvStatMaxSpeed);
         tvStatAvgSpeed = findViewById(R.id.tvStatAvgSpeed);
+        tvStatIdleCount = findViewById(R.id.tvStatIdleCount);
         progressTripDetail = findViewById(R.id.progressTripDetail);
 
         btnPlayPause.setOnClickListener(v -> togglePlayback());
+
+        // NEW: recenters the camera on the current playback position --
+        // useful once the user has panned/zoomed away while scrubbing.
+        if (btnRecenter != null) {
+            btnRecenter.setOnClickListener(v -> {
+                if (mMap == null || points.isEmpty()) return;
+                TrackingPoint p = points.get(Math.min(currentIndex, points.size() - 1));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                        new LatLng(p.getLatitude(), p.getLongitude()), 16f));
+            });
+        }
 
         btnPlaybackSpeed.setOnClickListener(v -> {
             speedMultiplierIndex = (speedMultiplierIndex + 1) % SPEED_MULTIPLIERS.length;
@@ -159,6 +180,7 @@ public class TripDetailActivity extends AppCompatActivity {
         double maxSpeed = getIntent().getDoubleExtra(EXTRA_MAX_SPEED, 0);
         double avgSpeed = getIntent().getDoubleExtra(EXTRA_AVG_SPEED, 0);
         String fromIso = getIntent().getStringExtra(EXTRA_FROM_ISO);
+        String toIso = getIntent().getStringExtra(EXTRA_TO_ISO);
 
         if (vehicleName != null) tvDetailVehicleName.setText(vehicleName);
         tvDetailDate.setText(formatDate(fromIso));
@@ -167,6 +189,17 @@ public class TripDetailActivity extends AppCompatActivity {
         tvStatDuration.setText(formatDuration(durationMin));
         tvStatMaxSpeed.setText((int) maxSpeed + " km/h");
         tvStatAvgSpeed.setText((int) avgSpeed + " km/h");
+
+        // NEW: floating journey-info pill over the map, matching the
+        // reference's "X km Journey / time range" card. All real data,
+        // same values already passed via Intent, just surfaced here too.
+        if (tvJourneyDistance != null) {
+            tvJourneyDistance.setText(String.format(Locale.getDefault(), "%.1f km Journey", distanceKm));
+        }
+        if (tvJourneyTimeRange != null) {
+            tvJourneyTimeRange.setText(formatTime(fromIso) + " - " + formatTime(toIso)
+                    + " (" + formatDuration(durationMin) + ")");
+        }
     }
 
     private void onMapReady(GoogleMap googleMap) {
@@ -180,7 +213,7 @@ public class TripDetailActivity extends AppCompatActivity {
         String toIso = getIntent().getStringExtra(EXTRA_TO_ISO);
 
         if (vehicleId == null || fromIso == null || toIso == null) {
-            tvPlaybackReadout.setText("Missing trip data");
+            showLoadError("Missing trip data");
             return;
         }
 
@@ -195,9 +228,10 @@ public class TripDetailActivity extends AppCompatActivity {
                         points = parseList(body.string(), TrackingPoint.class);
                         Collections.sort(points, Comparator.comparing(TrackingPoint::getEventTime));
                         if (!points.isEmpty()) {
-                            tvPlaybackReadout.setOnClickListener(null);   // clear any previous retry state
+                            if (tvJourneyTimeRange != null) tvJourneyTimeRange.setOnClickListener(null); // clear any previous retry state
                             drawFullRoute();
                             resolveEndpointAddresses();
+                            computeAndShowIdleCount();
                             seekPlayback.setMax(Math.max(points.size() - 1, 1));
                             currentIndex = 0;
                             updatePlaybackPosition(0);
@@ -227,9 +261,10 @@ public class TripDetailActivity extends AppCompatActivity {
      * way to recover short of leaving and re-entering the screen.
      */
     private void showLoadError(String message) {
-        tvPlaybackReadout.setText(message + " — tap to retry");
-        tvPlaybackReadout.setOnClickListener(v -> {
-            tvPlaybackReadout.setOnClickListener(null);
+        if (tvJourneyTimeRange == null) return;
+        tvJourneyTimeRange.setText(message + " — tap to retry");
+        tvJourneyTimeRange.setOnClickListener(v -> {
+            tvJourneyTimeRange.setOnClickListener(null);
             loadTripPoints();
         });
     }
@@ -331,6 +366,66 @@ public class TripDetailActivity extends AppCompatActivity {
                 address -> tvDetailStartAddress.setText(address));
         addressResolver.resolveAddress(last.getLatitude(), last.getLongitude(),
                 address -> tvDetailEndAddress.setText(address));
+
+        // NEW: real start/end times next to each address, matching the
+        // reference. Same eventTime data already used for the seek readout.
+        if (tvDetailStartTime != null) tvDetailStartTime.setText(formatTime(first.getEventTime()));
+        if (tvDetailEndTime != null) tvDetailEndTime.setText(formatTime(last.getEventTime()));
+    }
+
+    // "Idle Count" -- a client-side estimate from real GPS points (sustained
+    // near-zero speed), NOT the same thing as the report-level "stopCount"
+    // field elsewhere in this app. TripSummary (the per-trip model) has no
+    // stop or idle field at all -- confirmed by reading the actual model
+    // file -- so this is computed here rather than sourced from a backend
+    // value that doesn't exist at this granularity. Named "Idle" rather
+    // than "Stops": that's what this actually detects, the vehicle not
+    // moving. There's no way to distinguish idling (engine running,
+    // stationary) from a genuine parked stop, since no ignition field
+    // exists anywhere in the GpsTracking data. Deliberately simple (a
+    // threshold and a minimum duration, no smoothing/filtering).
+    private static final double IDLE_SPEED_THRESHOLD_KMH = 3.0;
+    private static final long IDLE_MIN_DURATION_MS = 60_000;
+
+    private void computeAndShowIdleCount() {
+        if (tvStatIdleCount == null) return;
+        int idleCount = 0;
+        Long stationarySinceMs = null;
+        boolean currentIdleCounted = false;
+
+        for (TrackingPoint p : points) {
+            long t = parseIsoToMillis(p.getEventTime());
+            boolean stationary = p.getSpeed() <= IDLE_SPEED_THRESHOLD_KMH;
+
+            if (stationary) {
+                if (stationarySinceMs == null) {
+                    stationarySinceMs = t;
+                    currentIdleCounted = false;
+                } else if (!currentIdleCounted && t - stationarySinceMs >= IDLE_MIN_DURATION_MS) {
+                    // Counted once per continuous stationary period, no
+                    // matter how much longer it goes on afterward.
+                    idleCount++;
+                    currentIdleCounted = true;
+                }
+            } else {
+                stationarySinceMs = null;
+                currentIdleCounted = false;
+            }
+        }
+
+        tvStatIdleCount.setText(String.valueOf(idleCount));
+    }
+
+    private long parseIsoToMillis(String isoUtc) {
+        if (isoUtc == null) return 0L;
+        try {
+            SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            parser.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date date = parser.parse(isoUtc.length() > 19 ? isoUtc.substring(0, 20) : isoUtc);
+            return date != null ? date.getTime() : 0L;
+        } catch (ParseException e) {
+            return 0L;
+        }
     }
 
     private void togglePlayback() {
@@ -389,7 +484,8 @@ public class TripDetailActivity extends AppCompatActivity {
             traveledPolyline.setPoints(traveled);
         }
 
-        tvPlaybackReadout.setText(formatTime(p.getEventTime()) + " · " + (int) p.getSpeed() + " km/h");
+        if (tvSpeedometerValue != null) tvSpeedometerValue.setText(String.valueOf((int) p.getSpeed()));
+        if (tvSpeedometerTime != null) tvSpeedometerTime.setText(formatTime(p.getEventTime()));
 
         programmaticSeekUpdate = true;
         seekPlayback.setProgress(index);

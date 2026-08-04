@@ -116,6 +116,10 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCCEcm2yd65eBw5aUJI0akiXkwySTBS_LE" />
+
+        <!-- Static API key is called in here for the GPS tracking history-->
+        <meta-data android:name="com.example.letstracklanka.STATIC_MAPS_API_KEY"
+            android:value="AIzaSyAAk1aVIma-49jfCJ40SDU-8fzufCGmQnA"/>
     </application>
 
 </manifest>
