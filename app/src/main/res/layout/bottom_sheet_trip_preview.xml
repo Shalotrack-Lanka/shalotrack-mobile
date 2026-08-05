@@ -61,7 +61,7 @@
                     android:layout_weight="1"
                     android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Distance" android:textColor="#64748B" android:textSize="11sp"/>
-                    <TextView android:id="@+id/tvPreviewDist" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="85.12 km" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvPreviewDist" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-- km" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
                 </LinearLayout>
 
                 <View android:layout_width="1dp" android:layout_height="match_parent" android:background="#CBD5E1"/>
@@ -73,7 +73,7 @@
                     android:gravity="center"
                     android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Travel Time" android:textColor="#64748B" android:textSize="11sp"/>
-                    <TextView android:id="@+id/tvPreviewTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1h 49m" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvPreviewTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
                 </LinearLayout>
 
                 <View android:layout_width="1dp" android:layout_height="match_parent" android:background="#CBD5E1"/>
@@ -85,7 +85,7 @@
                     android:gravity="center"
                     android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Start Time" android:textColor="#64748B" android:textSize="11sp"/>
-                    <TextView android:id="@+id/tvPreviewStart" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="05:42 PM" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvPreviewStart" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:-- --" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
                 </LinearLayout>
 
                 <View android:layout_width="1dp" android:layout_height="match_parent" android:background="#CBD5E1"/>
@@ -97,51 +97,49 @@
                     android:gravity="end"
                     android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="End Time" android:textColor="#64748B" android:textSize="11sp"/>
-                    <TextView android:id="@+id/tvPreviewEnd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="07:31 PM" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvPreviewEnd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:-- --" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Map View Area -->
-            <RelativeLayout
+            <!-- Map preview: was showing ic_default_profile (a generic
+                 profile-photo placeholder) with a text overlay pretending
+                 to be a map, fake, not a real image. Given ID for
+                 StaticMapLoader (already built and working for Trip
+                 History's thumbnails) to load a REAL map into, once/if
+                 this screen is actually wired up to a controller. No text
+                 overlay needed once a real map image is loaded here. -->
+            <ImageView
+                android:id="@+id/ivPreviewMap"
                 android:layout_width="match_parent"
                 android:layout_height="180dp"
-                android:background="#E2E8F0">
+                android:background="#E2E8F0"
+                android:scaleType="centerCrop"
+                android:contentDescription="Trip route map" />
 
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/ic_default_profile" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerInParent="true"
-                    android:background="#AA000000"
-                    android:padding="8dp"
-                    android:text="🗺️ Route Map Preview"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold" />
-            </RelativeLayout>
-
-            <!-- Footer Logo -->
+            <!-- Footer -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="10dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Letstrack" android:textColor="#64748B" android:textStyle="bold"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ShaloTrack" android:textColor="#64748B" android:textStyle="bold"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Post Text Preview -->
+    <!-- Post Text Preview: was hardcoded with Letstrack's own URL and
+         hashtag baked in as the default caption. No equivalent public
+         ShaloTrack URL exists anywhere in this project, so none is
+         invented here, if a real share caption is needed later, this
+         should be built from the actual trip data (distance/date), not a
+         static string, matching how the real Share feature already
+         builds its text from real TripSummary fields. -->
     <TextView
         android:id="@+id/tvPreviewPostText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Trip done! 🚗 Check out my route 👉 https://www.letstrack.com #Letstrack"
+        android:text="Trip completed"
         android:textColor="#0F172A"
         android:textSize="15sp" />
 
@@ -150,7 +148,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="From 1054, Sareya To NH 27, Barmadia"
+        android:text="Resolving location..."
         android:textColor="#334155"
         android:textSize="14sp"
         android:textStyle="bold" />
@@ -175,18 +173,22 @@
             app:backgroundTint="#F1F5F9"
             app:cornerRadius="12dp" />
 
+        <!-- Relabeled "Post" -> "Share", matching the same rename applied
+             to Trip History's Share button: this triggers a native share
+             sheet (once wired up), not a proprietary "post to a feed"
+             backend feature, which doesn't exist in this app. -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnConfirmPost"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="Post"
+            android:text="Share"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold"
-            app:backgroundTint="#1877F2"
+            app:backgroundTint="@color/brand_accent"
             app:cornerRadius="12dp" />
     </LinearLayout>
 </LinearLayout>
