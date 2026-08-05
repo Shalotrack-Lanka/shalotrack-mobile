@@ -1,8 +1,12 @@
 package com.example.letstracklanka.data.remote;
 
+import com.example.letstracklanka.data.model.SnapToRoadRequest;
+
 import okhttp3.ResponseBody;
 import retrofit2.Call;
+import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -41,5 +45,16 @@ public interface ShaloTrackApi {
             @Query("vehicleId") String vehicleId,
             @Query("from") String fromIso,
             @Query("to") String toIso
+    );
+
+    // NEW -- snaps a small batch of recent raw GPS points onto the actual
+    // road network for the live trail (VehicleTrailRenderer). Max 100
+    // points per call (Google Roads API's own limit, enforced server-side
+    // too). Ownership of vehicleId is enforced server-side, same pattern
+    // as every other {vehicleId} route -- no client-side check needed here.
+    @POST("api/Vehicles/{vehicleId}/snap-to-road")
+    Call<ResponseBody> snapToRoad(
+            @Path("vehicleId") String vehicleId,
+            @Body SnapToRoadRequest request
     );
 }
