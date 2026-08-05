@@ -7,6 +7,8 @@ import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
 
+import com.example.letstracklanka.data.model.SnapToRoadRequest;
+import com.example.letstracklanka.data.model.SnappedPoint;
 import com.example.letstracklanka.data.model.TrackingPoint;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.google.android.gms.maps.GoogleMap;
@@ -87,6 +89,14 @@ public class VehicleTrailRenderer {
     // Interpolated points generated per real segment when smoothing.
     private static final int CATMULL_ROM_SEGMENTS = 8;
 
+    // Road-snapping: how many of the most recent real points get sent for
+    // context each time. More context generally means better snapping, but
+    // costs more per request (and this project's Roads API pricing/cost
+    // reasoning was already discussed at length in chat) -- 5 is a
+    // judgment call, not a measured value.
+    private static final int SNAP_BUFFER_SIZE = 5;
+    private String vehicleId;
+
     public VehicleTrailRenderer(Context context, GoogleMap map, ShaloTrackApi api) {
         this.map = map;
         this.api = api;
@@ -115,6 +125,7 @@ public class VehicleTrailRenderer {
 
     /** Call once, after you know the vehicleId, to seed the trail from recent history. */
     public void loadInitialTrail(String vehicleId, Runnable onComplete) {
+        this.vehicleId = vehicleId;
         String toIso = isoNow();
         String fromIso = isoHoursAgo(HISTORY_WINDOW_HOURS);
 
@@ -212,7 +223,90 @@ public class VehicleTrailRenderer {
         if (pathPoints.isEmpty() || !pathPoints.get(pathPoints.size() - 1).equals(newPos)) {
             pathPoints.add(newPos);
             redrawPolyline();
+            requestRoadSnap();
         }
+    }
+
+    // Corrects the drawn TRAIL toward the actual road network -- deliberately
+    // NOT used for the live marker's own animation target (see class-level
+    // design note): waiting on this network call before animating the
+    // marker would reintroduce the exact lag/jump problem already fixed
+    // earlier. This is best-effort -- if it fails or is slow, the raw
+    // jitter-filtered trail already drawn simply stands as-is; nothing
+    // blocks on it.
+    private void requestRoadSnap() {
+        if (vehicleId == null || api == null) return;
+
+        int startIndex = Math.max(0, pathPoints.size() - SNAP_BUFFER_SIZE);
+        List<LatLng> snapshot = new ArrayList<>(pathPoints.subList(startIndex, pathPoints.size()));
+        if (snapshot.size() < 2) return; // need at least 2 points for meaningful road context
+
+        SnapToRoadRequest request = new SnapToRoadRequest();
+        for (LatLng p : snapshot) {
+            request.points.add(new SnapToRoadRequest.Point(p.latitude, p.longitude));
+        }
+
+        final int capturedStartIndex = startIndex;
+        final int capturedWindowSize = snapshot.size();
+
+        api.snapToRoad(vehicleId, request).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(retrofit2.Call<ResponseBody> call, Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (!response.isSuccessful() || body == null) {
+                        Log.w(TAG, "Road snap failed, code " + response.code());
+                        return;
+                    }
+                    List<SnappedPoint> snapped = parseSnappedPoints(body.string());
+                    applySnappedPoints(capturedStartIndex, capturedWindowSize, snapped);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error applying road snap", e);
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ResponseBody> call, Throwable t) {
+                Log.w(TAG, "Road snap request failed (non-fatal, trail keeps raw points)", t);
+            }
+        });
+    }
+
+    // Replaces the SNAP_BUFFER_SIZE-sized window of pathPoints starting at
+    // startIndex with the snapped coordinates, matched by Google's own
+    // originalIndex (not assumed positional -- Google can drop points far
+    // from any known road, so the result list may be shorter than the
+    // request). Guards against pathPoints having changed shape since the
+    // request was sent (new real points may have arrived while this was
+    // in flight) by only ever writing within the originally-requested
+    // window.
+    private void applySnappedPoints(int startIndex, int windowSize, List<SnappedPoint> snapped) {
+        if (snapped == null || snapped.isEmpty()) return;
+        boolean changed = false;
+        for (SnappedPoint sp : snapped) {
+            if (sp.getOriginalIndex() == null) continue;
+            int targetIndex = startIndex + sp.getOriginalIndex();
+            if (targetIndex < startIndex || targetIndex >= startIndex + windowSize) continue;
+            if (targetIndex >= pathPoints.size()) continue;
+            pathPoints.set(targetIndex, new LatLng(sp.getLatitude(), sp.getLongitude()));
+            changed = true;
+        }
+        if (changed) redrawPolyline();
+    }
+
+    private List<SnappedPoint> parseSnappedPoints(String json) {
+        List<SnappedPoint> list = new ArrayList<>();
+        if (json == null || json.trim().isEmpty()) return list;
+        Gson gson = new Gson();
+        try {
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root != null && root.has("data") && root.get("data").isJsonArray()) {
+                list = gson.fromJson(root.getAsJsonArray("data"),
+                        TypeToken.getParameterized(List.class, SnappedPoint.class).getType());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing road-snap response", e);
+        }
+        return list;
     }
 
     /** Great-circle distance in meters between two points (Haversine formula). */
