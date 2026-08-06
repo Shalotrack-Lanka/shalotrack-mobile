@@ -1,6 +1,7 @@
 package com.example.letstracklanka.data.remote;
 
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
+import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
 import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
@@ -63,4 +64,7 @@ public interface ApiService {
     // IMEI for reassignment). See VehicleService.DeleteAsync() on the API side.
     @DELETE("api/Vehicles/{vehicleId}")
     Call<ResponseBody> deleteVehicle(@Path("vehicleId") String vehicleId);
+
+    @POST("api/Subscriptions")
+    Call<ResponseBody> requestSubscription(@Body CreateSubscriptionRequest request);
 }
