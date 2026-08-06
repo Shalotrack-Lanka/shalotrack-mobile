@@ -46,6 +46,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
+import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
@@ -109,7 +110,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private VehicleTrailRenderer trailRenderer;
     private RealtimeLocationClient realtimeClient;
     private AddressResolver addressResolver;
-    private boolean isMonthlyBilling = false;
+    // isMonthlyBilling removed: the new duration-plan model (1/2/3 years)
+    // has no recurring monthly/annual billing choice, unlike the old
+    // tier model this replaced.
     private DrawerLayout drawerLayout;
     private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
     @Override
@@ -436,83 +439,45 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         dialog.show();
     }
+    // Rebuilt to match the requirement doc's actual subscription model:
+    // three fixed-price, one-time, multi-year terms, not the previous
+    // Free/Silver/Gold/Platinum recurring feature-tier model with a
+    // monthly/annual toggle -- that model didn't match the written spec
+    // at all. Still UI-only: btnContinueAppSubs has no real backend
+    // behind it yet (see the "Proceeding..." placeholder below) -- that's
+    // separate, larger scope than this fix.
     private void showAppSubscriptionBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_app_subscription, null);
         dialog.setContentView(view);
+
         ImageView btnClose = view.findViewById(R.id.btnCloseAppSubs);
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
-        MaterialCardView cardTabAnnually = view.findViewById(R.id.cardTabAnnually);
-        TextView tvTabAnnually = view.findViewById(R.id.tvTabAnnually);
-        MaterialCardView cardTabMonthly = view.findViewById(R.id.cardTabMonthly);
-        TextView tvTabMonthly = view.findViewById(R.id.tvTabMonthly);
+
         MaterialCardView cardFree = view.findViewById(R.id.cardFree);
-        MaterialCardView cardSilver = view.findViewById(R.id.cardSilver);
-        MaterialCardView cardGold = view.findViewById(R.id.cardGold);
-        MaterialCardView cardPlatinum = view.findViewById(R.id.cardPlatinum);
-        TextView tvPriceFree = view.findViewById(R.id.tvPriceFree);
-        TextView tvPriceSilver = view.findViewById(R.id.tvPriceSilver);
-        TextView tvPriceGold = view.findViewById(R.id.tvPriceGold);
-        TextView tvPricePlatinum = view.findViewById(R.id.tvPricePlatinum);
+        MaterialCardView cardOneYear = view.findViewById(R.id.cardOneYear);
+        MaterialCardView cardTwoYears = view.findViewById(R.id.cardTwoYears);
+        MaterialCardView cardThreeYears = view.findViewById(R.id.cardThreeYears);
         View badgeFree = view.findViewById(R.id.badgeFree);
-        View badgeSilver = view.findViewById(R.id.badgeSilver);
-        View badgeGold = view.findViewById(R.id.badgeGold);
-        View badgePlatinum = view.findViewById(R.id.badgePlatinum);
-        TextView tvColSelected = view.findViewById(R.id.tvColSelected);
-        TextView tvColNext = view.findViewById(R.id.tvColNext);
-        TextView tvVal1Row1 = view.findViewById(R.id.tvVal1Row1);
-        TextView tvVal2Row1 = view.findViewById(R.id.tvVal2Row1);
-        TextView tvVal1Row2 = view.findViewById(R.id.tvVal1Row2);
-        TextView tvVal2Row2 = view.findViewById(R.id.tvVal2Row2);
-        TextView tvVal1Row3 = view.findViewById(R.id.tvVal1Row3);
-        TextView tvVal2Row3 = view.findViewById(R.id.tvVal2Row3);
-        TextView tvVal1Row4 = view.findViewById(R.id.tvVal1Row4);
-        TextView tvVal2Row4 = view.findViewById(R.id.tvVal2Row4);
+        View badgeOneYear = view.findViewById(R.id.badgeOneYear);
+        View badgeTwoYears = view.findViewById(R.id.badgeTwoYears);
+        View badgeThreeYears = view.findViewById(R.id.badgeThreeYears);
         View btnContinueView = view.findViewById(R.id.btnContinueAppSubs);
         MaterialButton btnContinueAppSubs = (btnContinueView instanceof MaterialButton) ? (MaterialButton) btnContinueView : null;
-        Runnable updatePrices = () -> {
-            if (isMonthlyBilling) {
-                if (tvPriceFree != null) tvPriceFree.setText("L0/month\nL0/year");
-                if (tvPriceSilver != null) tvPriceSilver.setText("LKR 1,004.75/month\nor LKR 999.00/year");
-                if (tvPriceGold != null) tvPriceGold.setText("LKR 349.00/month\nor LKR 3,490.00/year");
-                if (tvPricePlatinum != null) tvPricePlatinum.setText("LKR 469.00/month\nor LKR 4,690.00/year");
-            } else {
-                if (tvPriceFree != null) tvPriceFree.setText("L0/year");
-                if (tvPriceSilver != null) tvPriceSilver.setText("LKR 999.00/year");
-                if (tvPriceGold != null) tvPriceGold.setText("LKR 3,490.00/year");
-                if (tvPricePlatinum != null) tvPricePlatinum.setText("LKR 4,690.00/year");
-            }
-        };
-        if (cardTabAnnually != null && cardTabMonthly != null) {
-            cardTabAnnually.setOnClickListener(v -> {
-                if (!isMonthlyBilling) return;
-                isMonthlyBilling = false;
-                cardTabAnnually.setCardBackgroundColor(Color.parseColor("#1877F2"));
-                cardTabAnnually.setCardElevation(2f);
-                if (tvTabAnnually != null) tvTabAnnually.setTextColor(Color.WHITE);
-                cardTabMonthly.setCardBackgroundColor(Color.TRANSPARENT);
-                cardTabMonthly.setCardElevation(0f);
-                if (tvTabMonthly != null) tvTabMonthly.setTextColor(Color.parseColor("#9E9E9E"));
-                updatePrices.run();
-            });
-            cardTabMonthly.setOnClickListener(v -> {
-                if (isMonthlyBilling) return;
-                isMonthlyBilling = true;
-                cardTabMonthly.setCardBackgroundColor(Color.parseColor("#1877F2"));
-                cardTabMonthly.setCardElevation(2f);
-                if (tvTabMonthly != null) tvTabMonthly.setTextColor(Color.WHITE);
-                cardTabAnnually.setCardBackgroundColor(Color.TRANSPARENT);
-                cardTabAnnually.setCardElevation(0f);
-                if (tvTabAnnually != null) tvTabAnnually.setTextColor(Color.parseColor("#9E9E9E"));
-                updatePrices.run();
-            });
-        }
+
+        // Tracks which plan is currently selected across all four card
+        // click handlers below -- a 1-element array is the standard way
+        // to capture *mutable* state in a Java lambda (plain local
+        // variables captured in lambdas must be effectively final).
+        final String[] selectedPlan = {"OneYear"};
+
         Runnable resetCards = () -> {
-            if (cardFree != null) { cardFree.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardFree.setStrokeWidth(0); if(badgeFree != null) badgeFree.setVisibility(View.GONE); }
-            if (cardSilver != null) { cardSilver.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardSilver.setStrokeWidth(0); if(badgeSilver != null) badgeSilver.setVisibility(View.GONE); }
-            if (cardGold != null) { cardGold.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardGold.setStrokeWidth(0); if(badgeGold != null) badgeGold.setVisibility(View.GONE); }
-            if (cardPlatinum != null) { cardPlatinum.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardPlatinum.setStrokeWidth(0); if(badgePlatinum != null) badgePlatinum.setVisibility(View.GONE); }
+            if (cardFree != null) { cardFree.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardFree.setStrokeWidth(0); if (badgeFree != null) badgeFree.setVisibility(View.GONE); }
+            if (cardOneYear != null) { cardOneYear.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardOneYear.setStrokeWidth(0); if (badgeOneYear != null) badgeOneYear.setVisibility(View.GONE); }
+            if (cardTwoYears != null) { cardTwoYears.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardTwoYears.setStrokeWidth(0); if (badgeTwoYears != null) badgeTwoYears.setVisibility(View.GONE); }
+            if (cardThreeYears != null) { cardThreeYears.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardThreeYears.setStrokeWidth(0); if (badgeThreeYears != null) badgeThreeYears.setVisibility(View.GONE); }
         };
+
         if (cardFree != null) {
             cardFree.setOnClickListener(v -> {
                 resetCards.run();
@@ -520,90 +485,139 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 cardFree.setStrokeWidth(6);
                 cardFree.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
                 if (badgeFree != null) badgeFree.setVisibility(View.VISIBLE);
-                if (tvColSelected != null) tvColSelected.setText("Free");
-                if (tvColNext != null) tvColNext.setText("Silver");
-                if (tvVal1Row1 != null) { tvVal1Row1.setText("🔒"); tvVal1Row1.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal2Row1 != null) { tvVal2Row1.setText("✔️"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal1Row2 != null) { tvVal1Row2.setText("🔒"); tvVal1Row2.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal2Row2 != null) { tvVal2Row2.setText("Message with\nlocation"); tvVal2Row2.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row3 != null) { tvVal1Row3.setText("1"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
-                if (tvVal2Row3 != null) { tvVal2Row3.setText("Up to 2"); tvVal2Row3.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row4 != null) { tvVal1Row4.setText("🔒"); tvVal1Row4.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal2Row4 != null) { tvVal2Row4.setText("✔️"); tvVal2Row4.setTextColor(Color.parseColor("#4CAF50")); }
-                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Active Plan");
+                selectedPlan[0] = "Free";
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_free));
             });
         }
-        if (cardSilver != null) {
-            cardSilver.setOnClickListener(v -> {
+        if (cardOneYear != null) {
+            cardOneYear.setOnClickListener(v -> {
                 resetCards.run();
-                cardSilver.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
-                cardSilver.setStrokeWidth(6);
-                cardSilver.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-                if (badgeSilver != null) badgeSilver.setVisibility(View.VISIBLE);
-                if (tvColSelected != null) tvColSelected.setText("Silver");
-                if (tvColNext != null) tvColNext.setText("Gold");
-                if (tvVal1Row1 != null) { tvVal1Row1.setText("✔️"); tvVal1Row1.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal2Row1 != null) { tvVal2Row1.setText("✔️"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#555555")); }
-                if (tvVal2Row2 != null) { tvVal2Row2.setText("Message with\nlocation"); tvVal2Row2.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row3 != null) { tvVal1Row3.setText("Up to 2"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
-                if (tvVal2Row3 != null) { tvVal2Row3.setText("Up to 3 people"); tvVal2Row3.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row4 != null) { tvVal1Row4.setText("✔️"); tvVal1Row4.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal2Row4 != null) { tvVal2Row4.setText("✔️"); tvVal2Row4.setTextColor(Color.parseColor("#4CAF50")); }
-                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Continue");
+                cardOneYear.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
+                cardOneYear.setStrokeWidth(6);
+                cardOneYear.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                if (badgeOneYear != null) badgeOneYear.setVisibility(View.VISIBLE);
+                selectedPlan[0] = "OneYear";
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_1_year));
             });
         }
-        if (cardGold != null) {
-            cardGold.setOnClickListener(v -> {
+        if (cardTwoYears != null) {
+            cardTwoYears.setOnClickListener(v -> {
                 resetCards.run();
-                cardGold.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
-                cardGold.setStrokeWidth(6);
-                cardGold.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-                if (badgeGold != null) badgeGold.setVisibility(View.VISIBLE);
-                if (tvColSelected != null) tvColSelected.setText("Gold");
-                if (tvColNext != null) tvColNext.setText("Platinum");
-                if (tvVal1Row1 != null) { tvVal1Row1.setText("✔️"); tvVal1Row1.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal2Row1 != null) { tvVal2Row1.setText("✔️"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal1Row2 != null) { tvVal1Row2.setText("Message with\nlocation"); tvVal1Row2.setTextColor(Color.parseColor("#555555")); }
-                if (tvVal2Row2 != null) { tvVal2Row2.setText("Call and\nMessage"); tvVal2Row2.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row3 != null) { tvVal1Row3.setText("Up to 3 people"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
-                if (tvVal2Row3 != null) { tvVal2Row3.setText("Up to 5 people"); tvVal2Row3.setTextColor(Color.parseColor("#9E9E9E")); }
-                if (tvVal1Row4 != null) { tvVal1Row4.setText("✔️"); tvVal1Row4.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal2Row4 != null) { tvVal2Row4.setText("✔️"); tvVal2Row4.setTextColor(Color.parseColor("#4CAF50")); }
-                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Continue");
+                cardTwoYears.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
+                cardTwoYears.setStrokeWidth(6);
+                cardTwoYears.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                if (badgeTwoYears != null) badgeTwoYears.setVisibility(View.VISIBLE);
+                selectedPlan[0] = "TwoYears";
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_2_years));
             });
         }
-        if (cardPlatinum != null) {
-            cardPlatinum.setOnClickListener(v -> {
+        if (cardThreeYears != null) {
+            cardThreeYears.setOnClickListener(v -> {
                 resetCards.run();
-                cardPlatinum.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
-                cardPlatinum.setStrokeWidth(6);
-                cardPlatinum.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
-                if (badgePlatinum != null) badgePlatinum.setVisibility(View.VISIBLE);
-                if (tvColSelected != null) tvColSelected.setText("Platinum");
-                if (tvColNext != null) tvColNext.setText("-");
-                if (tvVal1Row1 != null) { tvVal1Row1.setText("✔️"); tvVal1Row1.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal2Row1 != null) { tvVal2Row1.setText("-"); tvVal2Row1.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal1Row2 != null) { tvVal1Row2.setText("Call and\nMessage"); tvVal1Row2.setTextColor(Color.parseColor("#555555")); }
-                if (tvVal2Row2 != null) { tvVal2Row2.setText("-"); }
-                if (tvVal1Row3 != null) { tvVal1Row3.setText("Up to 5 people"); tvVal1Row3.setTextColor(Color.parseColor("#555555")); }
-                if (tvVal2Row3 != null) { tvVal2Row3.setText("-"); }
-                if (tvVal1Row4 != null) { tvVal1Row4.setText("✔️"); tvVal1Row4.setTextColor(Color.parseColor("#4CAF50")); }
-                if (tvVal2Row4 != null) { tvVal2Row4.setText("-"); }
-                if (btnContinueAppSubs != null) btnContinueAppSubs.setText("Continue");
+                cardThreeYears.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start();
+                cardThreeYears.setStrokeWidth(6);
+                cardThreeYears.setStrokeColor(ColorStateList.valueOf(Color.parseColor("#1877F2")));
+                if (badgeThreeYears != null) badgeThreeYears.setVisibility(View.VISIBLE);
+                selectedPlan[0] = "ThreeYears";
+                if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_3_years));
             });
         }
         if (btnContinueAppSubs != null) {
             btnContinueAppSubs.setOnClickListener(v -> {
-                Toast.makeText(this, "Proceeding...", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
+                // Real backend call -- replaces the "Proceeding..." toast
+                // placeholder. Disables the button during the request so a
+                // double-tap can't fire two subscription requests for the
+                // same plan.
+                btnContinueAppSubs.setEnabled(false);
+                CreateSubscriptionRequest request = new CreateSubscriptionRequest(selectedPlan[0]);
+                mainApiService.requestSubscription(request).enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                        btnContinueAppSubs.setEnabled(true);
+                        try (ResponseBody body = response.body()) {
+                            if (response.isSuccessful() && body != null) {
+                                String message = extractInstructionsMessage(body.string());
+                                Toast.makeText(HomeActivity.this, message, Toast.LENGTH_LONG).show();
+                                dialog.dismiss();
+                            } else {
+                                Log.w("HomeActivity", "requestSubscription failed, code " + response.code());
+                                String errorBody = null;
+                                try {
+                                    if (response.errorBody() != null) errorBody = response.errorBody().string();
+                                } catch (Exception ignored) { }
+                                String message = extractErrorMessage(errorBody, "Couldn't submit your subscription request. Please try again.");
+                                Toast.makeText(HomeActivity.this, message, Toast.LENGTH_LONG).show();
+                            }
+                        } catch (Exception e) {
+                            Log.e("HomeActivity", "requestSubscription parse error", e);
+                            Toast.makeText(HomeActivity.this, "Something went wrong. Please try again.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                        btnContinueAppSubs.setEnabled(true);
+                        Log.e("HomeActivity", "requestSubscription network error", t);
+                        Toast.makeText(HomeActivity.this, "Network error \u2014 check your connection and try again.", Toast.LENGTH_SHORT).show();
+                    }
+                });
             });
         }
-        if (cardFree != null) cardFree.performClick();
-        updatePrices.run();
+
+        if (cardOneYear != null) cardOneYear.performClick(); // default selection, matches the old default-select-first-card behavior
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
+    // Pulls data.instructionsMessage out of the ApiResponse envelope --
+    // matches System.Text.Json's default camelCase serialization of the
+    // C# SubscriptionResponseDto.InstructionsMessage property.
+    private String extractInstructionsMessage(String json) {
+        if (json == null || json.trim().isEmpty()) return "Subscription request submitted.";
+        try {
+            Gson gson = new Gson();
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                JsonObject data = root.getAsJsonObject("data");
+                if (data.has("instructionsMessage") && !data.get("instructionsMessage").isJsonNull()) {
+                    return data.get("instructionsMessage").getAsString();
+                }
+            }
+        } catch (Exception e) {
+            Log.e("HomeActivity", "extractInstructionsMessage parse error", e);
+        }
+        return "Subscription request submitted.";
+    }
+
+    // Pulls message + the first entry of errors (if any) out of a FAILED
+    // ApiResponse envelope -- e.g. the 409 Conflict response from
+    // RequestSubscriptionAsync when a customer already has an
+    // Active/PendingPayment subscription. Previously this text was
+    // discarded entirely in favor of a generic "try again" message.
+    private String extractErrorMessage(String json, String fallback) {
+        if (json == null || json.trim().isEmpty()) return fallback;
+        try {
+            Gson gson = new Gson();
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root == null) return fallback;
+
+            String message = (root.has("message") && !root.get("message").isJsonNull())
+                    ? root.get("message").getAsString() : null;
+
+            String firstError = null;
+            if (root.has("errors") && root.get("errors").isJsonArray() && root.getAsJsonArray("errors").size() > 0) {
+                firstError = root.getAsJsonArray("errors").get(0).getAsString();
+            }
+
+            if (message != null && firstError != null) return message + " " + firstError;
+            if (message != null) return message;
+            if (firstError != null) return firstError;
+            return fallback;
+        } catch (Exception e) {
+            Log.e("HomeActivity", "extractErrorMessage parse error", e);
+            return fallback;
+        }
+    }
+
     private void showReportsMenuBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_reports_menu, null);
