@@ -16,10 +16,7 @@ public class AuthInterceptor implements Interceptor {
     @Override
     public Response intercept(@NonNull Chain chain) throws IOException {
         Request request = chain.request();
-        
-        // Skip adding token for registration endpoint if you suspect the backend rejects it during signup
-        // However, usually, a Bearer token is fine. Let's add more logs to see the actual request.
-        
+
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
         if (user != null) {

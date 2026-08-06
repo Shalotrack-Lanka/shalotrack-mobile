@@ -46,16 +46,6 @@ public class SignUpActivity extends AppCompatActivity {
                 return;
             }
 
-            // ================= TEST MODE BYPASS =================
-            if (number.equals("758381698") || number.equals("0758381698")) {
-                Toast.makeText(this, "Test Mode: Moving to OTP Screen", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(SignUpActivity.this, OtpVerificationActivity.class);
-                intent.putExtra("backend_verification_id", "test_id_123");
-                startActivity(intent);
-                return;
-            }
-            // =====================================================
-
             // CLEAN PHONE NUMBER FORMATTING
             if (number.startsWith("0")) number = number.substring(1);
             String fullPhoneNumber = "+94" + number;

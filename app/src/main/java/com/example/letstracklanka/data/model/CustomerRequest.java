@@ -25,12 +25,18 @@ public class CustomerRequest {
     @SerializedName("Address")
     private final String address;
 
-    public CustomerRequest(String fullName, String email, String phoneNumber, String nicNumber, String address) {
+    // Firebase Auth UID, so the backend can link the DB row to the
+    // signed-in Firebase user instead of relying solely on the Bearer token.
+    @SerializedName("FirebaseUid")
+    private final String firebaseUid;
+
+    public CustomerRequest(String fullName, String email, String phoneNumber, String nicNumber, String address, String firebaseUid) {
         this.fullName = fullName;
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.nicNumber = nicNumber;
         this.address = address;
+        this.firebaseUid = firebaseUid;
     }
 
     public String getFullName() { return fullName; }
@@ -38,4 +44,5 @@ public class CustomerRequest {
     public String getPhoneNumber() { return phoneNumber; }
     public String getNicNumber() { return nicNumber; }
     public String getAddress() { return address; }
+    public String getFirebaseUid() { return firebaseUid; }
 }
