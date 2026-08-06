@@ -152,7 +152,7 @@
                     </com.google.android.material.card.MaterialCardView>
                 </FrameLayout>
 
-                <!-- 1 Year Plan -->
+                <!-- 1-Year Plan -->
                 <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -212,7 +212,7 @@
                     </com.google.android.material.card.MaterialCardView>
                 </FrameLayout>
 
-                <!-- 2 Year Plan -->
+                <!-- 2-Year Plan -->
                 <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -272,7 +272,7 @@
                     </com.google.android.material.card.MaterialCardView>
                 </FrameLayout>
 
-                <!-- 3 Year Plan -->
+                <!-- 3-Year Plan -->
                 <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
