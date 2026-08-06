@@ -143,7 +143,7 @@ public class EmailInputActivity extends AppCompatActivity {
                 if (countDownTimer != null) countDownTimer.cancel();
                 stopChecking();
                 dialog.dismiss();
-                moveToProcessing(); // Emergency bypass for presentation
+                btnContinue.setEnabled(true);
             });
         }
 
