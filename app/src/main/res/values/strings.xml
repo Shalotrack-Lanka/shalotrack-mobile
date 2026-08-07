@@ -13,7 +13,7 @@
     <string name="connecting">Connecting...</string>
     <string name="loading_address">Loading address...</string>
     <string name="ignition">Ignition</string>
-    <string name="ac">AC</string>
+    <string name="ac">ACC</string>
     <string name="battery_full">100%%</string>
     <string name="last_updated">Updated: Just now</string>
     <string name="refresh">Refresh</string>
@@ -30,6 +30,25 @@
     <string name="tags">Tags</string>
     <string name="circles">Circles</string>
     <string name="menu">Menu</string>
+
+    <!-- Subscription Bottom Sheet Strings -->
+    <string name="subscription_title">Choose Your Plan</string>
+    <string name="subscription_subtitle">Select the plan that best fits you</string>
+    <string name="subscription_plan_free">Free</string>
+    <string name="subscription_price_free">Rs. 0</string>
+    <string name="subscription_continue_free">Continue - Free</string>
+    <string name="subscription_plan_1_year">1 Year</string>
+    <string name="subscription_plan_2_years">2 Years</string>
+    <string name="subscription_plan_3_years">3 Years</string>
+    <string name="subscription_price_1_year">Rs. 2,999</string>
+    <string name="subscription_price_2_years">Rs. 5,499</string>
+    <string name="subscription_price_3_years">Rs. 7,999</string>
+    <string name="subscription_continue_1_year">Continue - 1 Year</string>
+    <string name="subscription_continue_2_years">Continue - 2 Years</string>
+    <string name="subscription_continue_3_years">Continue - 3 Years</string>
+    <string name="subscription_best_value">Best Value</string>
+    <string name="subscription_includes">All plans include full real-time GPS tracking, alerts, and app access.</string>
+    <string name="subscription_warranty_note">Warranty valid only during active subscription period.</string>
 
     <!-- Accessibility Descriptions -->
     <string name="desc_map_layers">Map Layers</string>

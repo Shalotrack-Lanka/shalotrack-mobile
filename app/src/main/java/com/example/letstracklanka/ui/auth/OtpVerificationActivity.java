@@ -85,17 +85,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void verifyOtp(String code) {
-        // ================= TEST MODE BYPASS =================
-        if ("test_id_123".equals(verificationId) && "123456".equals(code)) {
-            Toast.makeText(this, "Test Mode: Verification Success", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(this, EmailInputActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
-            return;
-        }
-        // =====================================================
-
         btnVerifyCode.setEnabled(false);
         btnVerifyCode.setText("Verifying...");
 
