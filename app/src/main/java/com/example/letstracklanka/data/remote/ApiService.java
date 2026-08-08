@@ -1,6 +1,7 @@
 package com.example.letstracklanka.data.remote;
 
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
+import com.example.letstracklanka.data.model.CreateEmergencyContactRequest;
 import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
@@ -67,4 +68,17 @@ public interface ApiService {
 
     @POST("api/Subscriptions")
     Call<ResponseBody> requestSubscription(@Body CreateSubscriptionRequest request);
+
+    // NEW — Emergency Contacts (EmergencyContactsActivity). Plan-based limit
+    // is enforced server-side in EmergencyContactService.AddContactAsync;
+    // a 403 here means the limit was hit, surfaced via the real error
+    // message on the Android side, not a generic failure.
+    @GET("api/EmergencyContacts")
+    Call<ResponseBody> getMyEmergencyContacts();
+
+    @POST("api/EmergencyContacts")
+    Call<ResponseBody> addEmergencyContact(@Body CreateEmergencyContactRequest request);
+
+    @DELETE("api/EmergencyContacts/{emergencyContactId}")
+    Call<ResponseBody> deleteEmergencyContact(@Path("emergencyContactId") String emergencyContactId);
 }

@@ -96,6 +96,11 @@
             android:text="App Subscription" android:textColor="#1877F2" android:textSize="16sp" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
 
+        <!-- NEW: launches EmergencyContactsActivity -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuEmergencyContacts"
+            android:text="Emergency Contacts" android:textColor="#1877F2" android:textSize="16sp" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
+
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuRefer"
             android:text="Refer and Earn" android:textColor="#1877F2" android:textSize="16sp" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />

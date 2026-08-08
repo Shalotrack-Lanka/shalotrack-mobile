@@ -50,6 +50,8 @@
         <activity android:name=".ui.history.TripHistoryActivity" android:exported="false" />
         <activity android:name=".ui.history.TripDetailActivity" android:exported="false" />
 
+        <activity android:name=".ui.contacts.EmergencyContactsActivity" android:exported="false" />
+
         <!-- ============================================================ -->
         <!-- !! DO NOT ADD A LAUNCHER INTENT-FILTER TO HomeActivity !!      -->
         <!-- The launcher (MAIN/LAUNCHER) belongs on SplashActivity, below. -->
