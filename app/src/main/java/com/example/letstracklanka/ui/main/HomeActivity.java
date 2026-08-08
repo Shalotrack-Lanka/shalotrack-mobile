@@ -1,4 +1,6 @@
 package com.example.letstracklanka.ui.main;
+
+// Import all required libraries and classes
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
@@ -60,7 +62,6 @@ import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.auth.LoginActivity;
-import com.example.letstracklanka.ui.contacts.EmergencyContactsActivity;
 import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -76,32 +77,37 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
+    // Timer interval for real-time tracking
     private static final int UPDATE_INTERVAL = 1000;
+
+    // Variables for Map and APIs
     private GoogleMap mMap;
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable trackingRunnable;
+
+    // Variables to store current user and vehicle data
     private String currentCustomerId = null;
     private CustomerResponse currentCustomer = null;
     private final Map<String, String> myVehicles = new HashMap<>();
     private final Map<String, Marker> mapMarkers = new HashMap<>();
     private LatLng lastVehiclePosition = null;
+
+    // UI Components
     private RecyclerView recyclerHomeVehicles;
     private com.example.letstracklanka.ui.vehicles.VehicleListAdapter homeVehicleAdapter;
     private View errorBanner;
@@ -111,38 +117,65 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private VehicleTrailRenderer trailRenderer;
     private RealtimeLocationClient realtimeClient;
     private AddressResolver addressResolver;
-    // isMonthlyBilling removed: the new duration-plan model (1/2/3 years)
-    // has no recurring monthly/annual billing choice, unlike the old
-    // tier model this replaced.
     private DrawerLayout drawerLayout;
     private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Ask for notification permissions if using Android 13 or higher
         requestNotificationPermissionIfNeeded();
         setContentView(R.layout.activity_home);
+
+        // Initialize UI components for error messages
         errorBanner = findViewById(R.id.errorBanner);
         tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
         tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
+
+        // Check internet connection
         registerNetworkMonitor();
+
+        // Setup API clients
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         addressResolver = new AddressResolver(this);
         mainApiService = ApiClient.getClient().create(ApiService.class);
+
+        // Setup the screen layout and buttons
         initViews();
         setupUI();
+
+        // Start running the background location checks
         startRealTimeTracking();
         loadUserData();
+
+        // -------------------------------------------------------------------
+        // Start Background Tracking Foreground Service
+        // -------------------------------------------------------------------
+        Intent serviceIntent = new Intent(this, com.example.letstracklanka.services.TrackingForegroundService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
+        // -------------------------------------------------------------------
+
+        // Open the side menu automatically if requested by another screen
         if (getIntent().getBooleanExtra("open_drawer", false)) {
             if (drawerLayout != null) {
                 drawerLayout.post(() -> drawerLayout.openDrawer(GravityCompat.START));
             }
         }
     }
+
+    // Connect XML views to Java variables
     private void initViews() {
         drawerLayout = findViewById(R.id.drawerLayout);
         tvDrawerName = findViewById(R.id.tvDrawerName);
         tvDrawerPhone = findViewById(R.id.tvDrawerPhone);
         tvDrawerEmail = findViewById(R.id.tvDrawerEmail);
+
+        // Handle Logout button click
         TextView tvLogOut = findViewById(R.id.tvLogOut);
         if(tvLogOut != null) {
             tvLogOut.setOnClickListener(v -> {
@@ -153,6 +186,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 finish();
             });
         }
+
+        // Setup the list of vehicles
         recyclerHomeVehicles = findViewById(R.id.recyclerHomeVehicles);
         if (recyclerHomeVehicles != null) {
             recyclerHomeVehicles.setLayoutManager(new LinearLayoutManager(this));
@@ -160,13 +195,19 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new ArrayList<>(), this::onHomeVehicleSelected, this::confirmRemoveVehicleFromHome);
             recyclerHomeVehicles.setAdapter(homeVehicleAdapter);
         }
+
+        // Map type selection buttons
         cardDefault = findViewById(R.id.cardDefault);
         cardTerrain = findViewById(R.id.cardTerrain);
         cardSatellite = findViewById(R.id.cardSatellite);
         cardHybrid = findViewById(R.id.cardHybrid);
         mapTypeMenu = findViewById(R.id.mapTypeMenu);
+
+        // Load the Google Map
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) mapFragment.getMapAsync(this);
+
+        // Edit profile button click
         ImageView ivEditProfileMenu = findViewById(R.id.ivEditProfileMenu);
         if (ivEditProfileMenu != null) {
             ivEditProfileMenu.setOnClickListener(v -> {
@@ -174,8 +215,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showEditProfileBottomSheet();
             });
         }
+
+        // Load side menu clicks
         setupDrawerMenuItems();
     }
+
+    // Set click listeners for all side menu buttons
     private void setupDrawerMenuItems() {
         View btnMenuAddNew = findViewById(R.id.btnMenuAddNew);
         if (btnMenuAddNew != null) {
@@ -184,6 +229,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showAddVehicleDialog();
             });
         }
+
         View btnMenuReports = findViewById(R.id.btnMenuReports);
         if (btnMenuReports != null) {
             btnMenuReports.setOnClickListener(v -> {
@@ -191,6 +237,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showReportsMenuBottomSheet();
             });
         }
+
         View btnMenuChatSupport = findViewById(R.id.btnMenuChatSupport);
         if (btnMenuChatSupport != null) {
             btnMenuChatSupport.setOnClickListener(v -> {
@@ -198,6 +245,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showCallCenterBottomSheet();
             });
         }
+
         View btnMenuVoiceTrack = findViewById(R.id.btnMenuVoiceTrack);
         if (btnMenuVoiceTrack != null) {
             btnMenuVoiceTrack.setOnClickListener(v -> {
@@ -205,6 +253,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showVoiceTrackBottomSheet();
             });
         }
+
         View menuPlaces = findViewById(R.id.btnMenuPlaces);
         if (menuPlaces != null) {
             menuPlaces.setOnClickListener(v -> {
@@ -212,6 +261,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showPlacesBottomSheet();
             });
         }
+
         View menuVehicleSubs = findViewById(R.id.btnMenuVehicleSubs);
         if (menuVehicleSubs != null) {
             menuVehicleSubs.setOnClickListener(v -> {
@@ -219,6 +269,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showDevicesToRenewBottomSheet();
             });
         }
+
         View menuAppSubs = findViewById(R.id.btnMenuAppSubs);
         if (menuAppSubs != null) {
             menuAppSubs.setOnClickListener(v -> {
@@ -226,13 +277,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 showAppSubscriptionBottomSheet();
             });
         }
-        View menuEmergencyContacts = findViewById(R.id.btnMenuEmergencyContacts);
-        if (menuEmergencyContacts != null) {
-            menuEmergencyContacts.setOnClickListener(v -> {
-                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
-                startActivity(new Intent(HomeActivity.this, EmergencyContactsActivity.class));
-            });
-        }
+
+        // Buttons that are not ready yet (Coming soon)
         int[] comingSoonIds = {
                 R.id.btnMenuShop,
                 R.id.btnMenuHelpVideos,
@@ -245,9 +291,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
+    // Set up main screen buttons and bottom navigation
     private void setupUI() {
         NestedScrollView bottomSheet = findViewById(R.id.bottomSheet);
         if (bottomSheet != null) BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+        // Open/Close Map Layers menu
         FloatingActionButton fabLayers = findViewById(R.id.fabLayers);
         if (fabLayers != null) {
             fabLayers.setOnClickListener(v -> {
@@ -260,16 +310,21 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             });
         }
+
+        // Go to Vehicles Screen
         findViewById(R.id.nav_vehicles).setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, VehiclesActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
             overridePendingTransition(0, 0);
         });
+
         View btnAddVehicle = findViewById(R.id.btnAddVehicle);
         if (btnAddVehicle != null) {
             btnAddVehicle.setOnClickListener(v -> showAddVehicleDialog());
         }
+
+        // Show coming soon message for future features
         int[] comingSoonAddIds = {R.id.btnAddPerson, R.id.btnAddPet, R.id.btnAddTag, R.id.btnAddPlace};
         for (int id : comingSoonAddIds) {
             View item = findViewById(id);
@@ -277,14 +332,22 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 item.setOnClickListener(v -> Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
             }
         }
+
+        // Handle map type changes (Normal, Satellite, etc.)
         if (cardDefault != null) cardDefault.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_NORMAL, cardDefault));
         if (cardTerrain != null) cardTerrain.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_TERRAIN, cardTerrain));
         if (cardSatellite != null) cardSatellite.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_SATELLITE, cardSatellite));
         if (cardHybrid != null) cardHybrid.setOnClickListener(v -> changeMapType(GoogleMap.MAP_TYPE_HYBRID, cardHybrid));
+
+        // Find vehicle location on map
         FloatingActionButton fabLocation = findViewById(R.id.fabLocation);
         if (fabLocation != null) fabLocation.setOnClickListener(v -> getPhoneLocation());
+
+        // SOS Button
         MaterialButton btnHomeSOS = findViewById(R.id.btnSOS);
         if (btnHomeSOS != null) btnHomeSOS.setOnClickListener(v -> showSOSBottomSheet());
+
+        // Share location via SMS/WhatsApp
         MaterialButton btnSendLocation = findViewById(R.id.btnSendLocation);
         if (btnSendLocation != null) {
             btnSendLocation.setOnClickListener(v -> {
@@ -304,6 +367,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             });
         }
+
+        // Refresh dashboard and location data manually
         FloatingActionButton fabRefresh = findViewById(R.id.fabRefresh);
         if (fabRefresh != null) {
             fabRefresh.setOnClickListener(v -> {
@@ -312,6 +377,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 fetchDashboard();
             });
         }
+
+        // Bottom Navigation Bar setup
         LinearLayout bottomNavBar = findViewById(R.id.bottomNavBar);
         if (bottomNavBar != null) {
             View navTags = findViewById(R.id.nav_tags);
@@ -351,6 +418,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
+    // Display the edit profile popup
     private void showEditProfileBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_edit_profile, null);
@@ -361,6 +430,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         EditText etSurname = view.findViewById(R.id.etSurname);
         EditText etPhone = view.findViewById(R.id.etPhone);
         EditText etEmail = view.findViewById(R.id.etEmail);
+
+        // Pre-fill user details in the form
         if (tvDrawerName != null) {
             String fullName = tvDrawerName.getText().toString();
             String[] nameParts = fullName.split(" ");
@@ -375,7 +446,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         if (tvDrawerPhone != null) etPhone.setText(tvDrawerPhone.getText().toString());
         if (tvDrawerEmail != null) etEmail.setText(tvDrawerEmail.getText().toString());
+
         btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // Save the updated profile to the server
         btnSave.setOnClickListener(v -> {
             if (currentCustomer == null || currentCustomerId == null) {
                 Toast.makeText(this, "Profile not loaded yet, try again in a moment", Toast.LENGTH_SHORT).show();
@@ -419,6 +493,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
+
+    // Show popup for Saved Places
     private void showPlacesBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_places, null);
@@ -430,6 +506,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
+
+    // Show popup for Device Renewal
     private void showDevicesToRenewBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_devices_to_renew, null);
@@ -447,13 +525,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         dialog.show();
     }
-    // Rebuilt to match the requirement doc's actual subscription model:
-    // three fixed-price, one-time, multi-year terms, not the previous
-    // Free/Silver/Gold/Platinum recurring feature-tier model with a
-    // monthly/annual toggle -- that model didn't match the written spec
-    // at all. Still UI-only: btnContinueAppSubs has no real backend
-    // behind it yet (see the "Proceeding..." placeholder below) -- that's
-    // separate, larger scope than this fix.
+
+    // Show popup for Application Subscriptions (1-Year, 2-Year, 3-Year plans)
     private void showAppSubscriptionBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_app_subscription, null);
@@ -462,6 +535,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         ImageView btnClose = view.findViewById(R.id.btnCloseAppSubs);
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
 
+        // Find UI elements for subscription cards
         MaterialCardView cardFree = view.findViewById(R.id.cardFree);
         MaterialCardView cardOneYear = view.findViewById(R.id.cardOneYear);
         MaterialCardView cardTwoYears = view.findViewById(R.id.cardTwoYears);
@@ -473,12 +547,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         View btnContinueView = view.findViewById(R.id.btnContinueAppSubs);
         MaterialButton btnContinueAppSubs = (btnContinueView instanceof MaterialButton) ? (MaterialButton) btnContinueView : null;
 
-        // Tracks which plan is currently selected across all four card
-        // click handlers below -- a 1-element array is the standard way
-        // to capture *mutable* state in a Java lambda (plain local
-        // variables captured in lambdas must be effectively final).
+        // Tracks which plan is currently selected across all four card click handlers
         final String[] selectedPlan = {"OneYear"};
 
+        // Reset all subscription cards visually
         Runnable resetCards = () -> {
             if (cardFree != null) { cardFree.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardFree.setStrokeWidth(0); if (badgeFree != null) badgeFree.setVisibility(View.GONE); }
             if (cardOneYear != null) { cardOneYear.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardOneYear.setStrokeWidth(0); if (badgeOneYear != null) badgeOneYear.setVisibility(View.GONE); }
@@ -486,6 +558,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (cardThreeYears != null) { cardThreeYears.animate().scaleX(1f).scaleY(1f).setDuration(200).start(); cardThreeYears.setStrokeWidth(0); if (badgeThreeYears != null) badgeThreeYears.setVisibility(View.GONE); }
         };
 
+        // Handle selecting Free Plan
         if (cardFree != null) {
             cardFree.setOnClickListener(v -> {
                 resetCards.run();
@@ -497,6 +570,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_free));
             });
         }
+
+        // Handle selecting One Year Plan
         if (cardOneYear != null) {
             cardOneYear.setOnClickListener(v -> {
                 resetCards.run();
@@ -508,6 +583,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_1_year));
             });
         }
+
+        // Handle selecting Two Years Plan
         if (cardTwoYears != null) {
             cardTwoYears.setOnClickListener(v -> {
                 resetCards.run();
@@ -519,6 +596,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_2_years));
             });
         }
+
+        // Handle selecting Three Years Plan
         if (cardThreeYears != null) {
             cardThreeYears.setOnClickListener(v -> {
                 resetCards.run();
@@ -530,12 +609,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (btnContinueAppSubs != null) btnContinueAppSubs.setText(getString(R.string.subscription_continue_3_years));
             });
         }
+
+        // Send the subscription request to the server
         if (btnContinueAppSubs != null) {
             btnContinueAppSubs.setOnClickListener(v -> {
-                // Real backend call -- replaces the "Proceeding..." toast
-                // placeholder. Disables the button during the request so a
-                // double-tap can't fire two subscription requests for the
-                // same plan.
                 btnContinueAppSubs.setEnabled(false);
                 CreateSubscriptionRequest request = new CreateSubscriptionRequest(selectedPlan[0]);
                 mainApiService.requestSubscription(request).enqueue(new Callback<ResponseBody>() {
@@ -572,13 +649,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
 
-        if (cardOneYear != null) cardOneYear.performClick(); // default selection, matches the old default-select-first-card behavior
+        // Select 'One Year' plan by default when popup opens
+        if (cardOneYear != null) cardOneYear.performClick();
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
     }
-    // Pulls data.instructionsMessage out of the ApiResponse envelope --
-    // matches System.Text.Json's default camelCase serialization of the
-    // C# SubscriptionResponseDto.InstructionsMessage property.
+
+    // Read success message from server regarding subscriptions
     private String extractInstructionsMessage(String json) {
         if (json == null || json.trim().isEmpty()) return "Subscription request submitted.";
         try {
@@ -596,11 +673,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         return "Subscription request submitted.";
     }
 
-    // Pulls message + the first entry of errors (if any) out of a FAILED
-    // ApiResponse envelope -- e.g. the 409 Conflict response from
-    // RequestSubscriptionAsync when a customer already has an
-    // Active/PendingPayment subscription. Previously this text was
-    // discarded entirely in favor of a generic "try again" message.
+    // Read error message from server if subscription fails
     private String extractErrorMessage(String json, String fallback) {
         if (json == null || json.trim().isEmpty()) return fallback;
         try {
@@ -626,6 +699,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    // Show popup for Reports Menu
     private void showReportsMenuBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_reports_menu, null);
@@ -640,6 +714,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         dialog.show();
     }
+
+    // Show popup for Voice Tracking setup
     private void showVoiceTrackBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_voice_track, null);
@@ -656,6 +732,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
     }
 
+    // Show popup for Call Center assistance
     private void showCallCenterBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
@@ -670,6 +747,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (btnCloseBottom != null) btnCloseBottom.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }
+
+    // Dialog to add a new GPS Vehicle to the app
     private void showAddVehicleDialog() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_vehicle, null);
         EditText etVehicleNumber = dialogView.findViewById(R.id.etVehicleNumber);
@@ -682,13 +761,17 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         EditText etType = dialogView.findViewById(R.id.etVehicleType);
         EditText etFuel = dialogView.findViewById(R.id.etFuelType);
         EditText etImei = dialogView.findViewById(R.id.etImei);
+
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Register My GPS Vehicle")
                 .setView(dialogView)
                 .create();
+
         MaterialButton btnLinkDevice = dialogView.findViewById(R.id.btnLinkDevice);
         MaterialButton btnCancelAddVehicle = dialogView.findViewById(R.id.btnCancelAddVehicle);
         btnCancelAddVehicle.setOnClickListener(v -> dialog.dismiss());
+
+        // Validate inputs and send Add Vehicle request
         btnLinkDevice.setOnClickListener(v -> {
             String vNum = etVehicleNumber.getText().toString().trim();
             String make = etMake.getText().toString().trim();
@@ -715,6 +798,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             processVehicleAddition(vNum, chassis, engine, make, model, year, color, type, fuel, imei);
             dialog.dismiss();
         });
+
         dialog.setOnShowListener(d -> {
             if (dialog.getWindow() != null) {
                 int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92);
@@ -724,6 +808,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
         dialog.show();
     }
+
+    // Step 1: Check if the GPS device (IMEI) exists in the database
     private void processVehicleAddition(String vNum, String chassis, String engine, String make, String model,
                                         int year, String color, String type, String fuel, String imei) {
         mainApiService.lookupDeviceByImei(imei).enqueue(new Callback<ResponseBody>() {
@@ -756,6 +842,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+
+    // Step 2: Create the Vehicle profile in the database
     private void createVehicle(String vNum, String chassis, String engine, String make, String model,
                                int year, String color, String type, String fuel, String deviceId) {
         if (currentCustomerId == null) {
@@ -781,6 +869,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+
+    // Step 3: Link the GPS device to the newly created vehicle
     private void assignDeviceToVehicle(String vehicleId, String deviceId) {
         mainApiService.assignDevice(new CreateDeviceAssignmentRequest(vehicleId, deviceId)).enqueue(new Callback<ResponseBody>() {
             @Override
@@ -799,6 +889,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+
+    // Show popup for sending an SOS Alert
     private void showSOSBottomSheet() {
         BottomSheetDialog sosDialog = new BottomSheetDialog(this);
         View sosView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_sos, null);
@@ -806,6 +898,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         ImageView btnClose = sosView.findViewById(R.id.btnCloseSOS);
         LinearLayout btnTapSOS = sosView.findViewById(R.id.btnTapSOS);
         btnClose.setOnClickListener(v -> sosDialog.dismiss());
+
+        // Action to share location as an SOS message via SMS/WhatsApp
         btnTapSOS.setOnClickListener(v -> {
             sosDialog.dismiss();
             if (lastVehiclePosition != null) {
@@ -826,6 +920,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
         sosDialog.show();
     }
+
+    // Start a timer to get location and dashboard data continuously
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         trackingRunnable = new Runnable() {
@@ -838,6 +934,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
         handler.post(trackingRunnable);
     }
+
+    // Get latest dashboard data (e.g. speeds, status) for vehicles
     private void fetchDashboard() {
         if (currentCustomerId == null) return;
         mainApiService.getCustomerDashboard(currentCustomerId).enqueue(new Callback<ResponseBody>() {
@@ -855,6 +953,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     if (root == null || !root.has("data") || root.get("data").isJsonNull()) return;
                     JsonObject data = root.getAsJsonObject("data");
                     if (!data.has("vehicles") || !data.get("vehicles").isJsonArray()) return;
+
+                    // Update the list of vehicles in the UI
                     if (homeVehicleAdapter != null) {
                         List<com.example.letstracklanka.data.model.DashboardVehicle> dashboardVehicles =
                                 gson.fromJson(data.getAsJsonArray("vehicles"),
@@ -862,6 +962,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                                 List.class, com.example.letstracklanka.data.model.DashboardVehicle.class).getType());
                         homeVehicleAdapter.updateVehicles(dashboardVehicles);
                     }
+
+                    // Save vehicle names to memory
                     for (com.google.gson.JsonElement el : data.getAsJsonArray("vehicles")) {
                         JsonObject v = el.getAsJsonObject();
                         if (!v.has("vehicleId") || v.get("vehicleId").isJsonNull()) continue;
@@ -869,13 +971,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         String make = v.has("make") && !v.get("make").isJsonNull() ? v.get("make").getAsString() : "";
                         String model = v.has("model") && !v.get("model").isJsonNull() ? v.get("model").getAsString() : "";
                         myVehicles.put(vehicleId, (make + " " + model).trim());
-                        // FIX: this used to call updateMarker() for EVERY vehicle
-                        // here, adding a separate map marker for each one --
-                        // redundant with (and inconsistent with) the properly
-                        // selected-vehicle-only marker/trail that trailRenderer
-                        // already draws via fetchLocation()/handlePushedLocation().
-                        // Removed entirely; myVehicles still gets populated/kept
-                        // fresh here, just no longer adds a raw marker per vehicle.
                     }
                 } catch (Exception e) {
                     Log.e("HomeActivity", "Dashboard error", e);
@@ -889,16 +984,23 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+
+    // Process live location updates when they arrive from WebSocket
     private void handlePushedLocation(RealtimeLocationPayload payload) {
         if (payload.getVehicleId() == null || mMap == null) return;
         if (!payload.getVehicleId().toLowerCase().equals(getSelectedVehicleId())) return;
         LatLng pos = new LatLng(payload.getLatitude(), payload.getLongitude());
         if (pos.latitude == 0 && pos.longitude == 0) return;
+
         lastVehiclePosition = pos;
         String title = myVehicles.getOrDefault(payload.getVehicleId().toLowerCase(), "My Vehicle");
+
+        // Draw the vehicle trail and move the camera on the map
         trailRenderer.updatePosition(pos, (float) payload.getHeading(), title);
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
     }
+
+    // When the user clicks on a vehicle in the list, save its ID and reload map
     private void onHomeVehicleSelected(com.example.letstracklanka.data.model.DashboardVehicle vehicle) {
         getSharedPreferences(
                 com.example.letstracklanka.ui.vehicles.VehicleListActivity.VEHICLE_PREFS_NAME,
@@ -906,10 +1008,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .edit()
                 .putString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, vehicle.getVehicleId())
                 .apply();
-        // FIX: reverted -- stays on Home, just updates the map for the newly
-        // selected vehicle. No navigation to VehiclesActivity.
         fetchLocation();
     }
+
+    // Show warning before completely removing a vehicle from the account
     private void confirmRemoveVehicleFromHome(com.example.letstracklanka.data.model.DashboardVehicle vehicle) {
         new AlertDialog.Builder(this)
                 .setTitle("Remove " + vehicle.getVehicleNumber() + "?")
@@ -933,6 +1035,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
+    // Get the ID of the currently selected vehicle from memory
     private String getSelectedVehicleId() {
         if (myVehicles.isEmpty()) return "";
         String selected = getSharedPreferences(
@@ -944,6 +1048,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         return myVehicles.keySet().iterator().next();
     }
+
+    // Call the server to get the current location of the selected vehicle
     private void fetchLocation() {
         if (myVehicles.isEmpty()) {
             return;
@@ -980,6 +1086,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         }
     }
+
+    // Read location details from the API response
     private LocationResponse extractLocation(String json) {
         if (json == null || json.trim().isEmpty()) return null;
         Gson gson = new Gson();
@@ -994,6 +1102,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             return null;
         }
     }
+
+    // Draw or move the vehicle icon on the map
     private void updateMarker(String id, LatLng pos, String title) {
         if (mMap == null) return;
         if (mapMarkers.containsKey(id)) {
@@ -1005,8 +1115,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 14f));
         }
     }
+
+    // Temporary empty function for UI updates
     private void updateUI(LocationResponse loc) {
     }
+
+    // Display a permission box to show notifications on Android 13+
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -1016,6 +1130,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
+    // Get a unique key from Firebase to send push notifications to this phone
     private void registerFcmToken() {
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (!task.isSuccessful()) {
@@ -1038,6 +1154,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     });
         });
     }
+
+    // Get the current user's profile and start loading their vehicles
     private void loadUserData() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -1057,12 +1175,15 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             String phone = data.has("phone") && !data.get("phone").isJsonNull() ? data.get("phone").getAsString() :
                                     (data.has("phoneNumber") && !data.get("phoneNumber").isJsonNull() ? data.get("phoneNumber").getAsString() : "No Phone Number");
                             String email = data.has("email") && !data.get("email").isJsonNull() ? data.get("email").getAsString() : "No Email";
+
+                            // Put user details in the side menu header
                             if(tvDrawerName != null) tvDrawerName.setText(name);
                             if(tvDrawerPhone != null) tvDrawerPhone.setText(phone);
                             if(tvDrawerEmail != null) tvDrawerEmail.setText(email);
                         } catch(Exception e) {
                             Log.e("HomeActivity", "Drawer UI update error", e);
                         }
+
                         CustomerResponse customer = extractCustomer(json);
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
@@ -1088,6 +1209,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+
+    // Helper functions to read user and common data safely
     private CustomerResponse extractCustomer(String json) {
         if (json == null || json.trim().isEmpty()) return null;
         Gson gson = new Gson();
@@ -1116,6 +1239,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             return null;
         }
     }
+
+    // Get the list of vehicles assigned to the logged-in user
     private void fetchMyVehicles() {
         if (currentCustomerId == null) return;
         mainApiService.getVehiclesByCustomer(currentCustomerId).enqueue(new Callback<ResponseBody>() {
@@ -1126,6 +1251,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
                         myVehicles.clear();
+
+                        // Setup live tracking connections for each vehicle
                         for (VehicleResponse v : list) {
                             myVehicles.put(v.getVehicleId().toLowerCase(), v.getMake() + " " + v.getModel());
                             trailRenderer.loadInitialTrail(v.getVehicleId(), () -> {});
@@ -1154,6 +1281,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+
+    // Show a red warning banner if something fails (e.g. No Internet)
     private void showRetryDialog(String message, Runnable retryAction) {
         if (errorBanner == null) return;
         tvErrorBannerMessage.setText(message);
@@ -1171,6 +1300,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void hideErrorBanner() {
         if (errorBanner != null) errorBanner.setVisibility(View.GONE);
     }
+
+    // Move camera to the latest known vehicle location when floating button is clicked
     private void getPhoneLocation() {
         if (lastVehiclePosition != null && mMap != null) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(lastVehiclePosition, 15f));
@@ -1178,11 +1309,15 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             Toast.makeText(this, "Vehicle location not available yet", Toast.LENGTH_SHORT).show();
         }
     }
+
+    // This runs when Google Maps is fully loaded on the screen
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
         trailRenderer = new VehicleTrailRenderer(this, mMap, trackingApi);
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(6.9271, 79.8612), 10f)); // Start in Colombo
+
+        // Restore the last used Map type (Satellite, Terrain, etc.)
         int savedMapType = getSharedPreferences(MAP_PREFS_NAME, MODE_PRIVATE)
                 .getInt(MAP_TYPE_PREF_KEY, GoogleMap.MAP_TYPE_NORMAL);
         MaterialCardView savedCard;
@@ -1192,13 +1327,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         else savedCard = cardDefault;
         changeMapType(savedMapType, savedCard);
     }
+
+    // Configuration settings for map and tracking speeds
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
-    // GPS receivers commonly report small non-zero speeds (drift, multipath
-    // reflection) even when genuinely stationary -- confirmed via a real test
-    // where a parked vehicle indoors consistently read 5 km/h. Matched to
-    // VehiclesActivity's threshold too.
     private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 7.0;
     private static final String MAP_TYPE_PREF_KEY = "selected_map_type";
+
+    // Change map view (Satellite, Normal) and highlight the selected button
     private void changeMapType(int mapType, MaterialCardView selectedCard) {
         if (mMap != null) {
             mMap.setMapType(mapType);
@@ -1215,6 +1350,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .apply();
         }
     }
+
+    // Helper to safely read a list of items from JSON
     private <T> List<T> parseList(String json, Class<T> clazz) {
         List<T> list = new ArrayList<>();
         if (json == null || json.trim().isEmpty()) return list;
@@ -1238,7 +1375,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         return list;
     }
+
     private ConnectivityManager.NetworkCallback networkCallback;
+
+    // Monitor internet connection. Show warning if WiFi/Data drops.
     private void registerNetworkMonitor() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return;
@@ -1257,6 +1397,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
         cm.registerDefaultNetworkCallback(networkCallback);
     }
+
+    // Clean up background jobs to save memory when closing the screen
     @Override
     protected void onDestroy() {
         super.onDestroy();
