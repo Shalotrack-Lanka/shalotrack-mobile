@@ -62,6 +62,7 @@ import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.auth.LoginActivity;
+import com.example.letstracklanka.ui.contacts.EmergencyContactsActivity;
 import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -275,6 +276,14 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             menuAppSubs.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
                 showAppSubscriptionBottomSheet();
+            });
+        }
+
+        View menuEmergencyContacts = findViewById(R.id.btnMenuEmergencyContacts);
+        if (menuEmergencyContacts != null) {
+            menuEmergencyContacts.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                startActivity(new Intent(HomeActivity.this, EmergencyContactsActivity.class));
             });
         }
 
