@@ -345,6 +345,18 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                         try (ResponseBody body = response.body()) {
                             if (response.isSuccessful() && body != null) {
                                 List<TrackingPoint> points = parseList(body.string());
+                                // FIX: the GpsTracking API returns points
+                                // newest-first (same documented behavior
+                                // already handled in VehicleTrailRenderer),
+                                // but this method never sorted them --
+                                // meaning StaticMapLoader.loadRoute() was
+                                // using the NEWEST point as "first" (green
+                                // S marker) and the OLDEST as "last" (red E
+                                // marker), backwards from the real
+                                // chronological start/end of the trip.
+                                if (points != null) {
+                                    Collections.sort(points, Comparator.comparing(TrackingPoint::getEventTime));
+                                }
                                 // Guards against a slow response landing on
                                 // a row that's since been recycled to a
                                 // different trip.
