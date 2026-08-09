@@ -50,8 +50,12 @@ public interface ApiService {
     @GET("api/GpsDevices/lookup/{imei}")
     Call<ResponseBody> lookupDeviceByImei(@Path("imei") String imei);
 
+    // NEW: vehicleId is optional -- pass null for the existing "all my
+    // vehicles" behavior, or a real ID to filter to one vehicle. Retrofit
+    // omits the query parameter entirely from the URL when it's null,
+    // rather than sending "vehicleId=null" literally.
     @GET("api/Alerts")
-    Call<ResponseBody> getMyAlerts(@Query("page") int page, @Query("pageSize") int pageSize);
+    Call<ResponseBody> getMyAlerts(@Query("page") int page, @Query("pageSize") int pageSize, @Query("vehicleId") String vehicleId);
 
     @PATCH("api/Alerts/{alertId}/read")
     Call<ResponseBody> markAlertAsRead(@Path("alertId") long alertId);
