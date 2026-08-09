@@ -41,8 +41,18 @@ import retrofit2.Response;
 
 public class AlertsActivity extends AppCompatActivity {
 
+    public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
+    public static final String EXTRA_VEHICLE_NAME = "extra_vehicle_name";
+
     // API Service for making network calls
     private ApiService mainApiService;
+
+    // NEW: null means "all my vehicles" -- the existing bottom-nav Alerts
+    // tab behavior, unchanged. A real value means this screen was opened
+    // for one specific vehicle (e.g. from its detail panel) and only that
+    // vehicle's alerts should show.
+    private String filterVehicleId;
+    private String filterVehicleName;
 
     // UI Components for the Alerts list
     private RecyclerView recyclerAlerts;
@@ -66,6 +76,12 @@ public class AlertsActivity extends AppCompatActivity {
 
         // Link this activity to its XML layout file
         setContentView(R.layout.activity_alerts);
+
+        // NEW: optional -- if this screen was opened for a specific
+        // vehicle, only that vehicle's alerts should load. If absent,
+        // behaves exactly as before (all vehicles).
+        filterVehicleId = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
+        filterVehicleName = getIntent().getStringExtra(EXTRA_VEHICLE_NAME);
 
         // Initialize the API client
         mainApiService = ApiClient.getClient().create(ApiService.class);
@@ -197,8 +213,11 @@ public class AlertsActivity extends AppCompatActivity {
         recyclerAlerts.setVisibility(View.GONE);
         tvEmptyAlerts.setVisibility(View.GONE);
 
-        // Send network request to get page 1, max 20 alerts
-        mainApiService.getMyAlerts(1, 20).enqueue(new Callback<ResponseBody>() {
+        // Send network request to get page 1, max 20 alerts, optionally
+        // filtered to one vehicle. Retrofit omits the vehicleId query
+        // parameter entirely when it's null, so this is safe for both the
+        // "all vehicles" and "one vehicle" cases with the same call.
+        mainApiService.getMyAlerts(1, 20, filterVehicleId).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 progressAlerts.setVisibility(View.GONE); // Hide loading spinner
@@ -235,7 +254,12 @@ public class AlertsActivity extends AppCompatActivity {
         if (!showingAlertsTab) return;   // Stop if the user switched tabs before data arrived
 
         if (alerts == null || alerts.isEmpty()) {
-            showEmpty("No alerts yet."); // Show message if list is empty
+            // NEW: specific message when filtered to one vehicle, since
+            // the vehicle name is already available here.
+            String emptyMessage = (filterVehicleName != null && !filterVehicleName.trim().isEmpty())
+                    ? "No alerts yet for " + filterVehicleName + "."
+                    : "No alerts yet.";
+            showEmpty(emptyMessage);
             return;
         }
 

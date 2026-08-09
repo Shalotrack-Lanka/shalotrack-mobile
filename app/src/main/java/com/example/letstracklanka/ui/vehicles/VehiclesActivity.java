@@ -272,7 +272,12 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         View btnMenuAlerts = findViewById(R.id.btnMenuAlerts);
         if (btnMenuAlerts != null) {
             btnMenuAlerts.setOnClickListener(v -> {
+                // NEW: filters to the currently selected vehicle's alerts,
+                // unlike the bottom-nav Alerts tab below (nav_alerts),
+                // which deliberately stays a global "all vehicles" view.
                 Intent intent = new Intent(VehiclesActivity.this, AlertsActivity.class);
+                intent.putExtra(AlertsActivity.EXTRA_VEHICLE_ID, selectedVehicleId);
+                intent.putExtra(AlertsActivity.EXTRA_VEHICLE_NAME, selectedVehicleName);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
             });
