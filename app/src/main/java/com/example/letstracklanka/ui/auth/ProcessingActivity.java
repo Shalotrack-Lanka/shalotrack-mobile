@@ -11,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.ui.main.HomeActivity;
-import com.example.letstracklanka.utils.SessionManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import org.json.JSONException;
@@ -23,7 +22,6 @@ public class ProcessingActivity extends AppCompatActivity {
     private String name, nic, address, email;
     private ProgressBar progressBar;
     private AuthViewModel viewModel;
-    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +42,6 @@ public class ProcessingActivity extends AppCompatActivity {
 
         progressBar = findViewById(R.id.progressBar);
         viewModel = new ViewModelProvider(this).get(AuthViewModel.class);
-        sessionManager = new SessionManager(this);
 
         registerCustomer();
     }
@@ -69,10 +66,6 @@ public class ProcessingActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     if ("SUCCESS".equals(result)) {
                         Toast.makeText(this, "Profile Synced to Cloud!", Toast.LENGTH_SHORT).show();
-                        
-                        // Save session details
-                        sessionManager.createLoginSession(currentUser.getUid(), name, email, phone);
-
                         goToDashboard();
                     } else {
                         Log.e("REG_ERROR", "Database Sync Error: " + result);
@@ -109,10 +102,6 @@ public class ProcessingActivity extends AppCompatActivity {
             });
         } else {
             builder.setPositiveButton("Retry", (dialog, which) -> registerCustomer());
-            
-            // NEW: Allow skipping to Home if it's just a network/unknown error
-            // The HomeActivity will try to fix the profile later.
-            builder.setNeutralButton("Skip for Now", (dialog, which) -> goToDashboard());
         }
 
         builder.setNegativeButton("Sign Out", (dialog, which) -> {

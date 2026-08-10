@@ -64,7 +64,6 @@ import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.ui.auth.LoginActivity;
 import com.example.letstracklanka.ui.contacts.EmergencyContactsActivity;
 import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
-import com.example.letstracklanka.utils.SessionManager;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -121,7 +120,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private AddressResolver addressResolver;
     private DrawerLayout drawerLayout;
     private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
-    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,7 +141,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         addressResolver = new AddressResolver(this);
         mainApiService = ApiClient.getClient().create(ApiService.class);
-        sessionManager = new SessionManager(this);
 
         // Setup the screen layout and buttons
         initViews();
@@ -151,13 +148,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Start running the background location checks
         startRealTimeTracking();
-        
-        // Load from cache first
-        currentCustomerId = sessionManager.getCustomerId();
-        if (tvDrawerName != null) tvDrawerName.setText(sessionManager.getUserName());
-        if (tvDrawerPhone != null) tvDrawerPhone.setText(sessionManager.getUserPhone());
-        if (tvDrawerEmail != null) tvDrawerEmail.setText(sessionManager.getUserEmail());
-
         loadUserData();
 
         // -------------------------------------------------------------------
@@ -191,7 +181,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if(tvLogOut != null) {
             tvLogOut.setOnClickListener(v -> {
                 FirebaseAuth.getInstance().signOut();
-                if (sessionManager != null) sessionManager.logoutUser();
                 Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
@@ -1200,14 +1189,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                             if(tvDrawerName != null) tvDrawerName.setText(name);
                             if(tvDrawerPhone != null) tvDrawerPhone.setText(phone);
                             if(tvDrawerEmail != null) tvDrawerEmail.setText(email);
-
-                            // Update cache
-                            sessionManager.updateUserDetails(name, email, phone);
-                            
-                            // Self-healing: if we got here, they are definitely logged in
-                            if (!sessionManager.isLoggedIn()) {
-                                sessionManager.createLoginSession(currentUser.getUid(), name, email, phone);
-                            }
                         } catch(Exception e) {
                             Log.e("HomeActivity", "Drawer UI update error", e);
                         }
