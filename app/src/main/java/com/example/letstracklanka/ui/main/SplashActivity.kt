@@ -7,7 +7,6 @@ import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import com.example.letstracklanka.R
 import com.example.letstracklanka.ui.auth.EmailInputActivity
-import com.example.letstracklanka.ui.auth.ProcessingActivity
 import com.example.letstracklanka.utils.SessionManager
 import com.google.firebase.auth.FirebaseAuth
 
@@ -47,28 +46,19 @@ class SplashActivity : AppCompatActivity() {
         val currentUser = FirebaseAuth.getInstance().currentUser
 
         if (currentUser != null) {
-            if (sessionManager.isLoggedIn) {
-                // SESSION OK: Go to Animation (MainActivity) which leads to Home
+            if (sessionManager.isLoggedIn || currentUser.email != null) {
+                // SESSION OK or FIREBASE AUTH HAS EMAIL: 
+                // Go to Animation (MainActivity) which leads to Home.
+                // HomeActivity will self-heal the session if isLoggedIn is false.
                 val intent = Intent(this, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
             } else {
-                // FIREBASE AUTH OK BUT NO LOCAL SESSION: 
-                // Might need to re-verify profile/email
-                if (currentUser.email != null) {
-                    // We have an email, maybe they just need to re-sync or we can try to go to processing
-                    // but usually if isLoggedIn is false, they should go through the flow.
-                    // For safety, if they have email, we could try to send them to ProcessingActivity
-                    // to see if we can get their customerId.
-                    val intent = Intent(this, ProcessingActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                } else {
-                    // PARTIAL SESSION: Go to Details screen to finish linking email
-                    val intent = Intent(this, EmailInputActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                }
+                // PARTIAL SESSION: No email linked yet.
+                // Go to Details screen to finish linking email and profile data.
+                val intent = Intent(this, EmailInputActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
             }
         } else {
             // NO SESSION: Go to Welcome screen
