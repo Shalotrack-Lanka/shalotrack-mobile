@@ -109,6 +109,10 @@ public class ProcessingActivity extends AppCompatActivity {
             });
         } else {
             builder.setPositiveButton("Retry", (dialog, which) -> registerCustomer());
+            
+            // NEW: Allow skipping to Home if it's just a network/unknown error
+            // The HomeActivity will try to fix the profile later.
+            builder.setNeutralButton("Skip for Now", (dialog, which) -> goToDashboard());
         }
 
         builder.setNegativeButton("Sign Out", (dialog, which) -> {

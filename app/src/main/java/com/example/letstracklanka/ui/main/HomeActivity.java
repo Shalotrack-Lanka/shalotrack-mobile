@@ -1203,6 +1203,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                             // Update cache
                             sessionManager.updateUserDetails(name, email, phone);
+                            
+                            // Self-healing: if we got here, they are definitely logged in
+                            if (!sessionManager.isLoggedIn()) {
+                                sessionManager.createLoginSession(currentUser.getUid(), name, email, phone);
+                            }
                         } catch(Exception e) {
                             Log.e("HomeActivity", "Drawer UI update error", e);
                         }
