@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.letstracklanka.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -76,15 +77,23 @@ public class EmailInputActivity extends AppCompatActivity {
         btnContinue.setEnabled(false);
         Toast.makeText(this, "Requesting verification for: " + email, Toast.LENGTH_SHORT).show();
 
-        user.verifyBeforeUpdateEmail(email).addOnCompleteListener(task -> {
+        // Configure ActionCodeSettings for App Links
+        ActionCodeSettings actionCodeSettings = ActionCodeSettings.newBuilder()
+                .setUrl("https://shalotrack.com/verified") // Fallback URL for web
+                .setHandleCodeInApp(true)
+                .setAndroidPackageName("com.example.letstracklanka", true, null)
+                .build();
+
+        user.verifyBeforeUpdateEmail(email, actionCodeSettings).addOnCompleteListener(task -> {
             btnContinue.setEnabled(true);
             if (task.isSuccessful()) {
                 showVerificationDialog();
                 startChecking();
             } else {
+                // If verifyBeforeUpdateEmail fails, try simple update + verification
                 user.updateEmail(email).addOnCompleteListener(linkTask -> {
                     if (linkTask.isSuccessful()) {
-                        user.sendEmailVerification();
+                        user.sendEmailVerification(actionCodeSettings);
                         showVerificationDialog();
                         startChecking();
                     } else {
