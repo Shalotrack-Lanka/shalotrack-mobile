@@ -36,30 +36,39 @@ import java.util.TimeZone;
 public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int VIEW_TYPE_DAY_HEADER = 0;
-    private static final int VIEW_TYPE_ALERT_CARD = 1;
+    private static final int VIEW_TYPE_VEHICLE_HEADER = 1;
+    private static final int VIEW_TYPE_ALERT_CARD = 2;
 
     public interface OnAlertClickListener {
         void onAlertClick(AlertResponse alert);
     }
 
+    private enum RowType { DAY_HEADER, VEHICLE_HEADER, ALERT_CARD }
+
     private static class Row {
-        final boolean isHeader;
+        final RowType type;
         final String dayTitle;
         final int dayCount;
+        final String vehicleNumber;
         final AlertResponse alert;
 
-        static Row header(String dayTitle, int dayCount) {
-            return new Row(true, dayTitle, dayCount, null);
+        static Row dayHeader(String dayTitle, int dayCount) {
+            return new Row(RowType.DAY_HEADER, dayTitle, dayCount, null, null);
+        }
+
+        static Row vehicleHeader(String vehicleNumber) {
+            return new Row(RowType.VEHICLE_HEADER, null, 0, vehicleNumber, null);
         }
 
         static Row card(AlertResponse alert) {
-            return new Row(false, null, 0, alert);
+            return new Row(RowType.ALERT_CARD, null, 0, null, alert);
         }
 
-        private Row(boolean isHeader, String dayTitle, int dayCount, AlertResponse alert) {
-            this.isHeader = isHeader;
+        private Row(RowType type, String dayTitle, int dayCount, String vehicleNumber, AlertResponse alert) {
+            this.type = type;
             this.dayTitle = dayTitle;
             this.dayCount = dayCount;
+            this.vehicleNumber = vehicleNumber;
             this.alert = alert;
         }
     }
@@ -84,6 +93,7 @@ public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     public void updateAlerts(List<AlertResponse> newAlerts) {
         Map<String, List<AlertResponse>> byDay = new LinkedHashMap<>();
+        boolean multiVehicle = false;
 
         if (newAlerts != null) {
             List<AlertResponse> sorted = new ArrayList<>();
@@ -97,6 +107,22 @@ public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 return db.compareTo(da); // latest first, matching Trip History's convention
             });
 
+            // NEW: auto-detects whether this list spans more than one
+            // vehicle. Screens already filtered to a single vehicle (e.g.
+            // opened from that vehicle's own detail panel) naturally have
+            // every alert sharing one vehicleId, so this needs no separate
+            // flag passed in from AlertsActivity -- the data itself
+            // already implies whether vehicle sub-headers add any value.
+            String firstVehicleId = null;
+            for (AlertResponse a : sorted) {
+                if (firstVehicleId == null) {
+                    firstVehicleId = a.getVehicleId();
+                } else if (a.getVehicleId() == null || !a.getVehicleId().equals(firstVehicleId)) {
+                    multiVehicle = true;
+                    break;
+                }
+            }
+
             for (AlertResponse alert : sorted) {
                 Date triggered = parseIso(alert.getTriggeredAt());
                 if (triggered == null) continue; // can't group an alert whose time doesn't parse
@@ -106,17 +132,43 @@ public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
 
         List<Row> newRows = new ArrayList<>();
-        for (Map.Entry<String, List<AlertResponse>> entry : byDay.entrySet()) {
+        for (Map.Entry<String, List<AlertResponse>> dayEntry : byDay.entrySet()) {
             Date dayDate;
             try {
-                dayDate = dayKeyFormat.parse(entry.getKey());
+                dayDate = dayKeyFormat.parse(dayEntry.getKey());
             } catch (ParseException e) {
                 dayDate = new Date();
             }
             String title = dayTitleFormat.format(dayDate);
-            newRows.add(Row.header(title, entry.getValue().size()));
-            for (AlertResponse alert : entry.getValue()) {
-                newRows.add(Row.card(alert));
+            List<AlertResponse> dayAlerts = dayEntry.getValue();
+            newRows.add(Row.dayHeader(title, dayAlerts.size()));
+
+            if (!multiVehicle) {
+                // Single-vehicle list: flat, same as before this change.
+                for (AlertResponse alert : dayAlerts) {
+                    newRows.add(Row.card(alert));
+                }
+                continue;
+            }
+
+            // Multi-vehicle: sub-group within this day. Since dayAlerts is
+            // already time-sorted latest-first, a LinkedHashMap naturally
+            // orders vehicle sub-groups by "most recent activity first"
+            // within the day, as a side effect of insertion order -- same
+            // trick already used for the day-level grouping itself.
+            Map<String, List<AlertResponse>> byVehicle = new LinkedHashMap<>();
+            Map<String, String> vehicleNumbers = new LinkedHashMap<>();
+            for (AlertResponse alert : dayAlerts) {
+                String vId = alert.getVehicleId() != null ? alert.getVehicleId() : "unknown";
+                byVehicle.computeIfAbsent(vId, k -> new ArrayList<>()).add(alert);
+                vehicleNumbers.putIfAbsent(vId, alert.getVehicleNumber() != null ? alert.getVehicleNumber() : "Unknown vehicle");
+            }
+
+            for (Map.Entry<String, List<AlertResponse>> vEntry : byVehicle.entrySet()) {
+                newRows.add(Row.vehicleHeader(vehicleNumbers.get(vEntry.getKey())));
+                for (AlertResponse alert : vEntry.getValue()) {
+                    newRows.add(Row.card(alert));
+                }
             }
         }
 
@@ -136,7 +188,11 @@ public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     @Override
     public int getItemViewType(int position) {
-        return rows.get(position).isHeader ? VIEW_TYPE_DAY_HEADER : VIEW_TYPE_ALERT_CARD;
+        switch (rows.get(position).type) {
+            case DAY_HEADER: return VIEW_TYPE_DAY_HEADER;
+            case VEHICLE_HEADER: return VIEW_TYPE_VEHICLE_HEADER;
+            default: return VIEW_TYPE_ALERT_CARD;
+        }
     }
 
     @NonNull
@@ -145,6 +201,9 @@ public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
         if (viewType == VIEW_TYPE_DAY_HEADER) {
             return new DayHeaderViewHolder(inflater.inflate(R.layout.item_alert_day_header, parent, false));
+        }
+        if (viewType == VIEW_TYPE_VEHICLE_HEADER) {
+            return new VehicleHeaderViewHolder(inflater.inflate(R.layout.item_alert_vehicle_header, parent, false));
         }
         return new AlertViewHolder(inflater.inflate(R.layout.item_alert, parent, false));
     }
@@ -157,6 +216,12 @@ public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             DayHeaderViewHolder h = (DayHeaderViewHolder) holder;
             h.tvDayTitle.setText(row.dayTitle);
             h.tvDayCount.setText(row.dayCount == 1 ? "1 alert" : row.dayCount + " alerts");
+            return;
+        }
+
+        if (holder instanceof VehicleHeaderViewHolder) {
+            VehicleHeaderViewHolder h = (VehicleHeaderViewHolder) holder;
+            h.tvVehicleHeader.setText(row.vehicleNumber);
             return;
         }
 
@@ -251,6 +316,15 @@ public class AlertAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             super(itemView);
             tvDayTitle = itemView.findViewById(R.id.tvAlertDayTitle);
             tvDayCount = itemView.findViewById(R.id.tvAlertDayCount);
+        }
+    }
+
+    static class VehicleHeaderViewHolder extends RecyclerView.ViewHolder {
+        TextView tvVehicleHeader;
+
+        VehicleHeaderViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvVehicleHeader = itemView.findViewById(R.id.tvAlertVehicleHeader);
         }
     }
 
