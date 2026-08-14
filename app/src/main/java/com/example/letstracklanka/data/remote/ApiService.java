@@ -85,4 +85,11 @@ public interface ApiService {
 
     @DELETE("api/EmergencyContacts/{emergencyContactId}")
     Call<ResponseBody> deleteEmergencyContact(@Path("emergencyContactId") String emergencyContactId);
+
+    // NEW -- matches the real SOSController route confirmed working
+    // server-side (POST /api/SOS/{vehicleId}/trigger). No request body;
+    // location is resolved server-side from CurrentLocations, not sent
+    // from the client.
+    @POST("api/SOS/{vehicleId}/trigger")
+    Call<ResponseBody> triggerSOS(@Path("vehicleId") String vehicleId);
 }

@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.ContactsContract;
@@ -120,6 +121,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private AddressResolver addressResolver;
     private DrawerLayout drawerLayout;
     private TextView tvDrawerName, tvDrawerPhone, tvDrawerEmail;
+    private com.google.android.material.button.MaterialButton btnSOS;
+    // Hold-to-confirm state for SOS -- deliberately requires a sustained
+    // press (not a single tap) so an accidental brush against the button
+    // can't trigger a real emergency alert.
+    private static final long SOS_HOLD_DURATION_MS = 3000;
+    private CountDownTimer sosHoldTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -175,6 +182,11 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         tvDrawerName = findViewById(R.id.tvDrawerName);
         tvDrawerPhone = findViewById(R.id.tvDrawerPhone);
         tvDrawerEmail = findViewById(R.id.tvDrawerEmail);
+
+        btnSOS = findViewById(R.id.btnSOS);
+        if (btnSOS != null) {
+            btnSOS.setOnClickListener(v -> showSOSBottomSheet());
+        }
 
         // Handle Logout button click
         TextView tvLogOut = findViewById(R.id.tvLogOut);
@@ -284,6 +296,14 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             menuEmergencyContacts.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
                 startActivity(new Intent(HomeActivity.this, EmergencyContactsActivity.class));
+            });
+        }
+
+        View menuSettings = findViewById(R.id.btnMenuSettings);
+        if (menuSettings != null) {
+            menuSettings.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                showSettingsBottomSheet();
             });
         }
 
@@ -899,37 +919,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    // Show popup for sending an SOS Alert
-    private void showSOSBottomSheet() {
-        BottomSheetDialog sosDialog = new BottomSheetDialog(this);
-        View sosView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_sos, null);
-        sosDialog.setContentView(sosView);
-        ImageView btnClose = sosView.findViewById(R.id.btnCloseSOS);
-        LinearLayout btnTapSOS = sosView.findViewById(R.id.btnTapSOS);
-        btnClose.setOnClickListener(v -> sosDialog.dismiss());
-
-        // Action to share location as an SOS message via SMS/WhatsApp
-        btnTapSOS.setOnClickListener(v -> {
-            sosDialog.dismiss();
-            if (lastVehiclePosition != null) {
-                String locationLink = "https://www.google.com/maps?q=" + lastVehiclePosition.latitude + "," + lastVehiclePosition.longitude;
-                String message = "EMERGENCY SOS!\nHere is my vehicle's current location:\n" + locationLink;
-                try {
-                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                    shareIntent.setType("text/plain");
-                    shareIntent.putExtra(Intent.EXTRA_TEXT, message);
-                    startActivity(Intent.createChooser(shareIntent, "Send SOS via"));
-                } catch (Exception e) {
-                    Toast.makeText(HomeActivity.this, "No app available to send SOS", Toast.LENGTH_SHORT).show();
-                }
-                Toast.makeText(this, "Opening SMS to send SOS...", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Vehicle location not available right now — try again shortly", Toast.LENGTH_LONG).show();
-            }
-        });
-        sosDialog.show();
-    }
-
     // Start a timer to get location and dashboard data continuously
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
@@ -1310,6 +1299,236 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (errorBanner != null) errorBanner.setVisibility(View.GONE);
     }
 
+    // Opens the dedicated SOS bottom sheet (bottom_sheet_sos.xml). Tapping
+    // the Home screen's own btnSOS just opens this -- reaching the sheet
+    // is itself a deliberate action, not something that could happen by
+    // accident, so no hold is required just to get here.
+    // Wires every row in bottom_sheet_settings.xml. Only Notification &
+    // Alerts and SOS Settings have real functionality behind them right
+    // now; everything else (Devices, Circles, Tags, Reports, Services
+    // Payments, App settings, Document Wallet, Profile) has zero backend
+    // or existing screen anywhere in this app, so they honestly show
+    // "Coming soon" -- matching the same established pattern already used
+    // for btnMenuShop/btnMenuHelpVideos/btnMenuPrivacy in the drawer,
+    // rather than silently doing nothing on tap.
+    private void showSettingsBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_settings, null);
+        dialog.setContentView(view);
+
+        View btnClose = view.findViewById(R.id.btnCloseSettings);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        View btnNotifications = view.findViewById(R.id.btnSettingNotifications);
+        if (btnNotifications != null) {
+            btnNotifications.setOnClickListener(v -> {
+                dialog.dismiss();
+                startActivity(new Intent(HomeActivity.this, SettingsActivity.class));
+            });
+        }
+
+        // "SOS Settings" -- no dedicated SOS configuration screen exists
+        // (e.g. no way to customize hold duration), so this links to the
+        // one genuinely emergency-related, already-real feature instead:
+        // Emergency Contacts.
+        View btnSOSSettings = view.findViewById(R.id.btnSettingSOS);
+        if (btnSOSSettings != null) {
+            btnSOSSettings.setOnClickListener(v -> {
+                dialog.dismiss();
+                startActivity(new Intent(HomeActivity.this, EmergencyContactsActivity.class));
+            });
+        }
+
+        int[] comingSoonSettingsIds = {
+                R.id.btnSettingProfile,
+                R.id.btnSettingDevices,
+                R.id.btnSettingCircles,
+                R.id.btnSettingTags,
+                R.id.btnSettingReports,
+                R.id.btnSettingPayments,
+                R.id.btnSettingAppSettings,
+                R.id.btnSettingDocWallet
+        };
+        for (int id : comingSoonSettingsIds) {
+            View item = view.findViewById(id);
+            if (item != null) {
+                item.setOnClickListener(v -> Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
+            }
+        }
+
+        dialog.show();
+    }
+
+    private void showSOSBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_sos, null);
+        dialog.setContentView(view);
+
+        View btnClose = view.findViewById(R.id.btnCloseSOS);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        View btnAddContacts = view.findViewById(R.id.btnAddContacts);
+        if (btnAddContacts != null) {
+            btnAddContacts.setOnClickListener(v -> {
+                dialog.dismiss();
+                startActivity(new Intent(HomeActivity.this, EmergencyContactsActivity.class));
+            });
+        }
+
+        // NOTE: btnUpgradeCallCenter is deliberately left unwired -- no
+        // "24/7 emergency call center" feature exists anywhere in this
+        // backend. Not guessing at what "Upgrade" should actually do here
+        // until that's a real, scoped feature.
+
+        View btnTapSOS = view.findViewById(R.id.btnTapSOS);
+        View bgPulseCircle = view.findViewById(R.id.bgPulseCircle);
+        if (btnTapSOS != null) {
+            setupSOSHoldToConfirm(btnTapSOS, bgPulseCircle, dialog);
+        }
+
+        dialog.show();
+    }
+
+    // Hold-to-confirm: same 3-second requirement whether the user taps
+    // repeatedly or holds steadily -- there's no faster path via a quick
+    // tap, "(or press and hold)" in the sheet's own text just describes
+    // two names for the same gesture. Progress is shown by scaling/
+    // fading the existing pulse circle behind the button, NOT by
+    // changing the button's own text -- keeps "Tap to send SOS" / "(or
+    // press and hold)" visible and unchanged throughout the hold.
+    @SuppressLint("ClickableViewAccessibility")
+    private void setupSOSHoldToConfirm(View btnTapSOS, View bgPulseCircle, BottomSheetDialog dialog) {
+        btnTapSOS.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    if (sosHoldTimer != null) sosHoldTimer.cancel();
+                    sosHoldTimer = new CountDownTimer(SOS_HOLD_DURATION_MS, 50) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            if (bgPulseCircle == null) return;
+                            float progress = 1f - ((float) millisUntilFinished / SOS_HOLD_DURATION_MS);
+                            float scale = 1f + (progress * 0.25f); // grows up to 25% larger
+                            bgPulseCircle.setScaleX(scale);
+                            bgPulseCircle.setScaleY(scale);
+                            bgPulseCircle.setAlpha(1f - (progress * 0.5f)); // fades as it grows, standard pulse feel
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            resetPulseCircle(bgPulseCircle);
+                            dialog.dismiss();
+                            triggerSOS();
+                        }
+                    };
+                    sosHoldTimer.start();
+                    return true;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    if (sosHoldTimer != null) {
+                        sosHoldTimer.cancel();
+                        sosHoldTimer = null;
+                    }
+                    resetPulseCircle(bgPulseCircle);
+                    return true;
+                default:
+                    return false;
+            }
+        });
+    }
+
+    private void resetPulseCircle(View bgPulseCircle) {
+        if (bgPulseCircle == null) return;
+        bgPulseCircle.setScaleX(1f);
+        bgPulseCircle.setScaleY(1f);
+        bgPulseCircle.setAlpha(1f);
+    }
+
+    // Real API call -- POST /api/SOS/{vehicleId}/trigger. Uses the same
+    // getSelectedVehicleId() already established elsewhere in this file,
+    // not a separate tracking mechanism.
+    private void triggerSOS() {
+        String vehicleId = getSelectedVehicleId();
+        if (vehicleId == null || vehicleId.isEmpty()) {
+            Toast.makeText(this, "No vehicle selected.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mainApiService.triggerSOS(vehicleId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(HomeActivity.this, "SOS sent.", Toast.LENGTH_SHORT).show();
+                    showEmergencyContactsAfterSOS();
+                } else {
+                    Log.w("HomeActivity", "triggerSOS failed, code " + response.code());
+                    Toast.makeText(HomeActivity.this, "Couldn't send SOS. Please try again.", Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("HomeActivity", "triggerSOS network error", t);
+                Toast.makeText(HomeActivity.this, "Network error \u2014 SOS could not be sent. Try again.", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    // Surfaces Emergency Contacts with tap-to-call right after a
+    // successful SOS -- since real auto-notification of contacts depends
+    // on Vehicle Sharing (a later release, not this one), this is the
+    // honest, immediately useful alternative: put their numbers one tap
+    // away for the customer to actually call themselves.
+    private void showEmergencyContactsAfterSOS() {
+        mainApiService.getMyEmergencyContacts().enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (!response.isSuccessful() || body == null) {
+                        Log.w("HomeActivity", "showEmergencyContactsAfterSOS failed, code " + response.code());
+                        return;
+                    }
+                    List<com.example.letstracklanka.data.model.EmergencyContactResponse> contacts =
+                            parseList(body.string(), com.example.letstracklanka.data.model.EmergencyContactResponse.class);
+                    if (contacts.isEmpty()) return; // nothing to show -- SOS itself still went through fine
+
+                    android.widget.LinearLayout dialogLayout = new android.widget.LinearLayout(HomeActivity.this);
+                    dialogLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+                    int pad = (int) (16 * getResources().getDisplayMetrics().density);
+                    dialogLayout.setPadding(pad, pad, pad, pad);
+
+                    for (com.example.letstracklanka.data.model.EmergencyContactResponse contact : contacts) {
+                        TextView row = new TextView(HomeActivity.this);
+                        row.setText(contact.getName() + "\n" + contact.getPhoneNumber());
+                        row.setTextSize(15);
+                        row.setPadding(0, pad / 2, 0, pad / 2);
+                        row.setOnClickListener(v -> {
+                            Intent dialIntent = new Intent(Intent.ACTION_DIAL);
+                            dialIntent.setData(android.net.Uri.parse("tel:" + contact.getPhoneNumber()));
+                            startActivity(dialIntent);
+                        });
+                        dialogLayout.addView(row);
+                    }
+
+                    new AlertDialog.Builder(HomeActivity.this)
+                            .setTitle("Call an emergency contact")
+                            .setView(dialogLayout)
+                            .setNegativeButton("Close", null)
+                            .show();
+                } catch (Exception e) {
+                    Log.e("HomeActivity", "showEmergencyContactsAfterSOS parse error", e);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("HomeActivity", "showEmergencyContactsAfterSOS network error", t);
+                // SOS itself already succeeded -- a failure here just means
+                // the contacts dialog doesn't show, not a reason to alarm
+                // the user further right after a real emergency trigger.
+            }
+        });
+    }
+
     // Move camera to the latest known vehicle location when floating button is clicked
     private void getPhoneLocation() {
         if (lastVehiclePosition != null && mMap != null) {
@@ -1412,6 +1631,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onDestroy() {
         super.onDestroy();
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+        if (sosHoldTimer != null) sosHoldTimer.cancel();
         if (realtimeClient != null) realtimeClient.stop();
         if (networkCallback != null) {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
