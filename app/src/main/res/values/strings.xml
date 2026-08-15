@@ -14,7 +14,7 @@
     <string name="loading_address">Loading address...</string>
     <string name="ignition">Ignition</string>
     <string name="ac">ACC</string>
-    <string name="battery_full">100%%</string>
+    <string name="battery_full">100%</string>
     <string name="last_updated">Updated: Just now</string>
     <string name="refresh">Refresh</string>
     <string name="history">History</string>

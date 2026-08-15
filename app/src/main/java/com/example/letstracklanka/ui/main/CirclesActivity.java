@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import com.example.letstracklanka.R;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.material.button.MaterialButton;
@@ -12,10 +14,16 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class CirclesActivity extends AppCompatActivity {
 
+    private DrawerLayout drawerLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_circles);
+
+        drawerLayout = findViewById(R.id.drawerLayout);
+        DrawerMenuHelper.wireDrawer(this, drawerLayout,
+                findViewById(R.id.tvDrawerName), findViewById(R.id.tvDrawerPhone), findViewById(R.id.tvDrawerEmail));
 
         // Load the Google Map in the background
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapCircles);
@@ -82,27 +90,15 @@ public class CirclesActivity extends AppCompatActivity {
             });
         }
 
-        // Open the bottom sheet menu
+        // FIX: previously expanded bottomSheetCircles -- the "no circles
+        // added" empty-state box, which had nothing to do with a menu at
+        // all. Found during a systematic dead-end audit. Now opens this
+        // screen's own real drawer.
         View navMenu = findViewById(R.id.nav_menu);
         if (navMenu != null) {
             navMenu.setOnClickListener(v -> {
-                View bs = findViewById(R.id.bottomSheetCircles);
-                if (bs != null) {
-                    com.google.android.material.bottomsheet.BottomSheetBehavior.from(bs).setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
-                }
+                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
             });
         }
-    }
-
-    // Call Center popup dialog (Not used directly from bottom nav anymore, but kept just in case)
-    private void showCallCenterBottomSheet() {
-        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
-        dialog.setContentView(view);
-        androidx.viewpager2.widget.ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
-        if (viewPager != null) {
-            viewPager.setAdapter(new com.example.letstracklanka.ui.vehicles.CallCenterPagerAdapter());
-        }
-        dialog.show();
     }
 }
