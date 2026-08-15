@@ -64,6 +64,14 @@
              same audit). -->
         <activity android:name=".ui.vehicles.AddVehicleActivity" android:exported="false" />
 
+        <!-- NEW: real Places screen, replacing the previous stub bottom
+             sheet (just a close button, no actual functionality). -->
+        <activity android:name=".ui.places.PlacesActivity" android:exported="false" />
+
+        <!-- NEW: real Value stats screen, replacing the previous grayed
+             "Coming soon" placeholder in the Vehicles tab grid menu. -->
+        <activity android:name=".ui.vehicles.ValueActivity" android:exported="false" />
+
         <!-- ============================================================ -->
         <!-- !! DO NOT ADD A LAUNCHER INTENT-FILTER TO HomeActivity !!      -->
         <!-- The launcher (MAIN/LAUNCHER) belongs on SplashActivity, below. -->

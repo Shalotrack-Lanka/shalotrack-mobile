@@ -119,7 +119,9 @@ public final class DrawerMenuHelper {
         if (btnMenuPlaces != null) {
             btnMenuPlaces.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
-                showPlacesBottomSheet(activity);
+                // NEW: replaced the previous stub bottom sheet (just a
+                // close button, nothing else) with the real Places screen.
+                activity.startActivity(new Intent(activity, com.example.letstracklanka.ui.places.PlacesActivity.class));
             });
         }
 
@@ -333,16 +335,6 @@ public final class DrawerMenuHelper {
                 Toast.makeText(activity, "Network error \u2014 check your connection", Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    private static void showPlacesBottomSheet(AppCompatActivity activity) {
-        BottomSheetDialog dialog = new BottomSheetDialog(activity);
-        View view = activity.getLayoutInflater().inflate(R.layout.bottom_sheet_places, null);
-        dialog.setContentView(view);
-        ImageView btnClose = view.findViewById(R.id.btnClosePlaces);
-        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
-        dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
-        dialog.show();
     }
 
     private static void showDevicesToRenewBottomSheet(AppCompatActivity activity) {

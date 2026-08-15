@@ -3,6 +3,7 @@ package com.example.letstracklanka.data.remote;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateEmergencyContactRequest;
 import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
+import com.example.letstracklanka.data.model.CreateSavedPlaceRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
 import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
@@ -92,4 +93,20 @@ public interface ApiService {
     // from the client.
     @POST("api/SOS/{vehicleId}/trigger")
     Call<ResponseBody> triggerSOS(@Path("vehicleId") String vehicleId);
+
+    // NEW -- matches the real SavedPlacesController routes. GET returns
+    // places already sorted by VisitCount descending server-side.
+    @GET("api/SavedPlaces")
+    Call<ResponseBody> getMyPlaces();
+
+    @POST("api/SavedPlaces")
+    Call<ResponseBody> addPlace(@Body CreateSavedPlaceRequest request);
+
+    @DELETE("api/SavedPlaces/{placeId}")
+    Call<ResponseBody> deletePlace(@Path("placeId") String placeId);
+
+    // NEW -- matches the real VehicleStatsController route.
+    @GET("api/VehicleStats/{vehicleId}")
+    // period: "today" | "week" | "month" | "all"
+    Call<ResponseBody> getVehicleStats(@Path("vehicleId") String vehicleId, @Query("period") String period);
 }
