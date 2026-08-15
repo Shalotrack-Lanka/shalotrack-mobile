@@ -1,300 +1,319 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Root Layout: Holds the main screen content and bottom navigation -->
-<androidx.constraintlayout.widget.ConstraintLayout
+<!-- FIX: wrapped in a real DrawerLayout so the "Menu" bottom-nav tab can
+     open an actual, working drawer directly on this screen. Wiring is
+     done via DrawerMenuHelper.wireDrawer(), shared across Home/Vehicles/
+     Alerts/Tags/Circles so this isn't duplicated per screen. -->
+<androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    android:background="#F0F0F0">
+    android:layout_height="match_parent">
 
-    <!-- Main Content Area: Manages the Map and the expandable Bottom Sheet -->
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
+    <!-- Root Layout: Holds the main screen content and bottom navigation -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavBar">
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:background="#F0F0F0">
 
-        <!-- Background Map Fragment -->
-        <fragment
-            android:id="@+id/mapAlerts"
-            android:name="com.google.android.gms.maps.SupportMapFragment"
+        <!-- Main Content Area: Manages the Map and the expandable Bottom Sheet -->
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/bottomNavBar">
 
-        <!-- Floating Action Buttons on the Top Right of the Map -->
+            <!-- Background Map Fragment -->
+            <fragment
+                android:id="@+id/mapAlerts"
+                android:name="com.google.android.gms.maps.SupportMapFragment"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- Floating Action Buttons on the Top Right of the Map -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_gravity="end|top"
+                android:layout_marginTop="40dp"
+                android:layout_marginEnd="16dp">
+
+                <!-- Button to switch Map Layers-->
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fabLayers"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:backgroundTint="#FFFFFF"
+                    app:fabSize="mini"
+                    app:tint="@color/brand_primary"
+                    android:src="@drawable/ic_layers" />
+
+                <!-- Button to center the Map on the user's current location -->
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/fabLocation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:backgroundTint="#FFFFFF"
+                    app:fabSize="mini"
+                    app:tint="@color/brand_primary"
+                    android:src="@drawable/ic_my_location" />
+            </LinearLayout>
+
+            <!-- Bottom Sheet: Slides up from the bottom to show the Message Center -->
+            <LinearLayout
+                android:id="@+id/bottomSheetAlerts"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@drawable/bottom_sheet_bg"
+                app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+                app:behavior_hideable="false"
+                app:behavior_peekHeight="300dp"
+                android:paddingHorizontal="24dp"
+                android:elevation="16dp">
+
+                <!-- Small grey line at the top of the sheet to indicate dragging -->
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="4dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="24dp"
+                    android:background="#CCCCCC" />
+
+                <!-- Main Heading for the Bottom Sheet -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Message center"
+                    android:textColor="#000000"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <!-- Search Button and Tab Switcher Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center_vertical">
+
+                    <!-- Search Button Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/btnSearchAlerts"
+                        android:layout_width="55dp"
+                        android:layout_height="55dp"
+                        app:cardCornerRadius="12dp"
+                        app:strokeColor="#DDDDDD"
+                        app:strokeWidth="1dp"
+                        app:cardElevation="0dp"
+                        android:layout_marginEnd="12dp"
+                        app:cardBackgroundColor="#FFFFFF">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            android:src="@android:drawable/ic_menu_search"
+                            app:tint="#888888" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Container for Alerts and Promotions Tabs -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="55dp"
+                        app:cardBackgroundColor="#F5F5F5"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="horizontal"
+                            android:padding="4dp">
+
+                            <!-- Tab 1: Alerts -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnTabAlerts"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="match_parent"
+                                android:text="Alerts"
+                                android:textAllCaps="false"
+                                android:textColor="#FFFFFF"
+                                android:textSize="15sp"
+                                app:backgroundTint="@color/brand_primary"
+                                app:cornerRadius="8dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp" />
+
+                            <!-- Tab 2: Promotions -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnTabPromotions"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="match_parent"
+                                android:text="Promotions"
+                                android:textAllCaps="false"
+                                android:textColor="#000000"
+                                android:textSize="15sp"
+                                app:backgroundTint="@android:color/transparent"
+                                app:cornerRadius="8dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                app:elevation="0dp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <!-- Loading Spinner: Shown while fetching alerts -->
+                <ProgressBar
+                    android:id="@+id/progressAlerts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="24dp"
+                    android:visibility="gone" />
+
+                <!-- Empty State Message: Displayed when there are no alerts -->
+                <TextView
+                    android:id="@+id/tvEmptyAlerts"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:gravity="center"
+                    android:text="No alerts yet."
+                    android:textColor="#888888"
+                    android:visibility="gone" />
+
+                <!-- Scrollable List to display alert items -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerAlerts"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="8dp"
+                    android:clipToPadding="false"
+                    android:paddingBottom="16dp" />
+
+            </LinearLayout>
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+        <!-- Bottom Navigation Bar: Lets users switch between main app screens -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:id="@+id/bottomNavBar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_gravity="end|top"
-            android:layout_marginTop="40dp"
-            android:layout_marginEnd="16dp">
+            android:minHeight="65dp"
+            android:orientation="horizontal"
+            android:background="#FFFFFF"
+            android:elevation="16dp"
+            app:layout_constraintBottom_toBottomOf="parent">
 
-            <!-- Button to switch Map Layers-->
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fabLayers"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:backgroundTint="#FFFFFF"
-                app:fabSize="mini"
-                app:tint="@color/brand_primary"
-                android:src="@drawable/ic_layers" />
+            <!-- Navigation Item: Home -->
+            <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
 
-            <!-- Button to center the Map on the user's current location -->
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/fabLocation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:backgroundTint="#FFFFFF"
-                app:fabSize="mini"
-                app:tint="@color/brand_primary"
-                android:src="@drawable/ic_my_location" />
+            <!-- Navigation Item: Vehicles -->
+            <LinearLayout android:id="@+id/nav_vehicles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Navigation Item: Tags -->
+            <LinearLayout android:id="@+id/nav_tags" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_tag" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Navigation Item: Circles -->
+            <LinearLayout android:id="@+id/nav_circles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Navigation Item: Alerts (Active Screen - Highlighted in Blue) -->
+            <LinearLayout android:id="@+id/nav_alerts" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <View android:layout_width="24dp" android:layout_height="3dp" android:background="@color/brand_primary" android:layout_marginBottom="4dp"/>
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="@color/brand_primary"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="@color/brand_primary" android:textStyle="bold" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Navigation Item: Menu -->
+            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Bottom Sheet: Slides up from the bottom to show the Message Center -->
-        <LinearLayout
-            android:id="@+id/bottomSheetAlerts"
+        <!-- Top Error Banner: Appears when a network or data error occurs -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/errorBanner"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:background="@drawable/bottom_sheet_bg"
-            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
-            app:behavior_hideable="false"
-            app:behavior_peekHeight="300dp"
-            android:paddingHorizontal="24dp"
-            android:elevation="16dp">
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/status_danger"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="6dp"
+            app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Small grey line at the top of the sheet to indicate dragging -->
-            <View
-                android:layout_width="40dp"
-                android:layout_height="4dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="24dp"
-                android:background="#CCCCCC" />
-
-            <!-- Main Heading for the Bottom Sheet -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Message center"
-                android:textColor="#000000"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-            <!-- Search Button and Tab Switcher Row -->
+            <!-- Banner Content: Error Icon, Message, and Retry Action -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="16dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:padding="12dp">
 
-                <!-- Search Button Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/btnSearchAlerts"
-                    android:layout_width="55dp"
-                    android:layout_height="55dp"
-                    app:cardCornerRadius="12dp"
-                    app:strokeColor="#DDDDDD"
-                    app:strokeWidth="1dp"
-                    app:cardElevation="0dp"
-                    android:layout_marginEnd="12dp"
-                    app:cardBackgroundColor="#FFFFFF">
+                <!-- Error Warning Icon -->
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/stat_notify_error"
+                    app:tint="@color/surface_white" />
 
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_gravity="center"
-                        android:src="@android:drawable/ic_menu_search"
-                        app:tint="#888888" />
-                </com.google.android.material.card.MaterialCardView>
+                <!-- Error Description Text -->
+                <TextView
+                    android:id="@+id/tvErrorBannerMessage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:text="Couldn't load data"
+                    android:textColor="@color/surface_white"
+                    android:textSize="13sp" />
 
-                <!-- Container for Alerts and Promotions Tabs -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="55dp"
-                    app:cardBackgroundColor="#F5F5F5"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp">
+                <!-- Retry Button Text -->
+                <TextView
+                    android:id="@+id/tvErrorBannerRetry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="RETRY"
+                    android:textColor="@color/surface_white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:padding="4dp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="horizontal"
-                        android:padding="4dp">
-
-                        <!-- Tab 1: Alerts -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnTabAlerts"
-                            android:layout_width="0dp"
-                            android:layout_weight="1"
-                            android:layout_height="match_parent"
-                            android:text="Alerts"
-                            android:textAllCaps="false"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            app:backgroundTint="@color/brand_primary"
-                            app:cornerRadius="8dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp" />
-
-                        <!-- Tab 2: Promotions -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnTabPromotions"
-                            android:layout_width="0dp"
-                            android:layout_weight="1"
-                            android:layout_height="match_parent"
-                            android:text="Promotions"
-                            android:textAllCaps="false"
-                            android:textColor="#000000"
-                            android:textSize="15sp"
-                            app:backgroundTint="@android:color/transparent"
-                            app:cornerRadius="8dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            app:elevation="0dp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <!-- Loading Spinner: Shown while fetching alerts -->
-            <ProgressBar
-                android:id="@+id/progressAlerts"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="24dp"
-                android:visibility="gone" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Empty State Message: Displayed when there are no alerts -->
-            <TextView
-                android:id="@+id/tvEmptyAlerts"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:gravity="center"
-                android:text="No alerts yet."
-                android:textColor="#888888"
-                android:visibility="gone" />
+    <include
+        layout="@layout/layout_drawer_menu"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start" />
 
-            <!-- Scrollable List to display alert items -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerAlerts"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:layout_marginTop="8dp"
-                android:clipToPadding="false"
-                android:paddingBottom="16dp" />
-
-        </LinearLayout>
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-    <!-- Bottom Navigation Bar: Lets users switch between main app screens -->
-    <LinearLayout
-        android:id="@+id/bottomNavBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="65dp"
-        android:orientation="horizontal"
-        android:background="#FFFFFF"
-        android:elevation="16dp"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <!-- Navigation Item: Home -->
-        <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <!-- Navigation Item: Vehicles -->
-        <LinearLayout android:id="@+id/nav_vehicles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <!-- Navigation Item: Tags -->
-        <LinearLayout android:id="@+id/nav_tags" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_tag" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <!-- Navigation Item: Circles -->
-        <LinearLayout android:id="@+id/nav_circles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <!-- Navigation Item: Alerts (Active Screen - Highlighted in Blue) -->
-        <LinearLayout android:id="@+id/nav_alerts" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <View android:layout_width="24dp" android:layout_height="3dp" android:background="@color/brand_primary" android:layout_marginBottom="4dp"/>
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="@color/brand_primary"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="@color/brand_primary" android:textStyle="bold" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <!-- Navigation Item: Menu -->
-        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Top Error Banner: Appears when a network or data error occurs -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/errorBanner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:cardBackgroundColor="@color/status_danger"
-        app:cardCornerRadius="10dp"
-        app:cardElevation="6dp"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <!-- Banner Content: Error Icon, Message, and Retry Action -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="12dp">
-
-            <!-- Error Warning Icon -->
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@android:drawable/stat_notify_error"
-                app:tint="@color/surface_white" />
-
-            <!-- Error Description Text -->
-            <TextView
-                android:id="@+id/tvErrorBannerMessage"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:text="Couldn't load data"
-                android:textColor="@color/surface_white"
-                android:textSize="13sp" />
-
-            <!-- Retry Button Text -->
-            <TextView
-                android:id="@+id/tvErrorBannerRetry"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="RETRY"
-                android:textColor="@color/surface_white"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:padding="4dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

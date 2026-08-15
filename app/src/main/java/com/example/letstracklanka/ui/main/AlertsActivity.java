@@ -17,6 +17,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -64,6 +66,7 @@ public class AlertsActivity extends AppCompatActivity {
     private View errorBanner;
     private TextView tvErrorBannerMessage, tvErrorBannerRetry;
     private ConnectivityManager.NetworkCallback networkCallback;
+    private DrawerLayout drawerLayout;
 
     // Variable to track which tab is currently active (Alerts or Promotions)
     // "Promotions" has no backend or data model behind it anywhere in this app --
@@ -76,6 +79,10 @@ public class AlertsActivity extends AppCompatActivity {
 
         // Link this activity to its XML layout file
         setContentView(R.layout.activity_alerts);
+
+        drawerLayout = findViewById(R.id.drawerLayout);
+        DrawerMenuHelper.wireDrawer(this, drawerLayout,
+                findViewById(R.id.tvDrawerName), findViewById(R.id.tvDrawerPhone), findViewById(R.id.tvDrawerEmail));
 
         // NEW: optional -- if this screen was opened for a specific
         // vehicle, only that vehicle's alerts should load. If absent,
@@ -187,6 +194,16 @@ public class AlertsActivity extends AppCompatActivity {
                 Intent intent = new Intent(AlertsActivity.this, CirclesActivity.class);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
+            });
+        }
+
+        // FIX: Menu wasn't wired to anything at all before -- found during
+        // a systematic dead-end audit of "Menu doesn't work from every
+        // tab". Opens this screen's own real drawer directly.
+        View navMenu = findViewById(R.id.nav_menu);
+        if (navMenu != null) {
+            navMenu.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
             });
         }
     }

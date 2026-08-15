@@ -52,6 +52,18 @@
 
         <activity android:name=".ui.contacts.EmergencyContactsActivity" android:exported="false" />
 
+        <!-- FIX: was completely missing from the manifest despite being
+             built and wired from the Settings bottom sheet several rounds
+             ago, tapping "Notification & Alerts" would have crashed
+             with ActivityNotFoundException, not just done nothing. Found
+             during a systematic dead-end audit. -->
+        <activity android:name=".ui.main.SettingsActivity" android:exported="false" />
+
+        <!-- NEW: fabAdd in VehiclesActivity was a real, visible button
+             with no destination at all until now (also found during the
+             same audit). -->
+        <activity android:name=".ui.vehicles.AddVehicleActivity" android:exported="false" />
+
         <!-- ============================================================ -->
         <!-- !! DO NOT ADD A LAUNCHER INTENT-FILTER TO HomeActivity !!      -->
         <!-- The launcher (MAIN/LAUNCHER) belongs on SplashActivity, below. -->

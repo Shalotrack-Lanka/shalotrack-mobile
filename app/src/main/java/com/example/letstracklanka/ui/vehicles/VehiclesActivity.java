@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import androidx.core.content.ContextCompat;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.Uri;
@@ -21,9 +23,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CustomerResponse;
@@ -42,6 +45,7 @@ import com.example.letstracklanka.ui.main.VehicleTrailRenderer;
 import com.example.letstracklanka.ui.main.RealtimeLocationClient;
 import com.example.letstracklanka.ui.main.RealtimeLocationPayload;
 import com.example.letstracklanka.ui.main.AlertsActivity;
+import com.example.letstracklanka.ui.main.DrawerMenuHelper;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -81,6 +85,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
     private View fabAdd, fabHistory, btnRefresh;
+    private ActivityResultLauncher<Intent> addVehicleLauncher;
     private BottomSheetBehavior<View> bottomSheetBehavior;
 
     private TextView tvCollapsedStatus, tvCollapsedAddress;
@@ -117,6 +122,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private View errorBanner;
     private TextView tvErrorBannerMessage, tvErrorBannerRetry;
     private ConnectivityManager.NetworkCallback networkCallback;
+    private DrawerLayout drawerLayout;
 
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
     private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 7.0;
@@ -127,6 +133,16 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vehicles);
+
+        // Must be registered here, synchronously during onCreate -- not
+        // inside initViews() or any later callback.
+        addVehicleLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        fetchVehiclesTabList(); // real refresh, not assumed automatic
+                    }
+                });
 
         errorBanner = findViewById(R.id.errorBanner);
         tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
@@ -150,6 +166,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     }
 
     private void initViews() {
+        drawerLayout = findViewById(R.id.drawerLayout);
+        DrawerMenuHelper.wireDrawer(this, drawerLayout,
+                findViewById(R.id.tvDrawerName), findViewById(R.id.tvDrawerPhone), findViewById(R.id.tvDrawerEmail));
+
         layoutCollapsed = findViewById(R.id.layoutCollapsed);
         layoutExpanded = findViewById(R.id.layoutExpanded);
         layoutLeftFabs = findViewById(R.id.layoutLeftFabs);
@@ -159,6 +179,22 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         if (fabHistory != null) {
             fabHistory.setOnClickListener(v -> openTripHistory());
+        }
+
+        // FIX: found during a systematic dead-end audit -- this was a
+        // real, visible, tappable-looking button with no click listener
+        // at all anywhere in this file. Now launches the real Add
+        // Vehicle flow, refreshing the list on a successful add.
+        if (fabAdd != null) {
+            fabAdd.setOnClickListener(v -> {
+                if (currentCustomerId == null) {
+                    Toast.makeText(this, "Still loading your profile \u2014 try again in a moment.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Intent intent = new Intent(VehiclesActivity.this, AddVehicleActivity.class);
+                intent.putExtra(AddVehicleActivity.EXTRA_CUSTOMER_ID, currentCustomerId);
+                addVehicleLauncher.launch(intent);
+            });
         }
 
         tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
@@ -335,11 +371,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         View navMenu = findViewById(R.id.nav_menu);
         if (navMenu != null) {
             navMenu.setOnClickListener(v -> {
-                Intent intent = new Intent(VehiclesActivity.this, HomeActivity.class);
-                intent.putExtra("open_drawer", true);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
+                // FIX: previously navigated to HomeActivity with an
+                // open_drawer extra -- now opens this screen's own real
+                // drawer directly, found during a systematic dead-end
+                // audit of "Menu doesn't work from every tab".
+                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
             });
         }
 
@@ -446,21 +482,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private String safe(String value) {
         return value != null ? value : "--";
-    }
-
-    private void showCallCenterBottomSheet() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_call_center, null);
-        dialog.setContentView(view);
-
-        ViewPager2 viewPager = view.findViewById(R.id.viewPagerCallCenter);
-        ImageView btnClose = view.findViewById(R.id.btnCloseCallCenter);
-        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
-
-        View btnCloseBottom = view.findViewById(R.id.btnCallCenterClose);
-        if (btnCloseBottom != null) btnCloseBottom.setOnClickListener(v -> dialog.dismiss());
-
-        dialog.show();
     }
 
     private void loadUserData() {
