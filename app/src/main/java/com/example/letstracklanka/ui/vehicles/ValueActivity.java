@@ -63,9 +63,12 @@ public class ValueActivity extends AppCompatActivity {
     private TextView tvPeriodLabel;
     private TextView tvOverspeedSummary, tvChartTitle;
     private LinearLayout chartBarsContainer;
+    private LinearLayout yAxisLabels;
+    private LinearLayout gridlinesContainer;
 
     private LinearLayout cardIgnitionOn, cardStops, cardTrips, cardAvgSpeed, cardDistance, cardMaxSpeed;
     private TextView tvIgnitionOnValue, tvStopsValue, tvTripsValue, tvAvgSpeedValue, tvDistanceValue, tvMaxSpeedValue;
+    private android.widget.ImageView ivIgnitionOn, ivStops, ivTrips, ivAvgSpeed, ivDistance, ivMaxSpeed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,6 +116,16 @@ public class ValueActivity extends AppCompatActivity {
         tvAvgSpeedValue = findViewById(R.id.tvAvgSpeedValue);
         tvDistanceValue = findViewById(R.id.tvDistanceValue);
         tvMaxSpeedValue = findViewById(R.id.tvMaxSpeedValue);
+
+        ivIgnitionOn = findViewById(R.id.ivIgnitionOn);
+        ivStops = findViewById(R.id.ivStops);
+        ivTrips = findViewById(R.id.ivTrips);
+        ivAvgSpeed = findViewById(R.id.ivAvgSpeed);
+        ivDistance = findViewById(R.id.ivDistance);
+        ivMaxSpeed = findViewById(R.id.ivMaxSpeed);
+
+        yAxisLabels = findViewById(R.id.yAxisLabels);
+        gridlinesContainer = findViewById(R.id.gridlinesContainer);
 
         if (btnPeriodSelector != null) btnPeriodSelector.setOnClickListener(this::showPeriodMenu);
 
@@ -211,26 +224,35 @@ public class ValueActivity extends AppCompatActivity {
 
     // Resets all six cards to the unselected style, then highlights only
     // the currently selected one -- matching Letstrack's own "Distance"
-    // card being solid blue while the rest stay neutral.
+    // card being solid blue while the rest stay neutral. Each card is
+    // explicitly paired with its own icon (not accessed by child index),
+    // so background drawable and icon tint always match correctly.
     private void applyCardSelectionStyles() {
-        LinearLayout[] allCards = {cardIgnitionOn, cardStops, cardTrips, cardAvgSpeed, cardDistance, cardMaxSpeed};
-        Metric[] order = {Metric.IGNITION_ON, Metric.STOPS, Metric.TRIPS, Metric.AVG_SPEED, Metric.DISTANCE, Metric.MAX_SPEED};
-
-        for (int i = 0; i < allCards.length; i++) {
-            if (allCards[i] == null) continue;
-            boolean isSelected = order[i] == selectedMetric;
-            styleCard(allCards[i], isSelected);
-        }
+        styleCard(cardIgnitionOn, ivIgnitionOn, selectedMetric == Metric.IGNITION_ON);
+        styleCard(cardStops, ivStops, selectedMetric == Metric.STOPS);
+        styleCard(cardTrips, ivTrips, selectedMetric == Metric.TRIPS);
+        styleCard(cardAvgSpeed, ivAvgSpeed, selectedMetric == Metric.AVG_SPEED);
+        styleCard(cardDistance, ivDistance, selectedMetric == Metric.DISTANCE);
+        styleCard(cardMaxSpeed, ivMaxSpeed, selectedMetric == Metric.MAX_SPEED);
     }
 
-    private void styleCard(LinearLayout card, boolean selected) {
-        card.setBackgroundColor(ContextCompat.getColor(this,
-                selected ? R.color.brand_accent : R.color.surface_stroke));
+    private void styleCard(LinearLayout card, android.widget.ImageView icon, boolean selected) {
+        if (card == null) return;
+        card.setBackgroundResource(selected ? R.drawable.bg_stat_card_selected : R.drawable.bg_stat_card);
+
+        int textColor = selected ? Color.WHITE : ContextCompat.getColor(this, R.color.text_primary);
+        int labelColor = selected ? Color.WHITE : ContextCompat.getColor(this, R.color.text_secondary);
+        int iconColor = selected ? Color.WHITE : ContextCompat.getColor(this, R.color.brand_accent);
+
+        if (icon != null) icon.setColorFilter(iconColor);
+
         for (int i = 0; i < card.getChildCount(); i++) {
             View child = card.getChildAt(i);
             if (child instanceof TextView) {
-                ((TextView) child).setTextColor(selected ? Color.WHITE : ContextCompat.getColor(this,
-                        i == 1 ? R.color.text_secondary : R.color.text_primary));
+                // Label is always the first TextView (index 1, after the
+                // icon at index 0); value is the second (index 2).
+                boolean isLabel = i == 1;
+                ((TextView) child).setTextColor(isLabel ? labelColor : textColor);
             }
         }
     }
@@ -253,6 +275,9 @@ public class ValueActivity extends AppCompatActivity {
             maxValue = Math.max(maxValue, valueFor(day, selectedMetric));
         }
         if (maxValue <= 0) maxValue = 1; // avoid dividing by zero when every day is empty
+
+        renderYAxis(maxValue);
+        renderGridlines();
 
         int maxBarHeightPx = (int) (140 * getResources().getDisplayMetrics().density);
         int barWidthPx = (int) (36 * getResources().getDisplayMetrics().density);
@@ -300,6 +325,57 @@ public class ValueActivity extends AppCompatActivity {
             column.addView(dateText);
 
             chartBarsContainer.addView(column);
+        }
+    }
+
+    // Real Y-axis scale, matching the actual Letstrack reference rather
+    // than a bare bar with no context. 5 evenly-spaced marks from the max
+    // value down to 0, top-aligned within each equal-weight slot so they
+    // line up with the bar heights below.
+    private void renderYAxis(double maxValue) {
+        if (yAxisLabels == null) return;
+        yAxisLabels.removeAllViews();
+
+        int steps = 4;
+        for (int i = 0; i <= steps; i++) {
+            double value = maxValue - (maxValue / steps) * i;
+            TextView label = new TextView(this);
+            label.setText(formatValueLabel(value, selectedMetric));
+            label.setTextSize(9);
+            label.setGravity(Gravity.END | Gravity.TOP);
+            label.setPadding(0, 0, (int) (6 * getResources().getDisplayMetrics().density), 0);
+            label.setTextColor(ContextCompat.getColor(this, R.color.text_muted));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+            label.setLayoutParams(params);
+            yAxisLabels.addView(label);
+        }
+    }
+
+    // Real horizontal gridlines behind the bars, aligned to the exact
+    // same 5-level spacing as the Y-axis labels (drawn behind the bars in
+    // the FrameLayout, since gridlinesContainer is added before the
+    // scrolling bars in the layout).
+    private void renderGridlines() {
+        if (gridlinesContainer == null) return;
+        gridlinesContainer.removeAllViews();
+
+        int steps = 4;
+        for (int i = 0; i <= steps; i++) {
+            LinearLayout slot = new LinearLayout(this);
+            LinearLayout.LayoutParams slotParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+            slot.setLayoutParams(slotParams);
+            slot.setOrientation(LinearLayout.VERTICAL);
+
+            View line = new View(this);
+            LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1);
+            line.setLayoutParams(lineParams);
+            line.setBackgroundColor(ContextCompat.getColor(this, R.color.surface_stroke));
+            slot.addView(line);
+
+            gridlinesContainer.addView(slot);
         }
     }
 

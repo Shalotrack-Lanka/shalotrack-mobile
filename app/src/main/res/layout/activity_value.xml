@@ -93,7 +93,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:background="@color/surface_stroke"
+                        android:background="@drawable/bg_stat_card"
                         android:paddingStart="16dp"
                         android:paddingEnd="12dp"
                         android:paddingTop="8dp"
@@ -117,7 +117,10 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- 2x3 metric card grid, tappable, one selected at a time -->
+                <!-- 2x3 metric card grid: rounded corners, real spacing
+                     between cards, elevation for a real shadow, real icons
+                     (ImageView, not unicode glyphs) tinted programmatically
+                     on selection. -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -128,12 +131,14 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_margin="4dp"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="@color/surface_stroke"
+                        android:background="@drawable/bg_stat_card"
+                        android:elevation="1dp"
                         android:padding="14dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="\u23F1" android:textSize="20sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ignition On" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="6dp" />
+                        <ImageView android:id="@+id/ivIgnitionOn" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_stat_ignition" android:contentDescription="Ignition On" />
+                        <TextView android:id="@+id/tvIgnitionOnLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ignition On" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="8dp" />
                         <TextView android:id="@+id/tvIgnitionOnValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0h" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="4dp" />
                     </LinearLayout>
 
@@ -142,12 +147,14 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_margin="4dp"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="@color/surface_stroke"
+                        android:background="@drawable/bg_stat_card"
+                        android:elevation="1dp"
                         android:padding="14dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="\u25A0" android:textSize="20sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Stops" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="6dp" />
+                        <ImageView android:id="@+id/ivStops" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_stat_stops" android:contentDescription="Stops" />
+                        <TextView android:id="@+id/tvStopsLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Stops" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="8dp" />
                         <TextView android:id="@+id/tvStopsValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="4dp" />
                     </LinearLayout>
 
@@ -156,12 +163,14 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_margin="4dp"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="@color/surface_stroke"
+                        android:background="@drawable/bg_stat_card"
+                        android:elevation="1dp"
                         android:padding="14dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="\u2013\u25B3\u2013" android:textSize="16sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Trips" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="6dp" />
+                        <ImageView android:id="@+id/ivTrips" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_stat_trips" android:contentDescription="Trips" />
+                        <TextView android:id="@+id/tvTripsLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Trips" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="8dp" />
                         <TextView android:id="@+id/tvTripsValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -169,20 +178,21 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="10dp">
+                    android:orientation="horizontal">
 
                     <LinearLayout
                         android:id="@+id/cardAvgSpeed"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_margin="4dp"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="@color/surface_stroke"
+                        android:background="@drawable/bg_stat_card"
+                        android:elevation="1dp"
                         android:padding="14dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="\u2699" android:textSize="20sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Avg Speed" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="6dp" />
+                        <ImageView android:id="@+id/ivAvgSpeed" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_stat_avgspeed" android:contentDescription="Average Speed" />
+                        <TextView android:id="@+id/tvAvgSpeedLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Avg Speed" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="8dp" />
                         <TextView android:id="@+id/tvAvgSpeedValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0km/h" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="4dp" />
                     </LinearLayout>
 
@@ -191,12 +201,14 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_margin="4dp"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="@color/surface_stroke"
+                        android:background="@drawable/bg_stat_card_selected"
+                        android:elevation="1dp"
                         android:padding="14dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="\uD83D\uDCCD" android:textSize="18sp" />
-                        <TextView android:id="@+id/tvDistanceLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Distance" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="6dp" />
+                        <ImageView android:id="@+id/ivDistance" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_stat_distance" android:contentDescription="Distance" />
+                        <TextView android:id="@+id/tvDistanceLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Distance" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="8dp" />
                         <TextView android:id="@+id/tvDistanceValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0km" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="4dp" />
                     </LinearLayout>
 
@@ -205,24 +217,23 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_margin="4dp"
                         android:orientation="vertical"
                         android:gravity="center"
-                        android:background="@color/surface_stroke"
+                        android:background="@drawable/bg_stat_card"
+                        android:elevation="1dp"
                         android:padding="14dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="\u26A1" android:textSize="20sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Max Speed" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="6dp" />
+                        <ImageView android:id="@+id/ivMaxSpeed" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_stat_maxspeed" android:contentDescription="Max Speed" />
+                        <TextView android:id="@+id/tvMaxSpeedLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Max Speed" android:textSize="12sp" android:textColor="@color/text_secondary" android:layout_marginTop="8dp" />
                         <TextView android:id="@+id/tvMaxSpeedValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0km/h" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Overspeed incident count, kept as a simple text row,
-                     not its own card, since it's a secondary detail rather
-                     than one of Letstrack's six primary metrics. -->
                 <TextView
                     android:id="@+id/tvOverspeedSummary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="8dp"
                     android:text="0 overspeed incidents in this period"
                     android:textSize="12sp"
                     android:textColor="@color/text_muted" />
@@ -240,17 +251,44 @@
                     android:textColor="@color/text_primary"
                     android:gravity="center" />
 
-                <HorizontalScrollView
+                <!-- Y-axis labels + bars side by side, matching the real
+                     Letstrack reference's scaled axis rather than a bare
+                     bar with no context. -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
                     <LinearLayout
-                        android:id="@+id/chartBarsContainer"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/yAxisLabels"
+                        android:layout_width="34dp"
                         android:layout_height="180dp"
-                        android:orientation="horizontal"
-                        android:gravity="bottom"
-                        android:paddingTop="20dp" />
-                </HorizontalScrollView>
+                        android:orientation="vertical" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="180dp">
+
+                        <LinearLayout
+                            android:id="@+id/gridlinesContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical" />
+
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:fillViewport="true">
+                            <LinearLayout
+                                android:id="@+id/chartBarsContainer"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="horizontal"
+                                android:gravity="bottom|center_horizontal" />
+                        </HorizontalScrollView>
+                    </FrameLayout>
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
