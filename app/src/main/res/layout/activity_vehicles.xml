@@ -655,11 +655,11 @@
                                 android:padding="8dp"
                                 android:text="@string/places"
                                 android:textSize="12sp"
-                                android:textColor="#BDBDBD"
+                                android:textColor="@color/text_primary"
                                 android:textStyle="bold"
                                 android:drawablePadding="4dp"
                                 app:drawableTopCompat="@android:drawable/ic_menu_mapmode"
-                                app:drawableTint="#BDBDBD" />
+                                app:drawableTint="@color/text_primary" />
 
                             <androidx.appcompat.widget.AppCompatTextView
                                 android:id="@+id/btnMenuImmobilize"

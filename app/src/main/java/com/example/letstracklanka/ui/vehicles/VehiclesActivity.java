@@ -401,14 +401,26 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         View btnMenuValue = findViewById(R.id.btnMenuValue);
         if (btnMenuValue != null) {
-            btnMenuValue.setOnClickListener(v ->
-                    Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
+            btnMenuValue.setOnClickListener(v -> {
+                if (selectedVehicleId == null) {
+                    Toast.makeText(this, "No vehicle selected.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Intent intent = new Intent(VehiclesActivity.this, ValueActivity.class);
+                intent.putExtra(ValueActivity.EXTRA_VEHICLE_ID, selectedVehicleId);
+                startActivity(intent);
+            });
         }
 
         View btnMenuPlaces = findViewById(R.id.btnMenuPlaces);
         if (btnMenuPlaces != null) {
+            // FIX: this was still the "Coming soon" placeholder even after
+            // PlacesActivity was built -- only the drawer's own Places item
+            // had been rewired. This is a separate entry point (grid menu
+            // inside a vehicle's detail panel), found not working when
+            // reported directly.
             btnMenuPlaces.setOnClickListener(v ->
-                    Toast.makeText(this, "Coming soon", Toast.LENGTH_SHORT).show());
+                    startActivity(new Intent(VehiclesActivity.this, com.example.letstracklanka.ui.places.PlacesActivity.class)));
         }
 
         View btnMenuImmobilize = findViewById(R.id.btnMenuImmobilize);

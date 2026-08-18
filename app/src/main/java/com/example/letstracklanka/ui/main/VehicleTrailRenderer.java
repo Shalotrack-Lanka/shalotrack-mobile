@@ -58,7 +58,7 @@ public class VehicleTrailRenderer {
     private static final String TAG = "VehicleTrailRenderer";
 
     // How many hours of previous travel history to load when opening the app
-    private static final int HISTORY_WINDOW_HOURS = 2;
+    private static final int HISTORY_WINDOW_HOURS = 1;
 
     // Minimum and maximum time for the smooth movement animation (in milliseconds)
     // Marker animation duration matches the real elapsed time since the
@@ -74,7 +74,14 @@ public class VehicleTrailRenderer {
     private static final double MAX_PLAUSIBLE_SPEED_MPS = 55.6; // ~200 km/h
 
     // Adjusting the car icon rotation so it points to the correct front side
-    private static final float ICON_ROTATION_OFFSET = -90f;
+    // FIX: was -90f, correcting for the OLD icon's artwork having its
+    // front drawn facing sideways rather than up. The new PNG (real
+    // Flaticon asset) already has its front facing straight up in its own
+    // unrotated form -- matching Google's own documented convention for
+    // rotating vehicle markers -- so no correction is needed anymore.
+    // Left at -90f, this would have made the car consistently point 90
+    // degrees off from the real direction of travel.
+    private static final float ICON_ROTATION_OFFSET = 0f;
 
     // Variables for Google Maps and server API
     private final GoogleMap map;
