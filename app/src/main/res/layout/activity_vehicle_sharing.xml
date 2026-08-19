@@ -74,10 +74,11 @@
                     android:id="@+id/tvPendingInvitesLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Pending invites"
-                    android:textSize="13sp"
+                    android:text="PENDING INVITES"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_secondary"
+                    android:letterSpacing="0.05"
+                    android:textColor="@color/text_muted"
                     android:layout_marginBottom="10dp"
                     android:visibility="gone" />
 
@@ -91,10 +92,11 @@
                     android:id="@+id/tvSharedWithYouLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Shared with you"
-                    android:textSize="13sp"
+                    android:text="SHARED WITH YOU"
+                    android:textSize="12sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_secondary"
+                    android:letterSpacing="0.05"
+                    android:textColor="@color/text_muted"
                     android:layout_marginTop="20dp"
                     android:layout_marginBottom="10dp" />
 
@@ -102,13 +104,41 @@
                     android:id="@+id/sharedWithMeContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_stat_card" />
 
                 <TextView
                     android:id="@+id/tvNoSharedVehicles"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="No vehicles shared with you yet."
+                    android:textSize="13sp"
+                    android:textColor="@color/text_muted"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="VEHICLES YOU'VE SHARED"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:textColor="@color/text_muted"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="10dp" />
+
+                <LinearLayout
+                    android:id="@+id/mySharesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_stat_card" />
+
+                <TextView
+                    android:id="@+id/tvNoMyShares"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="You haven't shared any vehicles yet."
                     android:textSize="13sp"
                     android:textColor="@color/text_muted"
                     android:visibility="gone" />

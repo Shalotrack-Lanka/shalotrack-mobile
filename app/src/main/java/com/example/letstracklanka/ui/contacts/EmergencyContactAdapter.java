@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.contacts;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -58,6 +60,14 @@ public class EmergencyContactAdapter extends RecyclerView.Adapter<EmergencyConta
         holder.btnDelete.setOnClickListener(v -> {
             if (deleteListener != null) deleteListener.onDeleteClick(contact);
         });
+
+        // NEW -- matches the approved mockup's tap-to-call button, same
+        // ACTION_DIAL pattern already used in the post-SOS call sheet.
+        holder.btnCall.setOnClickListener(v -> {
+            Intent dialIntent = new Intent(Intent.ACTION_DIAL);
+            dialIntent.setData(Uri.parse("tel:" + contact.getPhoneNumber()));
+            v.getContext().startActivity(dialIntent);
+        });
     }
 
     @Override
@@ -89,7 +99,7 @@ public class EmergencyContactAdapter extends RecyclerView.Adapter<EmergencyConta
 
     static class ContactViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvPhone, tvRelationship, tvInitials;
-        ImageView btnDelete;
+        ImageView btnDelete, btnCall;
 
         ContactViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -98,6 +108,7 @@ public class EmergencyContactAdapter extends RecyclerView.Adapter<EmergencyConta
             tvRelationship = itemView.findViewById(R.id.tvContactRelationship);
             tvInitials = itemView.findViewById(R.id.tvContactInitials);
             btnDelete = itemView.findViewById(R.id.btnDeleteContact);
+            btnCall = itemView.findViewById(R.id.btnCallContact);
         }
     }
 }

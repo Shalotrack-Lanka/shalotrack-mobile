@@ -82,6 +82,14 @@ public class EmergencyContactsActivity extends AppCompatActivity {
         rvContacts.setLayoutManager(new LinearLayoutManager(this));
         adapter = new EmergencyContactAdapter(this::confirmDeleteContact);
         rvContacts.setAdapter(adapter);
+
+        // NEW -- purely visual, matches the confirmed mockup's single
+        // continuous card with dividers between contacts, rather than
+        // each row being its own separate boxed card.
+        androidx.recyclerview.widget.DividerItemDecoration divider =
+                new androidx.recyclerview.widget.DividerItemDecoration(this, LinearLayoutManager.VERTICAL);
+        divider.setDrawable(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.divider_thin));
+        rvContacts.addItemDecoration(divider);
     }
 
     private void fetchContacts() {

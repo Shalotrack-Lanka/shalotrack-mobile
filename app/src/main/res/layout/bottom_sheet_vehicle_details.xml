@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/surface_background"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_stat_card"
+            android:gravity="center">
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_car_3d_small"
+                android:contentDescription="Vehicle" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+            <TextView
+                android:id="@+id/tvDetailsVehicleName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Vehicle"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
+            <TextView
+                android:id="@+id/tvDetailsVehicleNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=" "
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnCloseDetails"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="@color/text_muted"
+            android:contentDescription="Close" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Vehicle"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
+        android:textColor="@color/text_muted"
+        android:layout_marginBottom="6dp" />
+
+    <LinearLayout
+        android:id="@+id/vehicleFieldsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_stat_card"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tvGpsSectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GPS device"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
+        android:textColor="@color/text_muted"
+        android:layout_marginBottom="6dp" />
+
+    <LinearLayout
+        android:id="@+id/gpsFieldsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_stat_card" />
+
+    <TextView
+        android:id="@+id/tvNoGpsDevice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No GPS device linked to this vehicle."
+        android:textSize="13sp"
+        android:textColor="@color/text_muted"
+        android:padding="14dp"
+        android:background="@drawable/bg_stat_card"
+        android:visibility="gone" />
+
+</LinearLayout>

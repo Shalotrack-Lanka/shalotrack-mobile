@@ -1,18 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Rounded-card style, matching the same UI-consistency pass applied
+     to Vehicle List/Emergency Contacts/Sharing. Every existing ID kept
+     exactly as-is (cardAlertIcon, tvAlertIcon, tvAlertType,
+     tvAlertMessage, tvAlertVehicle, tvAlertTime, dotUnread), UI only,
+     no changes to AlertAdapter's binding logic needed. Per-row vehicle
+     name explicitly kept per direct confirmation, even though the
+     vehicle header above already shows it. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="?attr/selectableItemBackground">
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="4dp"
+    android:background="@drawable/bg_stat_card">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="4dp"
-        android:paddingVertical="12dp">
+        android:background="?attr/selectableItemBackground"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="14dp">
 
         <!-- Colored icon chip: color/glyph set in code per alert type
              (AlertAdapter), not a drawable resource, matching how the
@@ -50,7 +60,7 @@
                 android:text="Ignition On"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="#0A2463" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:id="@+id/tvAlertMessage"
@@ -59,7 +69,7 @@
                 android:layout_marginTop="2dp"
                 android:text="Test: ignition turned on"
                 android:textSize="13sp"
-                android:textColor="#555555"
+                android:textColor="@color/text_secondary"
                 android:maxLines="2"
                 android:ellipsize="end" />
 
@@ -71,7 +81,7 @@
                 android:text="WP JK 9931"
                 android:textSize="11sp"
                 android:textStyle="bold"
-                android:textColor="#9E9E9E" />
+                android:textColor="@color/text_muted" />
         </LinearLayout>
 
         <LinearLayout
@@ -87,7 +97,7 @@
                 android:layout_height="wrap_content"
                 android:text="10:02 AM"
                 android:textSize="11sp"
-                android:textColor="#888888" />
+                android:textColor="@color/text_muted" />
 
             <!-- Unread indicator dot: shape/color set in code
                  (AlertAdapter), matching the original approach exactly,
@@ -101,11 +111,5 @@
                 android:layout_gravity="end" />
         </LinearLayout>
     </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="60dp"
-        android:background="#F0F0F0" />
 
 </LinearLayout>
