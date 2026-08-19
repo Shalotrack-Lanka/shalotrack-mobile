@@ -853,60 +853,157 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    // Surfaces Emergency Contacts with tap-to-call right after a
-    // successful SOS -- since real auto-notification of contacts depends
-    // on Vehicle Sharing (a later release, not this one), this is the
-    // honest, immediately useful alternative: put their numbers one tap
-    // away for the customer to actually call themselves.
+    // Real, interactive redesign -- previous version was a plain
+    // AlertDialog with unstyled text rows that technically had a click
+    // listener but gave zero visual indication of being tappable,
+    // confirmed directly by the user as not usable in a real emergency.
+    //
+    // National numbers are limited to 119 (Police) and 1990 (Suwa Seriya
+    // Ambulance) deliberately -- these are the only two confirmed
+    // unambiguously consistent across every source checked, including
+    // Sri Lanka Police's own site and Wikipedia's citation of the actual
+    // Telecommunications Regulatory Commission registry. Fire/rescue
+    // numbers conflicted across sources (110 vs 111 depending on the
+    // source) and were deliberately left out rather than risk a wrong
+    // number in a genuine emergency -- worth getting verified locally
+    // before adding.
     private void showEmergencyContactsAfterSOS() {
         mainApiService.getMyEmergencyContacts().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                List<com.example.letstracklanka.data.model.EmergencyContactResponse> contacts = new java.util.ArrayList<>();
                 try (ResponseBody body = response.body()) {
-                    if (!response.isSuccessful() || body == null) {
+                    if (response.isSuccessful() && body != null) {
+                        List<com.example.letstracklanka.data.model.EmergencyContactResponse> parsed =
+                                parseList(body.string(), com.example.letstracklanka.data.model.EmergencyContactResponse.class);
+                        if (parsed != null) contacts = parsed;
+                    } else {
                         Log.w("HomeActivity", "showEmergencyContactsAfterSOS failed, code " + response.code());
-                        return;
                     }
-                    List<com.example.letstracklanka.data.model.EmergencyContactResponse> contacts =
-                            parseList(body.string(), com.example.letstracklanka.data.model.EmergencyContactResponse.class);
-                    if (contacts.isEmpty()) return; // nothing to show -- SOS itself still went through fine
-
-                    android.widget.LinearLayout dialogLayout = new android.widget.LinearLayout(HomeActivity.this);
-                    dialogLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
-                    int pad = (int) (16 * getResources().getDisplayMetrics().density);
-                    dialogLayout.setPadding(pad, pad, pad, pad);
-
-                    for (com.example.letstracklanka.data.model.EmergencyContactResponse contact : contacts) {
-                        TextView row = new TextView(HomeActivity.this);
-                        row.setText(contact.getName() + "\n" + contact.getPhoneNumber());
-                        row.setTextSize(15);
-                        row.setPadding(0, pad / 2, 0, pad / 2);
-                        row.setOnClickListener(v -> {
-                            Intent dialIntent = new Intent(Intent.ACTION_DIAL);
-                            dialIntent.setData(android.net.Uri.parse("tel:" + contact.getPhoneNumber()));
-                            startActivity(dialIntent);
-                        });
-                        dialogLayout.addView(row);
-                    }
-
-                    new AlertDialog.Builder(HomeActivity.this)
-                            .setTitle("Call an emergency contact")
-                            .setView(dialogLayout)
-                            .setNegativeButton("Close", null)
-                            .show();
                 } catch (Exception e) {
                     Log.e("HomeActivity", "showEmergencyContactsAfterSOS parse error", e);
                 }
+                // Show the sheet regardless -- national emergency numbers
+                // are still useful even if the personal-contacts fetch
+                // failed, and SOS itself already succeeded either way.
+                showSosContactsSheet(contacts);
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("HomeActivity", "showEmergencyContactsAfterSOS network error", t);
-                // SOS itself already succeeded -- a failure here just means
-                // the contacts dialog doesn't show, not a reason to alarm
-                // the user further right after a real emergency trigger.
+                // Still show national numbers even if the personal
+                // contacts fetch fails outright over the network.
+                showSosContactsSheet(new java.util.ArrayList<>());
             }
         });
+    }
+
+    private void showSosContactsSheet(List<com.example.letstracklanka.data.model.EmergencyContactResponse> contacts) {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_sos_contacts, null);
+        dialog.setContentView(view);
+
+        LinearLayout nationalContainer = view.findViewById(R.id.nationalNumbersContainer);
+        LinearLayout personalContainer = view.findViewById(R.id.personalContactsContainer);
+        View tvNoContacts = view.findViewById(R.id.tvNoContacts);
+
+        if (nationalContainer != null) {
+            addSosRow(nationalContainer, "Police Emergency", "119", "119",
+                    "P", ContextCompat.getColor(this, R.color.status_danger));
+            addSosRow(nationalContainer, "Ambulance (Suwa Seriya)", "1990", "1990",
+                    "A", ContextCompat.getColor(this, R.color.status_danger));
+        }
+
+        if (personalContainer != null) {
+            if (contacts.isEmpty()) {
+                if (tvNoContacts != null) tvNoContacts.setVisibility(View.VISIBLE);
+            } else {
+                for (com.example.letstracklanka.data.model.EmergencyContactResponse contact : contacts) {
+                    String initials = contact.getName() != null && !contact.getName().isEmpty()
+                            ? contact.getName().substring(0, 1).toUpperCase(java.util.Locale.US) : "?";
+                    addSosRow(personalContainer, contact.getName(), contact.getPhoneNumber(),
+                            contact.getPhoneNumber(), initials, ContextCompat.getColor(this, R.color.brand_accent));
+                }
+            }
+        }
+
+        dialog.show();
+    }
+
+    // Shared row builder for both national numbers and personal contacts
+    // -- avatar/initials circle, name + number, and a large, unmistakably
+    // tappable call-icon circle. Every row is a real ripple-enabled
+    // clickable target, not plain text with an invisible listener.
+    private void addSosRow(LinearLayout container, String title, String subtitle,
+                           String phoneNumberToDial, String avatarLetter, int avatarColor) {
+        int density = (int) getResources().getDisplayMetrics().density;
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(8 * density, 10 * density, 8 * density, 10 * density);
+        row.setBackgroundResource(android.R.drawable.list_selector_background);
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        LinearLayout avatar = new LinearLayout(this);
+        int avatarSize = 42 * density;
+        LinearLayout.LayoutParams avatarParams = new LinearLayout.LayoutParams(avatarSize, avatarSize);
+        avatar.setLayoutParams(avatarParams);
+        avatar.setGravity(android.view.Gravity.CENTER);
+        android.graphics.drawable.GradientDrawable avatarBg = new android.graphics.drawable.GradientDrawable();
+        avatarBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        avatarBg.setColor(avatarColor);
+        avatar.setBackground(avatarBg);
+        TextView avatarText = new TextView(this);
+        avatarText.setText(avatarLetter);
+        avatarText.setTextColor(Color.WHITE);
+        avatarText.setTextSize(16);
+        avatarText.setTypeface(null, android.graphics.Typeface.BOLD);
+        avatar.addView(avatarText);
+        row.addView(avatar);
+
+        LinearLayout textCol = new LinearLayout(this);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        textParams.setMarginStart(14 * density);
+        textCol.setLayoutParams(textParams);
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextSize(16);
+        titleView.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        titleView.setTypeface(null, android.graphics.Typeface.BOLD);
+        TextView subtitleView = new TextView(this);
+        subtitleView.setText(subtitle);
+        subtitleView.setTextSize(13);
+        subtitleView.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        textCol.addView(titleView);
+        textCol.addView(subtitleView);
+        row.addView(textCol);
+
+        LinearLayout callButton = new LinearLayout(this);
+        int callSize = 42 * density;
+        LinearLayout.LayoutParams callParams = new LinearLayout.LayoutParams(callSize, callSize);
+        callButton.setLayoutParams(callParams);
+        callButton.setGravity(android.view.Gravity.CENTER);
+        android.graphics.drawable.GradientDrawable callBg = new android.graphics.drawable.GradientDrawable();
+        callBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        callBg.setColor(ContextCompat.getColor(this, R.color.status_success));
+        callButton.setBackground(callBg);
+        ImageView callIcon = new ImageView(this);
+        callIcon.setImageResource(R.drawable.ic_phone_call);
+        int iconSize = 20 * density;
+        callButton.addView(callIcon, new LinearLayout.LayoutParams(iconSize, iconSize));
+        row.addView(callButton);
+
+        row.setOnClickListener(v -> {
+            Intent dialIntent = new Intent(Intent.ACTION_DIAL);
+            dialIntent.setData(android.net.Uri.parse("tel:" + phoneNumberToDial));
+            startActivity(dialIntent);
+        });
+
+        container.addView(row);
     }
 
     // Move camera to the latest known vehicle location when floating button is clicked
