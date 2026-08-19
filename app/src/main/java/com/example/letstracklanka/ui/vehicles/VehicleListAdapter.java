@@ -161,7 +161,22 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         // timestamp field (checked the actual model, not guessed). Using
         // plate + GPS-link status instead, which we do have real data for.
         String plate = vehicle.getVehicleNumber() != null ? vehicle.getVehicleNumber() : "";
-        holder.tvCaption.setText(plate + " \u2022 " + gpsLinkText);
+
+        // NEW -- Vehicle Sharing. A shared entry shows who it's shared by
+        // instead of the GPS-link status, and can't be swiped-to-remove --
+        // that's an owner-only action, and offering it here would just
+        // fail against the backend's own ownership check anyway (better
+        // to not offer it at all than show a button that errors).
+        if (vehicle.isShared()) {
+            String ownerName = vehicle.getOwnerName() != null ? vehicle.getOwnerName() : "someone";
+            holder.tvCaption.setText(plate + " \u2022 Shared by " + ownerName);
+            holder.btnSwipeRemove.setVisibility(View.GONE);
+            holder.foregroundRow.setOnTouchListener(null);
+        } else {
+            holder.tvCaption.setText(plate + " \u2022 " + gpsLinkText);
+            holder.btnSwipeRemove.setVisibility(View.VISIBLE);
+            holder.foregroundRow.setOnTouchListener(holder.swipeController);
+        }
 
         holder.foregroundRow.setOnClickListener(v -> {
             if (clickListener != null) clickListener.onVehicleClick(vehicle);
