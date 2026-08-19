@@ -75,6 +75,11 @@
         <!-- NEW: Vehicle Sharing - pending invites and vehicles shared with you. -->
         <activity android:name=".ui.vehicles.VehicleSharingActivity" android:exported="false" />
 
+        <!-- NEW: full live-tracking view for a vehicle shared with the
+             viewer, reuses VehicleTrailRenderer directly for the same
+             animated marker/heading experience owned vehicles get. -->
+        <activity android:name=".ui.vehicles.SharedVehicleMapActivity" android:exported="false" />
+
         <!-- ============================================================ -->
         <!-- !! DO NOT ADD A LAUNCHER INTENT-FILTER TO HomeActivity !!      -->
         <!-- The launcher (MAIN/LAUNCHER) belongs on SplashActivity, below. -->
