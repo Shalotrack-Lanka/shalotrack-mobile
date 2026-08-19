@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -31,6 +32,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.model.DashboardVehicle;
+import com.example.letstracklanka.data.model.InviteVehicleShareRequest;
 import com.example.letstracklanka.data.model.LocationResponse;
 import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiService;
@@ -442,6 +444,92 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (btnMenuDetails != null) {
             btnMenuDetails.setOnClickListener(v -> showVehicleDetails());
         }
+
+        View btnMenuShare = findViewById(R.id.btnMenuShare);
+        if (btnMenuShare != null) {
+            btnMenuShare.setOnClickListener(v -> showShareVehicleDialog());
+        }
+    }
+
+    // Vehicle Sharing invite flow -- deliberately a simple dialog rather
+    // than a full screen, matching this action's actual weight (enter a
+    // number, tap invite). The backend resolves the phone number to a
+    // real registered Customer directly at invite time, so a clear,
+    // specific error ("No account found for that number") comes back
+    // if they haven't installed the app yet -- surfaced here rather than
+    // shown as a generic failure.
+    private void showShareVehicleDialog() {
+        if (selectedVehicleId == null) {
+            Toast.makeText(this, "No vehicle selected.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        EditText input = new EditText(this);
+        input.setHint("Phone number, e.g. 0771234567");
+        input.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        input.setPadding(pad, pad, pad, pad);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Share this vehicle")
+                .setMessage("The person must already have the ShaloTrack app installed and registered with this number.")
+                .setView(input)
+                .setPositiveButton("Invite", (dialog, which) -> {
+                    String phoneNumber = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (phoneNumber.isEmpty()) {
+                        Toast.makeText(this, "Enter a phone number.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    sendShareInvite(phoneNumber);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void sendShareInvite(String phoneNumber) {
+        InviteVehicleShareRequest request = new InviteVehicleShareRequest(selectedVehicleId, phoneNumber);
+        mainApiService.inviteVehicleShare(request).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    String bodyString = body != null ? body.string() : null;
+                    if (response.isSuccessful()) {
+                        Toast.makeText(VehiclesActivity.this, "Invite sent.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        String errorMessage = extractApiMessage(bodyString);
+                        Toast.makeText(VehiclesActivity.this,
+                                errorMessage != null ? errorMessage : "Couldn't send the invite. Try again.",
+                                Toast.LENGTH_LONG).show();
+                        Log.w("VehiclesActivity", "inviteVehicleShare failed, code " + response.code());
+                    }
+                } catch (Exception e) {
+                    Log.e("VehiclesActivity", "sendShareInvite parse error", e);
+                    Toast.makeText(VehiclesActivity.this, "Something went wrong. Try again.", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("VehiclesActivity", "sendShareInvite network error", t);
+                Toast.makeText(VehiclesActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    // Pulls the real "message" field out of a failed ApiResponse body, so
+    // the person sees the actual reason (e.g. "No account found for that
+    // number") instead of a generic failure toast.
+    private String extractApiMessage(String json) {
+        if (json == null || json.trim().isEmpty()) return null;
+        try {
+            com.google.gson.JsonObject root = new com.google.gson.Gson().fromJson(json, com.google.gson.JsonObject.class);
+            if (root != null && root.has("message") && !root.get("message").isJsonNull()) {
+                return root.get("message").getAsString();
+            }
+        } catch (Exception e) {
+            Log.e("VehiclesActivity", "extractApiMessage error", e);
+        }
+        return null;
     }
 
     private void openTripHistory() {

@@ -72,6 +72,9 @@
              "Coming soon" placeholder in the Vehicles tab grid menu. -->
         <activity android:name=".ui.vehicles.ValueActivity" android:exported="false" />
 
+        <!-- NEW: Vehicle Sharing - pending invites and vehicles shared with you. -->
+        <activity android:name=".ui.vehicles.VehicleSharingActivity" android:exported="false" />
+
         <!-- ============================================================ -->
         <!-- !! DO NOT ADD A LAUNCHER INTENT-FILTER TO HomeActivity !!      -->
         <!-- The launcher (MAIN/LAUNCHER) belongs on SplashActivity, below. -->

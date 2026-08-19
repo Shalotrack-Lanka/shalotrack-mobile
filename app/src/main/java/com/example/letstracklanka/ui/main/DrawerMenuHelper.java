@@ -149,6 +149,14 @@ public final class DrawerMenuHelper {
             });
         }
 
+        View btnMenuSharing = activity.findViewById(R.id.btnMenuSharing);
+        if (btnMenuSharing != null) {
+            btnMenuSharing.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                activity.startActivity(new Intent(activity, com.example.letstracklanka.ui.vehicles.VehicleSharingActivity.class));
+            });
+        }
+
         View btnMenuSettings = activity.findViewById(R.id.btnMenuSettings);
         if (btnMenuSettings != null) {
             btnMenuSettings.setOnClickListener(v -> {

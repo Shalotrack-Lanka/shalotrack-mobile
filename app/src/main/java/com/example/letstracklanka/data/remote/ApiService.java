@@ -6,7 +6,9 @@ import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
 import com.example.letstracklanka.data.model.CreateSavedPlaceRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
+import com.example.letstracklanka.data.model.InviteVehicleShareRequest;
 import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
+import com.example.letstracklanka.data.model.RespondToVehicleShareRequest;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 
@@ -109,4 +111,23 @@ public interface ApiService {
     @GET("api/VehicleStats/{vehicleId}")
     // period: "today" | "week" | "month" | "all"
     Call<ResponseBody> getVehicleStats(@Path("vehicleId") String vehicleId, @Query("period") String period);
+
+    // NEW -- Vehicle Sharing. Matches the real VehicleSharesController routes.
+    @POST("api/VehicleShares/invite")
+    Call<ResponseBody> inviteVehicleShare(@Body InviteVehicleShareRequest request);
+
+    @POST("api/VehicleShares/{shareId}/respond")
+    Call<ResponseBody> respondToVehicleShare(@Path("shareId") String shareId, @Body RespondToVehicleShareRequest request);
+
+    @DELETE("api/VehicleShares/{shareId}")
+    Call<ResponseBody> revokeVehicleShare(@Path("shareId") String shareId);
+
+    @GET("api/VehicleShares/my-shares")
+    Call<ResponseBody> getMyVehicleShares(@Query("vehicleId") String vehicleId);
+
+    @GET("api/VehicleShares/shared-with-me")
+    Call<ResponseBody> getVehiclesSharedWithMe();
+
+    @GET("api/VehicleShares/pending-invites")
+    Call<ResponseBody> getPendingVehicleShareInvites();
 }
