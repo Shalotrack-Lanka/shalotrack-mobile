@@ -41,6 +41,21 @@ public class DashboardVehicle {
     @SerializedName("ignition")
     private Boolean ignition;
 
+    // NEW -- Vehicle Sharing. isShared is false/absent for vehicles the
+    // customer actually owns, true for entries merged in from an
+    // Accepted share. Used to hide owner-only actions (delete, edit,
+    // Immobilize) for shared vehicles -- "full access" for a shared
+    // viewer means live tracking and alerts, not the ability to modify
+    // or remove someone else's vehicle.
+    @SerializedName("isShared")
+    private Boolean isShared;
+
+    @SerializedName("ownerName")
+    private String ownerName;
+
+    public boolean isShared() { return isShared != null && isShared; }
+    public String getOwnerName() { return ownerName; }
+
     public String getVehicleId() { return vehicleId; }
     public String getVehicleNumber() { return vehicleNumber; }
     public String getMake() { return make; }

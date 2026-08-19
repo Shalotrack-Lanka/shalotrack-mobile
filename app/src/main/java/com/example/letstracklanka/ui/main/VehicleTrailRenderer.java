@@ -3,6 +3,7 @@ package com.example.letstracklanka.ui.main;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.view.animation.LinearInterpolator;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
@@ -400,6 +401,17 @@ public class VehicleTrailRenderer {
         ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
         final boolean[] wasCancelled = {false};
         animator.setDuration(durationMs);
+
+        // FIX: no interpolator was set, so this used Android's platform
+        // default (AccelerateDecelerateInterpolator). Fine for a single,
+        // isolated animation, but each new GPS fix cancels the previous
+        // animator and starts a fresh one -- chaining multiple ease-in-
+        // ease-out segments back-to-back means the marker decelerates to
+        // a stop at the end of each segment, then re-accelerates for the
+        // next one, creating a subtle stutter/pulse at every boundary.
+        // Linear keeps a constant speed through each segment, which flows
+        // continuously into the next update instead.
+        animator.setInterpolator(new LinearInterpolator());
 
         // Calculate the smooth position of the car for every single animation frame
         animator.addUpdateListener(animation -> {
