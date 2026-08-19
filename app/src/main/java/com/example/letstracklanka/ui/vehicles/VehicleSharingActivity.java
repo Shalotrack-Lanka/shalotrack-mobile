@@ -312,8 +312,13 @@ public class VehicleSharingActivity extends AppCompatActivity {
         chevron.setLayoutParams(new LinearLayout.LayoutParams(chevronSize, chevronSize));
         row.addView(chevron);
 
-        row.setOnClickListener(v -> Toast.makeText(this,
-                "Live tracking for shared vehicles is coming soon.", Toast.LENGTH_SHORT).show());
+        row.setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(this, SharedVehicleMapActivity.class);
+            intent.putExtra(SharedVehicleMapActivity.EXTRA_VEHICLE_ID, share.getVehicleId());
+            intent.putExtra(SharedVehicleMapActivity.EXTRA_VEHICLE_TITLE, share.getMake() + " " + share.getModel());
+            intent.putExtra(SharedVehicleMapActivity.EXTRA_OWNER_NAME, share.getOtherPartyName());
+            startActivity(intent);
+        });
 
         sharedWithMeContainer.addView(row);
     }
