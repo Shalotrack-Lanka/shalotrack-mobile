@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.GridLayout;
@@ -562,22 +563,120 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
+    // Real, interactive redesign, matching a confirmed mockup design
+    // directly: a real card with an avatar header, vehicle fields and GPS
+    // device fields each in their own labeled section with icons.
+    // Previous version was a plain AlertDialog with every field
+    // concatenated into one block of text.
     private void showVehicleDetails() {
         if (selectedVehicle == null) {
             Toast.makeText(this, "Vehicle details not loaded yet", Toast.LENGTH_SHORT).show();
             return;
         }
-        String message = "Vehicle Number: " + safe(selectedVehicle.getVehicleNumber()) + "\n" +
-                "Make: " + safe(selectedVehicle.getMake()) + "\n" +
-                "Model: " + safe(selectedVehicle.getModel()) + "\n" +
-                "IMEI: " + (selectedVehicle.hasGpsDevice() && selectedVehicle.getImei() != null
-                ? selectedVehicle.getImei() : "Not linked");
 
-        new AlertDialog.Builder(this)
-                .setTitle(selectedVehicleName)
-                .setMessage(message)
-                .setPositiveButton("Close", null)
-                .show();
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_vehicle_details, null);
+        dialog.setContentView(view);
+
+        TextView tvName = view.findViewById(R.id.tvDetailsVehicleName);
+        TextView tvNumber = view.findViewById(R.id.tvDetailsVehicleNumber);
+        View btnClose = view.findViewById(R.id.btnCloseDetails);
+        LinearLayout vehicleFieldsContainer = view.findViewById(R.id.vehicleFieldsContainer);
+        LinearLayout gpsFieldsContainer = view.findViewById(R.id.gpsFieldsContainer);
+        View tvGpsSectionLabel = view.findViewById(R.id.tvGpsSectionLabel);
+        View tvNoGpsDevice = view.findViewById(R.id.tvNoGpsDevice);
+
+        if (tvName != null) tvName.setText(safe(selectedVehicleName));
+        if (tvNumber != null) tvNumber.setText(safe(selectedVehicle.getVehicleNumber()));
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        if (vehicleFieldsContainer != null) {
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_car_3d_small, "Make", safe(selectedVehicle.getMake()), true);
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_detail_tag, "Model", safe(selectedVehicle.getModel()), false);
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_detail_tag, "Year",
+                    selectedVehicle.getYear() != null ? String.valueOf(selectedVehicle.getYear()) : "--", false);
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_detail_palette, "Color", safe(selectedVehicle.getColor()), false);
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_car_3d_small, "Vehicle type", safe(selectedVehicle.getVehicleType()), false);
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_detail_palette, "Fuel type", safe(selectedVehicle.getFuelType()), false);
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_detail_tag, "Chassis number", safe(selectedVehicle.getChassisNumber()), false);
+            addDetailRow(vehicleFieldsContainer, R.drawable.ic_detail_tag, "Engine number", safe(selectedVehicle.getEngineNumber()), false);
+        }
+
+        boolean hasDevice = selectedVehicle.hasGpsDevice();
+        if (tvGpsSectionLabel != null) tvGpsSectionLabel.setVisibility(hasDevice ? View.VISIBLE : View.GONE);
+        if (gpsFieldsContainer != null) gpsFieldsContainer.setVisibility(hasDevice ? View.VISIBLE : View.GONE);
+        if (tvNoGpsDevice != null) tvNoGpsDevice.setVisibility(hasDevice ? View.GONE : View.VISIBLE);
+
+        if (hasDevice && gpsFieldsContainer != null) {
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_sim, "IMEI", safe(selectedVehicle.getImei()), true);
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_sim, "SIM number", safe(selectedVehicle.getSimNumber()), false);
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_tag, "Device model", safe(selectedVehicle.getDeviceModel()), false);
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_sim, "Network provider", safe(selectedVehicle.getNetworkProvider()), false);
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_tag, "Firmware version", safe(selectedVehicle.getFirmwareVersion()), false);
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_tag, "Activation status", safe(selectedVehicle.getActivationStatus()), false);
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_tag, "Warranty expiry", formatDetailDate(selectedVehicle.getWarrantyExpiryDate()), false);
+            addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_tag, "Installed", formatDetailDate(selectedVehicle.getInstalledAt()), false);
+        }
+
+        dialog.show();
+    }
+
+    // Shared row builder: icon, label, value, with a divider between rows
+    // (skipped for the first row in each section).
+    private void addDetailRow(LinearLayout container, int iconRes, String label, String value, boolean isFirst) {
+        int density = (int) getResources().getDisplayMetrics().density;
+
+        if (!isFirst) {
+            View divider = new View(this);
+            divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
+            divider.setBackgroundColor(ContextCompat.getColor(this, R.color.surface_stroke));
+            container.addView(divider);
+        }
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(14 * density, 12 * density, 14 * density, 12 * density);
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        int iconSize = 18 * density;
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(iconSize, iconSize);
+        iconParams.setMarginEnd(10 * density);
+        icon.setLayoutParams(iconParams);
+        row.addView(icon);
+
+        TextView labelText = new TextView(this);
+        labelText.setText(label);
+        labelText.setTextSize(13);
+        labelText.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        labelText.setLayoutParams(labelParams);
+        row.addView(labelText);
+
+        TextView valueText = new TextView(this);
+        valueText.setText(value);
+        valueText.setTextSize(13);
+        valueText.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        row.addView(valueText);
+
+        container.addView(row);
+    }
+
+    // Backend sends ISO-8601 -- shown as a plain readable date rather than
+    // the raw string. Falls back to "--" for null/unparseable values
+    // instead of showing something confusing.
+    private String formatDetailDate(String iso) {
+        if (iso == null || iso.trim().isEmpty()) return "--";
+        try {
+            String trimmed = iso.length() > 10 ? iso.substring(0, 10) : iso;
+            java.text.SimpleDateFormat parser = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+            java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.US);
+            java.util.Date date = parser.parse(trimmed);
+            return date != null ? formatter.format(date) : "--";
+        } catch (Exception e) {
+            return "--";
+        }
     }
 
     private String safe(String value) {
