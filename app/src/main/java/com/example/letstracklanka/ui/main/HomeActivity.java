@@ -409,14 +409,39 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         homeVehicleAdapter.updateVehicles(dashboardVehicles);
                     }
 
-                    // Save vehicle names to memory
+                    // Save vehicle names to memory, and set up live-tracking
+                    // connections -- but only the first time each vehicle is
+                    // seen, since this whole method runs every poll cycle
+                    // (~1s) and re-initializing the trail/realtime connection
+                    // that often would be wasteful. myVehicles.containsKey()
+                    // doubles as the "already set up" check.
+                    //
+                    // FIX: this is now the single writer for myVehicles --
+                    // fetchMyVehicles() used to also clear() and repopulate
+                    // it from a separate, owned-only endpoint, racing
+                    // against this method with no ordering guarantee. If
+                    // that response landed after this one, it would wipe
+                    // out shared vehicles this method had just added. This
+                    // method already covers every vehicle (owned and
+                    // shared), so it's the correct single source of truth.
                     for (com.google.gson.JsonElement el : data.getAsJsonArray("vehicles")) {
                         JsonObject v = el.getAsJsonObject();
                         if (!v.has("vehicleId") || v.get("vehicleId").isJsonNull()) continue;
                         String vehicleId = v.get("vehicleId").getAsString().toLowerCase();
                         String make = v.has("make") && !v.get("make").isJsonNull() ? v.get("make").getAsString() : "";
                         String model = v.has("model") && !v.get("model").isJsonNull() ? v.get("model").getAsString() : "";
+
+                        boolean alreadySeen = myVehicles.containsKey(vehicleId);
                         myVehicles.put(vehicleId, (make + " " + model).trim());
+
+                        if (!alreadySeen) {
+                            trailRenderer.loadInitialTrail(vehicleId, () -> {});
+                            if (realtimeClient == null) {
+                                realtimeClient = new RealtimeLocationClient();
+                                realtimeClient.connect(vehicleId, payload ->
+                                        runOnUiThread(() -> handlePushedLocation(payload)));
+                            }
+                        }
                     }
                 } catch (Exception e) {
                     Log.e("HomeActivity", "Dashboard error", e);
@@ -684,11 +709,19 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     if (response.isSuccessful() && body != null) {
                         hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
-                        myVehicles.clear();
-
-                        // Setup live tracking connections for each vehicle
+                        // FIX: this used to clear() and repopulate myVehicles
+                        // here too, racing against fetchDashboard() (called
+                        // right after this at the same call site, and
+                        // repeatedly via polling) -- since both write to the
+                        // same map asynchronously with no ordering guarantee,
+                        // if this response landed second it would wipe out
+                        // shared vehicles fetchDashboard() had just added.
+                        // fetchDashboard() is now the single writer for
+                        // myVehicles (it already includes every vehicle,
+                        // owned and shared); this method keeps its
+                        // owned-vehicle tracking-connection setup below,
+                        // which is unaffected by the map ordering issue.
                         for (VehicleResponse v : list) {
-                            myVehicles.put(v.getVehicleId().toLowerCase(), v.getMake() + " " + v.getModel());
                             trailRenderer.loadInitialTrail(v.getVehicleId(), () -> {});
                             if (realtimeClient == null) {
                                 realtimeClient = new RealtimeLocationClient();
@@ -696,7 +729,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                         runOnUiThread(() -> handlePushedLocation(payload)));
                             }
                         }
-                        if (!myVehicles.isEmpty()) {
+                        if (!list.isEmpty()) {
                             fetchLocation();
                         }
                     } else {
