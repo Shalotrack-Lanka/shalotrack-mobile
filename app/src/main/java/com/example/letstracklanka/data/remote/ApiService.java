@@ -10,6 +10,7 @@ import com.example.letstracklanka.data.model.InviteVehicleShareRequest;
 import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
 import com.example.letstracklanka.data.model.RespondToVehicleShareRequest;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
+import com.example.letstracklanka.data.model.UpdateVehicleRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 
 import okhttp3.ResponseBody;
@@ -38,6 +39,19 @@ public interface ApiService {
 
     @POST("api/Vehicles")
     Call<VehicleResponse> createVehicle(@Body CreateVehicleRequest request);
+
+    // NEW -- real, existing backend endpoint (PUT /api/Vehicles/{id}),
+    // was never called from anywhere in the Android app until now.
+    @PUT("api/Vehicles/{vehicleId}")
+    Call<VehicleResponse> updateVehicle(@Path("vehicleId") String vehicleId, @Body UpdateVehicleRequest request);
+
+    // NEW -- real, existing backend endpoint, was never called from
+    // anywhere in the Android app. Needed specifically because
+    // getVehiclesByCustomer only ever returns owned vehicles by design --
+    // a shared vehicle needs this separate, genuinely different path to
+    // the same rich VehicleResponse shape.
+    @GET("api/Vehicles/{vehicleId}")
+    Call<VehicleResponse> getVehicleById(@Path("vehicleId") String vehicleId);
 
     // NOTE: still points at the staff-only device list. A regular customer token will
     // get 403 here. Known limitation, deliberately not fixed tonight.

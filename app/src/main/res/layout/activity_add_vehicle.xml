@@ -24,6 +24,7 @@
             android:contentDescription="Back" />
 
         <TextView
+            android:id="@+id/tvAddVehicleTitle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
@@ -242,88 +243,100 @@
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/surface_stroke"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="20dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="LINK GPS DEVICE"
-                android:textStyle="bold"
-                android:textSize="12sp"
-                android:letterSpacing="0.05"
-                android:textColor="@color/brand_primary"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Optional \u2014 you can add this later from the vehicle's own settings if you don't have the IMEI on hand right now."
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary"
-                android:layout_marginBottom="12dp" />
-
+            <!-- NEW: wrapped so the whole section can be hidden cleanly in
+                 edit mode, UpdateVehicleDto has no device-related fields
+                 at all, device linking is a separate concern handled
+                 elsewhere (vehicle's own settings), not part of editing
+                 the vehicle's own details. -->
             <LinearLayout
+                android:id="@+id/layoutGpsDeviceSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/surface_stroke"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="20dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:hint="Device IMEI">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etImei"
+                    android:text="LINK GPS DEVICE"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.05"
+                    android:textColor="@color/brand_primary"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Optional \u2014 you can add this later from the vehicle's own settings if you don't have the IMEI on hand right now."
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:hint="Device IMEI">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etImei"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLength="15" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLookupDevice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="56dp"
+                        android:text="Look Up"
+                        android:textAllCaps="false"
+                        app:backgroundTint="@color/brand_accent" />
+                </LinearLayout>
+
+                <!-- Shown only after a successful lookup, confirms the real
+                     device before it gets linked, rather than trusting a
+                     typed IMEI blindly. -->
+                <LinearLayout
+                    android:id="@+id/layoutDeviceFound"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@color/surface_stroke"
+                    android:padding="12dp"
+                    android:layout_marginTop="10dp"
+                    android:visibility="gone">
+                    <TextView
+                        android:id="@+id/tvDeviceFoundLabel"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:maxLength="15" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLookupDevice"
-                    android:layout_width="wrap_content"
-                    android:layout_height="56dp"
-                    android:text="Look Up"
-                    android:textAllCaps="false"
-                    app:backgroundTint="@color/brand_accent" />
-            </LinearLayout>
-
-            <!-- Shown only after a successful lookup, confirms the real
-                 device before it gets linked, rather than trusting a
-                 typed IMEI blindly. -->
-            <LinearLayout
-                android:id="@+id/layoutDeviceFound"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@color/surface_stroke"
-                android:padding="12dp"
-                android:layout_marginTop="10dp"
-                android:visibility="gone">
-                <TextView
-                    android:id="@+id/tvDeviceFoundLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Device found"
-                    android:textStyle="bold"
-                    android:textColor="@color/status_success"
-                    android:textSize="13sp" />
-                <TextView
-                    android:id="@+id/tvDeviceFoundDetails"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text=" "
-                    android:textSize="13sp"
-                    android:textColor="@color/text_secondary" />
+                        android:text="Device found"
+                        android:textStyle="bold"
+                        android:textColor="@color/status_success"
+                        android:textSize="13sp" />
+                    <TextView
+                        android:id="@+id/tvDeviceFoundDetails"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text=" "
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary" />
+                </LinearLayout>
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton

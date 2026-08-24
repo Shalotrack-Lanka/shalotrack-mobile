@@ -121,6 +121,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private VehicleResponse selectedVehicle = null;
     private LatLng lastKnownPosition = null;
+    // NEW -- same pattern as HomeActivity's identical fix. fetchLocationData()
+    // never moved the camera at all (unlike handlePushedLocation, which
+    // already does on every push), so even after fixing the marker
+    // placement itself, a newly-selected vehicle could still be sitting
+    // off-screen with nothing indicating it. Only follows on an actual
+    // switch, not every regular poll of the same vehicle.
+    private boolean cameraFollowPendingForSwitch = false;
 
     private View errorBanner;
     private TextView tvErrorBannerMessage, tvErrorBannerRetry;
@@ -581,6 +588,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         TextView tvName = view.findViewById(R.id.tvDetailsVehicleName);
         TextView tvNumber = view.findViewById(R.id.tvDetailsVehicleNumber);
         View btnClose = view.findViewById(R.id.btnCloseDetails);
+        View btnEdit = view.findViewById(R.id.btnEditVehicleDetails);
         LinearLayout vehicleFieldsContainer = view.findViewById(R.id.vehicleFieldsContainer);
         LinearLayout gpsFieldsContainer = view.findViewById(R.id.gpsFieldsContainer);
         View tvGpsSectionLabel = view.findViewById(R.id.tvGpsSectionLabel);
@@ -589,6 +597,27 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (tvName != null) tvName.setText(safe(selectedVehicleName));
         if (tvNumber != null) tvNumber.setText(safe(selectedVehicle.getVehicleNumber()));
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // NEW -- real, existing backend endpoint (PUT /api/Vehicles/{id})
+        // was never surfaced anywhere in the Android UI until now.
+        if (btnEdit != null) {
+            btnEdit.setOnClickListener(v -> {
+                dialog.dismiss();
+                android.content.Intent intent = new android.content.Intent(this, AddVehicleActivity.class);
+                intent.putExtra(AddVehicleActivity.EXTRA_EDIT_VEHICLE_ID, selectedVehicle.getVehicleId());
+                intent.putExtra(AddVehicleActivity.EXTRA_VEHICLE_NUMBER, selectedVehicle.getVehicleNumber());
+                intent.putExtra(AddVehicleActivity.EXTRA_MAKE, selectedVehicle.getMake());
+                intent.putExtra(AddVehicleActivity.EXTRA_MODEL, selectedVehicle.getModel());
+                intent.putExtra(AddVehicleActivity.EXTRA_YEAR,
+                        selectedVehicle.getYear() != null ? selectedVehicle.getYear() : 0);
+                intent.putExtra(AddVehicleActivity.EXTRA_COLOR, selectedVehicle.getColor());
+                intent.putExtra(AddVehicleActivity.EXTRA_VEHICLE_TYPE, selectedVehicle.getVehicleType());
+                intent.putExtra(AddVehicleActivity.EXTRA_FUEL_TYPE, selectedVehicle.getFuelType());
+                intent.putExtra(AddVehicleActivity.EXTRA_CHASSIS_NUMBER, selectedVehicle.getChassisNumber());
+                intent.putExtra(AddVehicleActivity.EXTRA_ENGINE_NUMBER, selectedVehicle.getEngineNumber());
+                addVehicleLauncher.launch(intent);
+            });
+        }
 
         if (vehicleFieldsContainer != null) {
             addDetailRow(vehicleFieldsContainer, R.drawable.ic_car_3d_small, "Make", safe(selectedVehicle.getMake()), true);
@@ -783,6 +812,33 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         selectedVehicleId = dashboardMatch != null ? dashboardMatch.getVehicleId() : detailMatch.getVehicleId();
                         trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
 
+                        // FIX: real bug confirmed via screenshot -- "Vehicle
+                        // details not loaded yet" always fired for a shared
+                        // vehicle, since getVehiclesByCustomer only ever
+                        // returns owned vehicles, so detailMatch was always
+                        // null for one. Fetched separately here rather than
+                        // blocking the rest of this method (trail/tracking
+                        // setup below don't need this, only the Details
+                        // sheet does) -- overwrites selectedVehicle once it
+                        // actually arrives.
+                        if (dashboardMatch != null && dashboardMatch.isShared() && detailMatch == null) {
+                            mainApiService.getVehicleById(selectedVehicleId).enqueue(new Callback<VehicleResponse>() {
+                                @Override
+                                public void onResponse(@NonNull Call<VehicleResponse> call, @NonNull Response<VehicleResponse> resp) {
+                                    if (resp.isSuccessful() && resp.body() != null) {
+                                        selectedVehicle = resp.body();
+                                    } else {
+                                        Log.w("VehiclesActivity", "getVehicleById failed for shared vehicle, code " + resp.code());
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(@NonNull Call<VehicleResponse> call, @NonNull Throwable t) {
+                                    Log.e("VehiclesActivity", "getVehicleById network error for shared vehicle", t);
+                                }
+                            });
+                        }
+
                         // FIX: previously "if (realtimeClient == null)" only ever
                         // connected once, at app launch. Switching vehicles
                         // afterward updated selectedVehicleId but left the
@@ -896,6 +952,17 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 .edit()
                 .putString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, vehicle.getVehicleId())
                 .apply();
+
+        // FIX: same real root cause as HomeActivity's identical bug --
+        // both handlePushedLocation() and fetchLocationData() call
+        // trailRenderer.updatePosition() unconditionally, which after the
+        // marker exists once always animates. Without this reset, the
+        // very next poll (within 1s, via vehicleListRefreshRunnable) would
+        // animate the marker across the whole map from the previously-
+        // selected vehicle's position to the new one's.
+        trailRenderer.resetForVehicleSwitch();
+        cameraFollowPendingForSwitch = true;
+
         fetchVehicles();
         // NEW: tapping a vehicle in the switcher list now opens the same
         // expanded detail panel that tapping the collapsed summary bar
@@ -1054,6 +1121,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                             lastKnownPosition = pos;
                             trailRenderer.updatePosition(pos, loc.getHeading(), selectedVehicleName);
                             updateUI(loc);
+
+                            if (cameraFollowPendingForSwitch && mMap != null) {
+                                cameraFollowPendingForSwitch = false;
+                                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+                            }
                         }
                     } else if (response.code() == 404) {
                         Log.d("VehiclesActivity", "No current location yet for " + selectedVehicleId);

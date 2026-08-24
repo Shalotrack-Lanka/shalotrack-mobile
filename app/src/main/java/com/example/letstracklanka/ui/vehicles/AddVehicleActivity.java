@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
+import com.example.letstracklanka.data.model.UpdateVehicleRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
@@ -39,6 +40,23 @@ import retrofit2.Response;
 public class AddVehicleActivity extends AppCompatActivity {
 
     public static final String EXTRA_CUSTOMER_ID = "extra_customer_id";
+
+    // NEW -- edit mode. When EXTRA_EDIT_VEHICLE_ID is present, this screen
+    // pre-fills from the other extras (passed directly by the caller,
+    // which already has this data loaded -- avoids a redundant network
+    // fetch) and calls updateVehicle() instead of createVehicle() on save.
+    public static final String EXTRA_EDIT_VEHICLE_ID = "extra_edit_vehicle_id";
+    public static final String EXTRA_VEHICLE_NUMBER = "extra_vehicle_number";
+    public static final String EXTRA_MAKE = "extra_make";
+    public static final String EXTRA_MODEL = "extra_model";
+    public static final String EXTRA_YEAR = "extra_year";
+    public static final String EXTRA_COLOR = "extra_color";
+    public static final String EXTRA_VEHICLE_TYPE = "extra_vehicle_type";
+    public static final String EXTRA_FUEL_TYPE = "extra_fuel_type";
+    public static final String EXTRA_CHASSIS_NUMBER = "extra_chassis_number";
+    public static final String EXTRA_ENGINE_NUMBER = "extra_engine_number";
+
+    private String editingVehicleId;
 
     private ApiService mainApiService;
     private String customerId;
@@ -69,13 +87,57 @@ public class AddVehicleActivity extends AppCompatActivity {
 
         mainApiService = ApiClient.getClient().create(ApiService.class);
         customerId = getIntent().getStringExtra(EXTRA_CUSTOMER_ID);
+        editingVehicleId = getIntent().getStringExtra(EXTRA_EDIT_VEHICLE_ID);
 
         initViews();
 
-        if (customerId == null || customerId.isEmpty()) {
+        if (editingVehicleId != null) {
+            enterEditMode();
+        } else if (customerId == null || customerId.isEmpty()) {
             showError("No customer profile found. Please go back and try again.");
             if (btnSaveVehicle != null) btnSaveVehicle.setEnabled(false);
         }
+    }
+
+    // NEW -- pre-fills every field from the intent extras (data the
+    // caller already had loaded, e.g. from the Details sheet), swaps the
+    // title/button text, and hides the GPS device section entirely since
+    // UpdateVehicleDto has no device fields at all.
+    private void enterEditMode() {
+        TextView tvTitle = findViewById(R.id.tvAddVehicleTitle);
+        if (tvTitle != null) tvTitle.setText("Edit Vehicle");
+        if (btnSaveVehicle != null) ((TextView) btnSaveVehicle).setText("Save Changes");
+
+        View gpsSection = findViewById(R.id.layoutGpsDeviceSection);
+        if (gpsSection != null) gpsSection.setVisibility(View.GONE);
+
+        Intent intent = getIntent();
+        setText(etVehicleNumber, intent.getStringExtra(EXTRA_VEHICLE_NUMBER));
+        setText(etMake, intent.getStringExtra(EXTRA_MAKE));
+        setText(etModel, intent.getStringExtra(EXTRA_MODEL));
+        int year = intent.getIntExtra(EXTRA_YEAR, 0);
+        if (year > 0) setText(etYear, String.valueOf(year));
+        setText(etColor, intent.getStringExtra(EXTRA_COLOR));
+        setText(etChassisNumber, intent.getStringExtra(EXTRA_CHASSIS_NUMBER));
+        setText(etEngineNumber, intent.getStringExtra(EXTRA_ENGINE_NUMBER));
+
+        String vehicleType = intent.getStringExtra(EXTRA_VEHICLE_TYPE);
+        if (vehicleType != null && spinnerVehicleType != null) spinnerVehicleType.setText(vehicleType, false);
+        String fuelType = intent.getStringExtra(EXTRA_FUEL_TYPE);
+        if (fuelType != null && spinnerFuelType != null) spinnerFuelType.setText(fuelType, false);
+
+        // Chassis/engine number were provided, so show the advanced
+        // section already expanded rather than making the user re-open
+        // it to see values that are already there.
+        if ((intent.getStringExtra(EXTRA_CHASSIS_NUMBER) != null || intent.getStringExtra(EXTRA_ENGINE_NUMBER) != null)
+                && layoutAdvancedFields != null && btnToggleAdvanced != null) {
+            layoutAdvancedFields.setVisibility(View.VISIBLE);
+            ((TextView) btnToggleAdvanced).setText("\u2212 Hide chassis / engine number");
+        }
+    }
+
+    private void setText(TextInputEditText field, String value) {
+        if (field != null && value != null) field.setText(value);
     }
 
     private void initViews() {
@@ -216,6 +278,16 @@ public class AddVehicleActivity extends AppCompatActivity {
         String chassisNumber = emptyToNull(textOf(etChassisNumber));
         String engineNumber = emptyToNull(textOf(etEngineNumber));
 
+        if (editingVehicleId != null) {
+            updateExistingVehicle(vehicleNumber, chassisNumber, engineNumber, make, model, year, color, vehicleType, fuelType);
+        } else {
+            createNewVehicle(vehicleNumber, chassisNumber, engineNumber, make, model, year, color, vehicleType, fuelType);
+        }
+    }
+
+    private void createNewVehicle(String vehicleNumber, String chassisNumber, String engineNumber,
+                                  String make, String model, int year,
+                                  String color, String vehicleType, String fuelType) {
         CreateVehicleRequest request = new CreateVehicleRequest(
                 customerId, vehicleNumber, chassisNumber, engineNumber,
                 make, model, year, color, vehicleType, fuelType);
@@ -246,6 +318,39 @@ public class AddVehicleActivity extends AppCompatActivity {
                 setSaving(false);
                 Log.e("AddVehicleActivity", "createVehicle network error", t);
                 showError("Network error \u2014 vehicle could not be added. Try again.");
+            }
+        });
+    }
+
+    // NEW -- reuses the real, already-existing PUT /api/Vehicles/{id}
+    // endpoint, which had no Android screen calling it until now.
+    private void updateExistingVehicle(String vehicleNumber, String chassisNumber, String engineNumber,
+                                       String make, String model, int year,
+                                       String color, String vehicleType, String fuelType) {
+        UpdateVehicleRequest request = new UpdateVehicleRequest(
+                vehicleNumber, chassisNumber, engineNumber,
+                make, model, year, color, vehicleType, fuelType);
+
+        setSaving(true);
+        mainApiService.updateVehicle(editingVehicleId, request).enqueue(new Callback<VehicleResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<VehicleResponse> call, @NonNull Response<VehicleResponse> response) {
+                setSaving(false);
+                if (response.isSuccessful()) {
+                    Toast.makeText(AddVehicleActivity.this, "Vehicle updated.", Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK);
+                    finish();
+                } else {
+                    Log.w("AddVehicleActivity", "updateVehicle failed, code " + response.code());
+                    showError("Couldn't save changes (code " + response.code() + "). Please try again.");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<VehicleResponse> call, @NonNull Throwable t) {
+                setSaving(false);
+                Log.e("AddVehicleActivity", "updateVehicle network error", t);
+                showError("Network error \u2014 changes could not be saved. Try again.");
             }
         });
     }

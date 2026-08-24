@@ -201,6 +201,35 @@ public class VehicleTrailRenderer {
      * This moves the car on the map from its old position to the new one.
      * @param heading compass bearing in degrees (0 = north). Pass 0 if unknown/stationary.
      */
+    // NEW -- real bug fix. Without this, switching to a different vehicle
+    // went through the exact same animateMarkerTo() path as a normal live
+    // poll of the SAME vehicle -- since the marker object persists for the
+    // renderer's entire lifetime (marker == null is only ever true once,
+    // the very first time a position ever arrives), the marker would
+    // sweep/animate across the whole map from the previously-selected
+    // vehicle's position to the newly-selected one's, taking up to
+    // MAX_ANIMATION_DURATION_MS (25s) if elapsed time happened to be
+    // large. Confirmed as the actual root cause of "the switching
+    // transition is really bad."
+    //
+    // Removing the marker entirely makes the next updatePosition() call
+    // go through the marker == null branch again, placing the new
+    // vehicle's marker instantly with no animation -- correct behavior
+    // for a genuine switch, since there's no real continuous motion to
+    // animate between two different vehicles' positions.
+    public void resetForVehicleSwitch() {
+        if (marker != null) {
+            marker.remove();
+            marker = null;
+        }
+        if (polyline != null) {
+            polyline.remove();
+            polyline = null;
+        }
+        pathPoints.clear();
+        lastAcceptedFixTimeMs = 0;
+    }
+
     public void updatePosition(LatLng newPos, float heading, String title) {
         long now = System.currentTimeMillis();
 
