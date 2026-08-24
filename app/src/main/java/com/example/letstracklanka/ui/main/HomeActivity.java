@@ -103,6 +103,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final Map<String, String> myVehicles = new HashMap<>();
     private final Map<String, Marker> mapMarkers = new HashMap<>();
     private LatLng lastVehiclePosition = null;
+    // NEW -- set true right before switching vehicles, so the next
+    // successful fetchLocation() also moves the camera to the newly-
+    // selected vehicle. Left false during normal polling of the SAME
+    // vehicle, so the camera doesn't keep recentering every second during
+    // ordinary live tracking, only on a deliberate switch.
+    private boolean cameraFollowPendingForSwitch = false;
 
     // UI Components
     private RecyclerView recyclerHomeVehicles;
@@ -479,7 +485,21 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .edit()
                 .putString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, vehicle.getVehicleId())
                 .apply();
-        fetchLocation();
+
+        // FIX: real root cause of "the switching transition is really
+        // bad" -- fetchLocation() unconditionally called
+        // trailRenderer.updatePosition(), which after the marker exists
+        // once always animates. Switching to a different vehicle went
+        // through that exact same animation path as a normal live poll,
+        // so the marker would sweep across the whole map from the
+        // previously-selected vehicle's position to the new one's,
+        // taking up to 25 seconds. resetForVehicleSwitch() clears the
+        // marker/trail so the new vehicle's marker places instantly
+        // instead, and loadInitialTrail() draws that vehicle's own
+        // history rather than leaving the old one's trail on screen.
+        trailRenderer.resetForVehicleSwitch();
+        cameraFollowPendingForSwitch = true;
+        trailRenderer.loadInitialTrail(vehicle.getVehicleId(), this::fetchLocation);
     }
 
     // Show warning before completely removing a vehicle from the account
@@ -541,6 +561,19 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     String title = myVehicles.getOrDefault(vehicleId, "My Vehicle");
                                     trailRenderer.updatePosition(pos, loc.getHeading(), title);
                                     updateUI(loc);
+
+                                    // NEW -- the camera never moved at all
+                                    // before, so even once the marker
+                                    // placement itself was fixed, a newly-
+                                    // selected vehicle could still be
+                                    // sitting off-screen with nothing
+                                    // visibly indicating it. Only follows
+                                    // on an actual switch, not every
+                                    // regular poll of the same vehicle.
+                                    if (cameraFollowPendingForSwitch && mMap != null) {
+                                        cameraFollowPendingForSwitch = false;
+                                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+                                    }
                                 }
                             }
                         } else if (response.code() == 404) {

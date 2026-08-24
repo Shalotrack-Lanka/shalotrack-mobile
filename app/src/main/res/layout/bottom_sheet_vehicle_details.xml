@@ -49,6 +49,17 @@
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
 
+        <!-- NEW: real, existing backend endpoint (PUT /api/Vehicles/{id})
+             was never surfaced anywhere in the Android UI until now. -->
+        <ImageView
+            android:id="@+id/btnEditVehicleDetails"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="16dp"
+            android:src="@android:drawable/ic_menu_edit"
+            app:tint="@color/brand_accent"
+            android:contentDescription="Edit vehicle" />
+
         <ImageView
             android:id="@+id/btnCloseDetails"
             android:layout_width="22dp"

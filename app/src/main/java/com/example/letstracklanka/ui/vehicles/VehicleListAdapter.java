@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.vehicles;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +30,15 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
     private static final int COLOR_IDLE_PARKED = 0xFF0A2463;
     private static final int COLOR_NO_DEVICE = 0xFFE53935;   // red -- nothing assigned at all
     private static final int COLOR_OFFLINE = 0xFFF59E0B;     // amber -- device assigned but not currently reporting
+
+    // FIX: real dead end found during audit -- the favorite star was
+    // findViewById'd but never given a click listener or connected to
+    // any data, always showed empty, did nothing on tap. No backend
+    // concept of "favorite vehicle" exists (would need a new DB column/
+    // migration/endpoint -- a real new feature, not a bug fix), so this
+    // is local, per-device persistence, matching the exact same pattern
+    // already proven for SettingsActivity's notification toggles.
+    private static final String FAVORITES_PREFS_NAME = "ShaloTrackVehicleFavorites";
 
     public interface OnVehicleClickListener {
         void onVehicleClick(DashboardVehicle vehicle);
@@ -185,6 +196,24 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         holder.btnSwipeRemove.setOnClickListener(v -> {
             holder.swipeController.close();
             if (removeListener != null) removeListener.onRemoveClick(vehicle);
+        });
+
+        // NEW: real favorite toggle, was previously unwired.
+        String vehicleId = vehicle.getVehicleId();
+        SharedPreferences favPrefs = holder.itemView.getContext()
+                .getSharedPreferences(FAVORITES_PREFS_NAME, Context.MODE_PRIVATE);
+        boolean isFavorite = vehicleId != null && favPrefs.getBoolean(vehicleId, false);
+        holder.imgFavorite.setImageResource(isFavorite
+                ? android.R.drawable.btn_star_big_on
+                : android.R.drawable.btn_star_big_off);
+
+        holder.imgFavorite.setOnClickListener(v -> {
+            if (vehicleId == null) return;
+            boolean newState = !favPrefs.getBoolean(vehicleId, false);
+            favPrefs.edit().putBoolean(vehicleId, newState).apply();
+            holder.imgFavorite.setImageResource(newState
+                    ? android.R.drawable.btn_star_big_on
+                    : android.R.drawable.btn_star_big_off);
         });
     }
 
