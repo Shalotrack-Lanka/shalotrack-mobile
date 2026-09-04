@@ -59,6 +59,15 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private static final int VIEW_TYPE_DAY_HEADER = 0;
     private static final int VIEW_TYPE_TRIP_CARD = 1;
 
+    // Real fix for a confirmed bug: the backend orders GPS points most-
+    // recent-first and truncates at whatever limit is requested, so a
+    // long trip with more raw points than this would silently drop its
+    // earliest points -- the true start gets cut off, and whatever point
+    // lands first in the truncated set becomes the wrong "start" marker.
+    // Not a hard backend cap (GpsTrackingFilter.PageSize has no upper
+    // bound); this is a request-side value.
+    private static final int MAX_TRIP_HISTORY_POINTS = 10000;
+
     public interface OnTripClickListener {
         void onTripClick(TripSummary trip);
     }
@@ -338,7 +347,8 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             return;
         }
 
-        trackingApi.getTrackingHistory(vehicleId, trip.getStartTime(), trip.getEndTime(), 500)
+        // See MAX_TRIP_HISTORY_POINTS above for why this isn't just 500.
+        trackingApi.getTrackingHistory(vehicleId, trip.getStartTime(), trip.getEndTime(), MAX_TRIP_HISTORY_POINTS)
                 .enqueue(new Callback<ResponseBody>() {
                     @Override
                     public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {

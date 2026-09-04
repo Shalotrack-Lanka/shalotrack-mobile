@@ -810,6 +810,15 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
                         selectedVehicle = detailMatch; // may be null; showVehicleDetails() already null-checks this
                         selectedVehicleId = dashboardMatch != null ? dashboardMatch.getVehicleId() : detailMatch.getVehicleId();
+
+                        // NEW -- same real gap fixed in HomeActivity: the
+                        // marker's type was never set on initial load,
+                        // only on a later switch.
+                        String initialVehicleType = dashboardMatch != null
+                                ? dashboardMatch.getVehicleType()
+                                : (detailMatch != null ? detailMatch.getVehicleType() : null);
+                        trailRenderer.setVehicleTypeForNextMarker(initialVehicleType);
+
                         trailRenderer.loadInitialTrail(selectedVehicleId, () -> {});
 
                         // FIX: real bug confirmed via screenshot -- "Vehicle
@@ -960,7 +969,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         // very next poll (within 1s, via vehicleListRefreshRunnable) would
         // animate the marker across the whole map from the previously-
         // selected vehicle's position to the new one's.
-        trailRenderer.resetForVehicleSwitch();
+        trailRenderer.resetForVehicleSwitch(vehicle.getVehicleType());
         cameraFollowPendingForSwitch = true;
 
         fetchVehicles();

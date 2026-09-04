@@ -23,6 +23,13 @@ public class DashboardVehicle {
     @SerializedName("model")
     private String model;
 
+    // NEW -- needed to show a type-specific icon (car/SUV/van/truck/bike/
+    // tuk) instead of one generic icon for every vehicle.
+    @SerializedName("vehicleType")
+    private String vehicleType;
+
+    public String getVehicleType() { return vehicleType; }
+
     @SerializedName("deviceId")
     private String deviceId;
 

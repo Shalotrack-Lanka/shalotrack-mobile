@@ -441,6 +441,19 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         myVehicles.put(vehicleId, (make + " " + model).trim());
 
                         if (!alreadySeen) {
+                            // NEW -- real gap found: the marker's type was
+                            // never set on initial load at all, only on a
+                            // later switch, so the first vehicle shown
+                            // could get the wrong icon until the user
+                            // switched away and back. Only relevant for
+                            // the actual currently-selected vehicle, since
+                            // that's the only one whose marker gets
+                            // created (this renderer shows one at a time).
+                            if (vehicleId.equalsIgnoreCase(getSelectedVehicleId())) {
+                                String vehicleType = v.has("vehicleType") && !v.get("vehicleType").isJsonNull()
+                                        ? v.get("vehicleType").getAsString() : null;
+                                trailRenderer.setVehicleTypeForNextMarker(vehicleType);
+                            }
                             trailRenderer.loadInitialTrail(vehicleId, () -> {});
                             if (realtimeClient == null) {
                                 realtimeClient = new RealtimeLocationClient();
@@ -497,7 +510,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         // marker/trail so the new vehicle's marker places instantly
         // instead, and loadInitialTrail() draws that vehicle's own
         // history rather than leaving the old one's trail on screen.
-        trailRenderer.resetForVehicleSwitch();
+        trailRenderer.resetForVehicleSwitch(vehicle.getVehicleType());
         cameraFollowPendingForSwitch = true;
         trailRenderer.loadInitialTrail(vehicle.getVehicleId(), this::fetchLocation);
     }
