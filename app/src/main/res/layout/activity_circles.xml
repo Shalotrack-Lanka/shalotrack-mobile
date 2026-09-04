@@ -28,8 +28,31 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toTopOf="@+id/bottomNavBar" />
 
+        <!-- NEW: shown only while placing a new geofence's center. -->
+        <TextView
+            android:id="@+id/tvPlacementHint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:padding="12dp"
+            android:text="Tap the map to place the center of your geofence"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/bg_stat_card"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <!-- 2. Dark Overlay -->
+        <!-- FIX: real, severe bug. This had no ID at all, so it was
+             never toggled anywhere in Java. It permanently covered the
+             map with "You currently have no Circles" messaging even
+             after real geofences existed, since nothing ever hid it. -->
         <View
+            android:id="@+id/viewDarkOverlay"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:background="#99000000"
@@ -44,6 +67,7 @@
             app:layout_constraintBottom_toTopOf="@+id/bottomNavBar">
 
             <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/layoutEmptyStateOverlay"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingBottom="150dp">
@@ -113,14 +137,18 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Right Side Plus FAB -->
+            <!-- FIX: real, still-broken bug. A fixed bottom margin only
+                 ever worked for one specific list length. With 2+
+                 geofences the bottom sheet needs more room and the FAB
+                 started overlapping the list again. Moved to top-right,
+                 which never conflicts with the bottom sheet's content
+                 regardless of how many geofences exist. -->
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/fabAddCircle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
+                android:layout_gravity="top|end"
                 android:layout_margin="24dp"
-                android:layout_marginBottom="120dp"
                 app:backgroundTint="@color/white"
                 app:tint="#1877F2"
                 android:src="@android:drawable/ic_input_add" />
@@ -129,7 +157,8 @@
             <LinearLayout
                 android:id="@+id/bottomSheetCircles"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
+                android:layout_height="wrap_content"
+                android:minHeight="120dp"
                 android:orientation="vertical"
                 android:background="@drawable/bottom_sheet_bg"
                 app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
@@ -143,7 +172,19 @@
                     android:layout_marginTop="12dp"
                     android:background="#CCCCCC" />
 
+                <!-- NEW: real list, shown once there's at least one
+                     geofence; the "no circles" text below stays as the
+                     genuine empty state. -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerGeofences"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="320dp"
+                    android:paddingHorizontal="8dp"
+                    android:visibility="gone" />
+
                 <TextView
+                    android:id="@+id/tvNoCirclesBottomSheet"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
