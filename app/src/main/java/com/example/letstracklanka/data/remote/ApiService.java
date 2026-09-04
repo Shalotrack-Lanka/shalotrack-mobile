@@ -4,12 +4,14 @@ import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateEmergencyContactRequest;
 import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
 import com.example.letstracklanka.data.model.CreateSavedPlaceRequest;
+import com.example.letstracklanka.data.model.CreateGeofenceRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
 import com.example.letstracklanka.data.model.InviteVehicleShareRequest;
 import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
 import com.example.letstracklanka.data.model.RespondToVehicleShareRequest;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
+import com.example.letstracklanka.data.model.UpdateGeofenceRequest;
 import com.example.letstracklanka.data.model.UpdateVehicleRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 
@@ -52,6 +54,19 @@ public interface ApiService {
     // the same rich VehicleResponse shape.
     @GET("api/Vehicles/{vehicleId}")
     Call<VehicleResponse> getVehicleById(@Path("vehicleId") String vehicleId);
+
+    // NEW -- Geofencing.
+    @GET("api/Geofences")
+    Call<ResponseBody> getMyGeofences();
+
+    @POST("api/Geofences")
+    Call<ResponseBody> addGeofence(@Body CreateGeofenceRequest request);
+
+    @PUT("api/Geofences/{geofenceId}")
+    Call<ResponseBody> updateGeofence(@Path("geofenceId") String geofenceId, @Body UpdateGeofenceRequest request);
+
+    @DELETE("api/Geofences/{geofenceId}")
+    Call<ResponseBody> deleteGeofence(@Path("geofenceId") String geofenceId);
 
     // NOTE: still points at the staff-only device list. A regular customer token will
     // get 403 here. Known limitation, deliberately not fixed tonight.
