@@ -143,6 +143,14 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
 
         holder.tvName.setText((vehicle.getMake() + " " + vehicle.getModel()).trim());
 
+        // NEW -- real dead-end-adjacent gap found: every vehicle showed
+        // the exact same generic car icon regardless of type. Defaults to
+        // the regular car icon for null/unrecognized types (vehicles
+        // created before this field existed, or left blank).
+        if (holder.imgIcon != null) {
+            holder.imgIcon.setImageResource(getIconForVehicleType(vehicle.getVehicleType()));
+        }
+
         String statusText;
         int statusColor;
         String gpsLinkText;
@@ -222,9 +230,27 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         return vehicles == null ? 0 : vehicles.size();
     }
 
+    // Matches the real spinner options in AddVehicleActivity exactly
+    // ("Car", "SUV", "Van", "Truck", "Bike", "Tuk"), case-insensitive for
+    // safety. MDI has no dedicated SUV silhouette (reuses the car shape
+    // with a distinct tint) or tuk-tuk/rickshaw icon at all (hand-built,
+    // not from a verified icon library) -- both confirmed and decided
+    // directly rather than guessed at.
+    private static int getIconForVehicleType(String vehicleType) {
+        if (vehicleType == null) return R.drawable.ic_car;
+        switch (vehicleType.trim().toLowerCase(java.util.Locale.US)) {
+            case "suv": return R.drawable.ic_car_suv;
+            case "van": return R.drawable.ic_type_van;
+            case "truck": return R.drawable.ic_type_truck;
+            case "bike": return R.drawable.ic_type_bike;
+            case "tuk": return R.drawable.ic_type_tuk;
+            default: return R.drawable.ic_car;
+        }
+    }
+
     static class VehicleViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvStatus, tvCaption;
-        ImageView imgFavorite;
+        ImageView imgFavorite, imgIcon;
 
         // Package-visible (not private): the adapter needs direct access
         // both to attach the touch listener at creation time and to close
@@ -242,6 +268,7 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
             tvStatus = itemView.findViewById(R.id.tvVehicleListStatus);
             tvCaption = itemView.findViewById(R.id.tvVehicleListCaption);
             imgFavorite = itemView.findViewById(R.id.imgVehicleListFavorite);
+            imgIcon = itemView.findViewById(R.id.imgVehicleListIcon);
         }
     }
 }

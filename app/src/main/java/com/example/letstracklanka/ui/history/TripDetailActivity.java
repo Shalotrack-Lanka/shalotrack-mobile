@@ -71,6 +71,14 @@ public class TripDetailActivity extends AppCompatActivity {
     private static final int PLAYBACK_INTERVAL_MS = 300;
     private static final int[] SPEED_MULTIPLIERS = {1, 2, 4};
 
+    // Same real fix as TripHistoryAdapter's identical bug: the backend
+    // orders GPS points most-recent-first and truncates at whatever
+    // limit is requested, so a long trip with more raw points than this
+    // would silently drop its earliest points. Not a hard backend cap
+    // (GpsTrackingFilter.PageSize has no upper bound); this is a
+    // request-side value.
+    private static final int MAX_TRIP_HISTORY_POINTS = 10000;
+
     private ShaloTrackApi trackingApi;
     private AddressResolver addressResolver;
 
@@ -219,7 +227,8 @@ public class TripDetailActivity extends AppCompatActivity {
 
         progressTripDetail.setVisibility(View.VISIBLE);
 
-        trackingApi.getTrackingHistory(vehicleId, fromIso, toIso, 500).enqueue(new Callback<ResponseBody>() {
+        // See MAX_TRIP_HISTORY_POINTS above for why this isn't just 500.
+        trackingApi.getTrackingHistory(vehicleId, fromIso, toIso, MAX_TRIP_HISTORY_POINTS).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 progressTripDetail.setVisibility(View.GONE);

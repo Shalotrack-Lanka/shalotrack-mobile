@@ -161,7 +161,7 @@ public class AddVehicleActivity extends AppCompatActivity {
         // requirement document (Cars, Bikes, Vans, Trucks, Fleet vehicles),
         // plus SUV since it's the vehicle type on real existing data
         // (JAPAN Mazda, Honda Vezel).
-        String[] vehicleTypes = {"Car", "SUV", "Van", "Truck", "Bike"};
+        String[] vehicleTypes = {"Car", "SUV", "Van", "Truck", "Bike", "Tuk"};
         spinnerVehicleType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, vehicleTypes));
 
         String[] fuelTypes = {"Petrol", "Diesel", "Electric", "Hybrid"};
