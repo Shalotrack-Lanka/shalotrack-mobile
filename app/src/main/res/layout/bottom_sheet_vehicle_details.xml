@@ -105,15 +105,39 @@
         android:orientation="vertical"
         android:background="@drawable/bg_stat_card" />
 
-    <TextView
-        android:id="@+id/tvNoGpsDevice"
+    <!-- FIX: real, confirmed gap. A vehicle without a device had no
+         way to link one anywhere in the app except during the original
+         "Add Vehicle" creation flow. AddVehicleActivity's own error
+         message even promised "you can link it later from the vehicle's
+         settings" - a capability that never actually existed. Shown/
+         hidden together with the no-device message above it. -->
+    <LinearLayout
+        android:id="@+id/layoutNoGpsDevice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No GPS device linked to this vehicle."
-        android:textSize="13sp"
-        android:textColor="@color/text_muted"
-        android:padding="14dp"
+        android:orientation="vertical"
         android:background="@drawable/bg_stat_card"
-        android:visibility="gone" />
+        android:padding="14dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvNoGpsDevice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No GPS device linked to this vehicle."
+            android:textSize="13sp"
+            android:textColor="@color/text_muted"
+            android:layout_marginBottom="10dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLinkGpsDevice"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="Link GPS Device"
+            android:textAllCaps="false"
+            android:textSize="13sp"
+            app:backgroundTint="@color/brand_accent" />
+
+    </LinearLayout>
 
 </LinearLayout>

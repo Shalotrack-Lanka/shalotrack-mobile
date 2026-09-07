@@ -89,6 +89,16 @@ import retrofit2.Response;
 public class HomeActivity extends AppCompatActivity implements OnMapReadyCallback {
     // Timer interval for real-time tracking
     private static final int UPDATE_INTERVAL = 1000;
+    // NEW -- at 1s/tick, 5 means fetchLocation() only fires every 5s
+    // once SignalR is actively connected, matching RealtimeLocationClient's
+    // own "much-slower fallback poll" design intent. 5s chosen (not 30)
+    // since RealtimeLocationClient already retries a dropped connection
+    // every 5s, so real disconnects should be brief -- worth the small
+    // extra battery/network cost during that short window for smoother,
+    // less corner-cutting fallback movement, rather than a longer,
+    // cheaper interval that looks choppier exactly when something's
+    // already gone wrong with the connection.
+    private static final int FALLBACK_POLL_INTERVAL_TICKS = 5;
 
     // Variables for Map and APIs
     private GoogleMap mMap;
@@ -377,9 +387,28 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         trackingRunnable = new Runnable() {
+            private int tickCount = 0;
+
             @Override
             public void run() {
-                fetchLocation();
+                // FIX: real bug -- fetchLocation() was called every
+                // single tick (1s) regardless of whether SignalR was
+                // already pushing the exact same data, making the fast
+                // poll pointless overhead once real-time push is
+                // connected. RealtimeLocationClient's own Javadoc already
+                // documents the intended design ("run alongside a much-
+                // slower fallback poll"), this just actually implements
+                // it: full-speed 1s polling only when SignalR is down
+                // (fast, responsive fallback while it's disconnected/
+                // reconnecting), dropping to a 30s safety-net poll once
+                // connected. fetchDashboard() is untouched -- it covers
+                // the whole vehicle list, which SignalR doesn't push at
+                // all, so it has no equivalent to suppress against.
+                tickCount++;
+                boolean pushConnected = realtimeClient != null && realtimeClient.isConnected();
+                if (tickCount == 1 || !pushConnected || tickCount % FALLBACK_POLL_INTERVAL_TICKS == 0) {
+                    fetchLocation();
+                }
                 if (currentCustomerId != null) fetchDashboard();
                 handler.postDelayed(this, UPDATE_INTERVAL);
             }
