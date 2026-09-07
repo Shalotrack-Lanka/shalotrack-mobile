@@ -31,8 +31,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
 import com.example.letstracklanka.data.model.DashboardVehicle;
+import com.example.letstracklanka.data.model.DeviceLookupResponse;
 import com.example.letstracklanka.data.model.InviteVehicleShareRequest;
 import com.example.letstracklanka.data.model.LocationResponse;
 import com.example.letstracklanka.data.model.VehicleResponse;
@@ -106,6 +108,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private Runnable trackingRunnable;
     private Runnable vehicleListRefreshRunnable;
     private final int UPDATE_INTERVAL = 1000;
+    // NEW -- at 1s/tick, 5 means fetchLocationData() only fires every
+    // 5s once SignalR is actively connected. 5s chosen (not 30), same
+    // reasoning as HomeActivity's identical constant.
+    private static final int FALLBACK_POLL_INTERVAL_TICKS = 5;
     // Matches UPDATE_INTERVAL per explicit request. Real cost tradeoff: this
     // fires a full dashboard API call (ALL of the customer's vehicles) every
     // second the Vehicles screen is open, not the lightweight single-vehicle
@@ -116,6 +122,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private String currentCustomerId = null;
     private String selectedVehicleId = null;
+    // NEW -- persists whether the currently-displayed vehicle is a
+    // shared one, for use later in showVehicleDetails() to hide
+    // structural-change controls (Edit, Link GPS Device) for shared
+    // viewers. dashboardMatch.isShared() itself was only ever a local
+    // variable inside fetchVehicles(), never available where it was
+    // actually needed.
+    private boolean selectedVehicleIsShared = false;
     private String selectedVehicleName = "No vehicle yet";
     private boolean hasRealVehicle = false;
 
@@ -494,6 +507,87 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 .show();
     }
 
+    // NEW -- the actual fix for the confirmed missing-feature gap: reuses
+    // the exact same lookup-then-assign pair already proven in
+    // AddVehicleActivity, just as a simple dialog here instead of a full
+    // form, since this vehicle already exists and only needs a device.
+    private void showLinkGpsDeviceDialog(BottomSheetDialog detailsDialog, String vehicleId) {
+        if (vehicleId == null) {
+            Toast.makeText(this, "No vehicle selected.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        EditText input = new EditText(this);
+        input.setHint("Device IMEI");
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        input.setPadding(pad, pad, pad, pad);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Link GPS Device")
+                .setMessage("Enter the IMEI printed on the device.")
+                .setView(input)
+                .setPositiveButton("Link", (dialog, which) -> {
+                    String imei = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (imei.isEmpty()) {
+                        Toast.makeText(this, "Enter an IMEI.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    lookupThenLinkDevice(detailsDialog, vehicleId, imei);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void lookupThenLinkDevice(BottomSheetDialog detailsDialog, String vehicleId, String imei) {
+        mainApiService.lookupDeviceByImei(imei).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                String deviceId = null;
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        DeviceLookupResponse device = extractObject(body.string(), DeviceLookupResponse.class);
+                        if (device != null) deviceId = device.getDeviceId();
+                    }
+                } catch (Exception e) {
+                    Log.e("VehiclesActivity", "lookupDeviceByImei parse error", e);
+                }
+
+                if (deviceId == null) {
+                    Toast.makeText(VehiclesActivity.this, "Device not found for that IMEI.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                CreateDeviceAssignmentRequest assignRequest = new CreateDeviceAssignmentRequest(vehicleId, deviceId);
+                mainApiService.assignDevice(assignRequest).enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                        if (response.isSuccessful()) {
+                            Toast.makeText(VehiclesActivity.this, "Device linked.", Toast.LENGTH_SHORT).show();
+                            detailsDialog.dismiss();
+                            fetchVehicles();
+                        } else {
+                            Log.w("VehiclesActivity", "assignDevice failed, code " + response.code());
+                            Toast.makeText(VehiclesActivity.this, "Couldn't link that device. Try again.", Toast.LENGTH_LONG).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                        Log.e("VehiclesActivity", "assignDevice network error", t);
+                        Toast.makeText(VehiclesActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                Log.e("VehiclesActivity", "lookupDeviceByImei network error", t);
+                Toast.makeText(VehiclesActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private void sendShareInvite(String phoneNumber) {
         InviteVehicleShareRequest request = new InviteVehicleShareRequest(selectedVehicleId, phoneNumber);
         mainApiService.inviteVehicleShare(request).enqueue(new Callback<ResponseBody>() {
@@ -592,7 +686,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         LinearLayout vehicleFieldsContainer = view.findViewById(R.id.vehicleFieldsContainer);
         LinearLayout gpsFieldsContainer = view.findViewById(R.id.gpsFieldsContainer);
         View tvGpsSectionLabel = view.findViewById(R.id.tvGpsSectionLabel);
-        View tvNoGpsDevice = view.findViewById(R.id.tvNoGpsDevice);
+        View layoutNoGpsDevice = view.findViewById(R.id.layoutNoGpsDevice);
+        View btnLinkGpsDevice = view.findViewById(R.id.btnLinkGpsDevice);
 
         if (tvName != null) tvName.setText(safe(selectedVehicleName));
         if (tvNumber != null) tvNumber.setText(safe(selectedVehicle.getVehicleNumber()));
@@ -600,23 +695,30 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
         // NEW -- real, existing backend endpoint (PUT /api/Vehicles/{id})
         // was never surfaced anywhere in the Android UI until now.
+        // FIX: owner-only now, per direct confirmation -- was previously
+        // visible/clickable for shared viewers too, inconsistent with
+        // the "full view access, no structural changes" boundary used
+        // everywhere else for shared vehicles.
         if (btnEdit != null) {
-            btnEdit.setOnClickListener(v -> {
-                dialog.dismiss();
-                android.content.Intent intent = new android.content.Intent(this, AddVehicleActivity.class);
-                intent.putExtra(AddVehicleActivity.EXTRA_EDIT_VEHICLE_ID, selectedVehicle.getVehicleId());
-                intent.putExtra(AddVehicleActivity.EXTRA_VEHICLE_NUMBER, selectedVehicle.getVehicleNumber());
-                intent.putExtra(AddVehicleActivity.EXTRA_MAKE, selectedVehicle.getMake());
-                intent.putExtra(AddVehicleActivity.EXTRA_MODEL, selectedVehicle.getModel());
-                intent.putExtra(AddVehicleActivity.EXTRA_YEAR,
-                        selectedVehicle.getYear() != null ? selectedVehicle.getYear() : 0);
-                intent.putExtra(AddVehicleActivity.EXTRA_COLOR, selectedVehicle.getColor());
-                intent.putExtra(AddVehicleActivity.EXTRA_VEHICLE_TYPE, selectedVehicle.getVehicleType());
-                intent.putExtra(AddVehicleActivity.EXTRA_FUEL_TYPE, selectedVehicle.getFuelType());
-                intent.putExtra(AddVehicleActivity.EXTRA_CHASSIS_NUMBER, selectedVehicle.getChassisNumber());
-                intent.putExtra(AddVehicleActivity.EXTRA_ENGINE_NUMBER, selectedVehicle.getEngineNumber());
-                addVehicleLauncher.launch(intent);
-            });
+            btnEdit.setVisibility(selectedVehicleIsShared ? View.GONE : View.VISIBLE);
+            if (!selectedVehicleIsShared) {
+                btnEdit.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    android.content.Intent intent = new android.content.Intent(this, AddVehicleActivity.class);
+                    intent.putExtra(AddVehicleActivity.EXTRA_EDIT_VEHICLE_ID, selectedVehicle.getVehicleId());
+                    intent.putExtra(AddVehicleActivity.EXTRA_VEHICLE_NUMBER, selectedVehicle.getVehicleNumber());
+                    intent.putExtra(AddVehicleActivity.EXTRA_MAKE, selectedVehicle.getMake());
+                    intent.putExtra(AddVehicleActivity.EXTRA_MODEL, selectedVehicle.getModel());
+                    intent.putExtra(AddVehicleActivity.EXTRA_YEAR,
+                            selectedVehicle.getYear() != null ? selectedVehicle.getYear() : 0);
+                    intent.putExtra(AddVehicleActivity.EXTRA_COLOR, selectedVehicle.getColor());
+                    intent.putExtra(AddVehicleActivity.EXTRA_VEHICLE_TYPE, selectedVehicle.getVehicleType());
+                    intent.putExtra(AddVehicleActivity.EXTRA_FUEL_TYPE, selectedVehicle.getFuelType());
+                    intent.putExtra(AddVehicleActivity.EXTRA_CHASSIS_NUMBER, selectedVehicle.getChassisNumber());
+                    intent.putExtra(AddVehicleActivity.EXTRA_ENGINE_NUMBER, selectedVehicle.getEngineNumber());
+                    addVehicleLauncher.launch(intent);
+                });
+            }
         }
 
         if (vehicleFieldsContainer != null) {
@@ -634,7 +736,25 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         boolean hasDevice = selectedVehicle.hasGpsDevice();
         if (tvGpsSectionLabel != null) tvGpsSectionLabel.setVisibility(hasDevice ? View.VISIBLE : View.GONE);
         if (gpsFieldsContainer != null) gpsFieldsContainer.setVisibility(hasDevice ? View.VISIBLE : View.GONE);
-        if (tvNoGpsDevice != null) tvNoGpsDevice.setVisibility(hasDevice ? View.GONE : View.VISIBLE);
+        // FIX: real, confirmed gap -- a vehicle without a device had no
+        // way to link one anywhere in the app except during the
+        // original "Add Vehicle" creation flow, despite that flow's own
+        // error message promising "you can link it later from the
+        // vehicle's settings" -- a capability that never actually
+        // existed. This wrapper (not just the text inside it) is what
+        // needs toggling now that it also contains the real button.
+        if (layoutNoGpsDevice != null) layoutNoGpsDevice.setVisibility(hasDevice ? View.GONE : View.VISIBLE);
+        // FIX: owner-only now, per direct confirmation -- same boundary
+        // as btnEdit above. Hides just the button, not the whole
+        // wrapper -- the informational "No GPS device" text itself
+        // should still be visible to a shared viewer, they just can't
+        // act on it.
+        if (btnLinkGpsDevice != null) {
+            btnLinkGpsDevice.setVisibility(selectedVehicleIsShared ? View.GONE : View.VISIBLE);
+            if (!selectedVehicleIsShared) {
+                btnLinkGpsDevice.setOnClickListener(v -> showLinkGpsDeviceDialog(dialog, selectedVehicle.getVehicleId()));
+            }
+        }
 
         if (hasDevice && gpsFieldsContainer != null) {
             addDetailRow(gpsFieldsContainer, R.drawable.ic_detail_sim, "IMEI", safe(selectedVehicle.getImei()), true);
@@ -810,6 +930,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
                         selectedVehicle = detailMatch; // may be null; showVehicleDetails() already null-checks this
                         selectedVehicleId = dashboardMatch != null ? dashboardMatch.getVehicleId() : detailMatch.getVehicleId();
+                        selectedVehicleIsShared = dashboardMatch != null && dashboardMatch.isShared();
 
                         // NEW -- same real gap fixed in HomeActivity: the
                         // marker's type was never set on initial load,
@@ -1057,8 +1178,20 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private void startRealTimeTracking() {
         if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
         trackingRunnable = new Runnable() {
+            private int tickCount = 0;
+
             @Override public void run() {
-                fetchLocationData();
+                // FIX: same real bug and same fix as HomeActivity's
+                // identical issue -- fetchLocationData() fired every
+                // single tick regardless of whether SignalR was already
+                // pushing the exact same data. Full-speed polling only
+                // while push is down (fast fallback during disconnect/
+                // reconnect), slow 30s safety-net poll once connected.
+                tickCount++;
+                boolean pushConnected = realtimeClient != null && realtimeClient.isConnected();
+                if (tickCount == 1 || !pushConnected || tickCount % FALLBACK_POLL_INTERVAL_TICKS == 0) {
+                    fetchLocationData();
+                }
                 handler.postDelayed(this, UPDATE_INTERVAL);
             }
         };
