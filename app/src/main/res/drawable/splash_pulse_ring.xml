@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Circular ring drawn behind the logo during the pulse phase.
+    Stroke-only circle in brand orange at low opacity — creates a subtle
+    "signal broadcast" halo effect that ties into the GPS/tracking theme.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <stroke
+        android:width="2dp"
+        android:color="#40FA6908" />
+    <size
+        android:width="260dp"
+        android:height="260dp" />
+</shape>

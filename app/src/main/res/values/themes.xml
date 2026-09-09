@@ -1,5 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme -->
+
+    <!-- ════════════════════════════════════════════════════════════
+         Base application theme
+         ════════════════════════════════════════════════════════════ -->
     <style name="Base.Theme.LetsTrackLanka" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorPrimaryDark">@color/brand_primary</item>
@@ -14,18 +17,36 @@
 
     <style name="Theme.LetsTrackLanka" parent="Base.Theme.LetsTrackLanka" />
 
-    <!-- Modern Android Splash Screen Theme -->
-    <style name="Theme.ShaloTrack.Starting" parent="Theme.SplashScreen">
-        <!-- Solid background color -->
-        <item name="windowSplashScreenBackground">#081427</item>
+    <!-- ════════════════════════════════════════════════════════════
+         Splash Screen Theme
+         ════════════════════════════════════════════════════════════
+         Applied to SplashActivity via android:theme in AndroidManifest.xml.
 
-        <!-- Animated Vector Drawable -->
-        <item name="windowSplashScreenAnimatedIcon">@drawable/avd_shalotrack_splash</item>
+         This theme's sole job is to paint the navy background (#081427)
+         the instant the window opens — BEFORE setContentView is called.
+         This eliminates the white flash that would otherwise appear on
+         cold start while the layout inflates.
 
-        <!-- Total animation time (ms) -->
-        <item name="windowSplashScreenAnimationDuration">1000</item>
+         SplashActivity drives the full animation from code (ObjectAnimator)
+         using activity_splash.xml with the real ic_logo_simple.png logo.
+         We do NOT use installSplashScreen() because the SplashScreen compat
+         API constrains icons to ~110 dp — too small for the ShaloTrack logo.
 
-        <!-- Fixed: Set to your actual main app theme -->
-        <item name="postSplashScreenTheme">@style/Theme.LetsTrackLanka</item>
+         windowSplashScreenAnimatedIcon is kept pointing at the static logo
+         PNG so Android's recents thumbnail looks correct (not a blank square)
+         on devices that pull the splash icon for the task switcher preview.
+         ════════════════════════════════════════════════════════════ -->
+    <style name="Theme.ShaloTrack.Starting" parent="Theme.MaterialComponents.Light.NoActionBar">
+
+        <!-- Fires immediately on window open — prevents white flash -->
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
+
+        <!-- Full-screen: hide status bar decor during splash -->
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowTranslucentStatus">false</item>
+
     </style>
+
 </resources>
