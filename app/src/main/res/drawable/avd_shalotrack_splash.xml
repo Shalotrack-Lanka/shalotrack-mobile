@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_shalotrack_vector">
+
+    <target
+        android:name="orange_road"
+        android:animation="@animator/draw_road" />
+
+    <target
+        android:name="signal_arc_1"
+        android:animation="@animator/fade_signal_1" />
+
+    <target
+        android:name="signal_arc_2"
+        android:animation="@animator/fade_signal_2" />
+
+    <target
+        android:name="signal_arc_3"
+        android:animation="@animator/fade_signal_3" />
+</animated-vector>

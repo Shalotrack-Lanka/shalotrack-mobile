@@ -18,17 +18,17 @@ android {
     }
 
 
-        signingConfigs {
-            create("release") {
-                val keystorePath = System.getenv("KEYSTORE_PATH")
-                if (!keystorePath.isNullOrEmpty()) {
-                    storeFile = file(keystorePath)
-                    storePassword = System.getenv("KEYSTORE_PASSWORD")
-                    keyAlias = System.getenv("KEY_ALIAS")
-                    keyPassword = System.getenv("KEY_PASSWORD")
-                }
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (!keystorePath.isNullOrEmpty()) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
             }
         }
+    }
 
 
     buildTypes {
@@ -49,6 +49,9 @@ android {
 }
 
 dependencies {
+    // Official AndroidX SplashScreen API
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
@@ -58,6 +61,14 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
     implementation("com.google.android.gms:play-services-maps:18.2.0")
+    // NEW -- SMS User Consent API, for real OTP box auto-fill. Chosen
+    // over the full SMS Retriever API because that one requires a
+    // specific app-signature hash embedded in the SMS message itself,
+    // which Firebase's own SMS templates don't include since we don't
+    // control that content. User Consent API works with any SMS format,
+    // just requires a one-tap system dialog for the user's permission
+    // to read the most recent message.
+    implementation("com.google.android.gms:play-services-auth-api-phone:18.3.0")
     implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-location:21.2.0")

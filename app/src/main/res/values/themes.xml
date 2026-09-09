@@ -1,25 +1,31 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Base application theme -->
     <style name="Base.Theme.LetsTrackLanka" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- NEW - previously unset, meaning the app ran on Material3's default
-             template purple system-wide (status bar, ripple effects, and any
-             element relying on the theme rather than an explicit color). This
-             is why the status bar looked disconnected from the navy branding
-             even on screens we'd already color-passed - system chrome was
-             never actually pointed at the brand color until now. -->
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorPrimaryDark">@color/brand_primary</item>
         <item name="colorOnPrimary">@color/text_on_dark</item>
         <item name="colorSecondary">@color/brand_accent</item>
         <item name="colorOnSecondary">@color/text_on_dark</item>
 
-        <!-- Directly controls the status bar background - the most reliable
-             fix for the exact purple-bar issue, on top of colorPrimaryDark
-             above (some OEM/Android version combinations respect one over
-             the other, so setting both is the safe choice). -->
+        <!-- Status & Navigation Bar Branding -->
         <item name="android:statusBarColor">@color/brand_primary</item>
         <item name="android:navigationBarColor">@color/surface_white</item>
     </style>
 
     <style name="Theme.LetsTrackLanka" parent="Base.Theme.LetsTrackLanka" />
+
+    <!-- Modern Android Splash Screen Theme -->
+    <style name="Theme.ShaloTrack.Starting" parent="Theme.SplashScreen">
+        <!-- Solid background color -->
+        <item name="windowSplashScreenBackground">#081427</item>
+
+        <!-- Animated Vector Drawable -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/avd_shalotrack_splash</item>
+
+        <!-- Total animation time (ms) -->
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+
+        <!-- Fixed: Set to your actual main app theme -->
+        <item name="postSplashScreenTheme">@style/Theme.LetsTrackLanka</item>
+    </style>
 </resources>
