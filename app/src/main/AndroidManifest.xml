@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-    <!-- අලුතින් එකතු කළ Background Tracking Permissions -->
+    <!-- Background Tracking Permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -52,43 +52,18 @@
 
         <activity android:name=".ui.contacts.EmergencyContactsActivity" android:exported="false" />
 
-        <!-- FIX: was completely missing from the manifest despite being
-             built and wired from the Settings bottom sheet several rounds
-             ago, tapping "Notification & Alerts" would have crashed
-             with ActivityNotFoundException, not just done nothing. Found
-             during a systematic dead-end audit. -->
         <activity android:name=".ui.main.SettingsActivity" android:exported="false" />
 
-        <!-- NEW: fabAdd in VehiclesActivity was a real, visible button
-             with no destination at all until now (also found during the
-             same audit). -->
         <activity android:name=".ui.vehicles.AddVehicleActivity" android:exported="false" />
 
-        <!-- NEW: real Places screen, replacing the previous stub bottom
-             sheet (just a close button, no actual functionality). -->
         <activity android:name=".ui.places.PlacesActivity" android:exported="false" />
 
-        <!-- NEW: real Value stats screen, replacing the previous grayed
-             "Coming soon" placeholder in the Vehicles tab grid menu. -->
         <activity android:name=".ui.vehicles.ValueActivity" android:exported="false" />
 
-        <!-- NEW: Vehicle Sharing - pending invites and vehicles shared with you. -->
         <activity android:name=".ui.vehicles.VehicleSharingActivity" android:exported="false" />
 
-        <!-- NEW: full live-tracking view for a vehicle shared with the
-             viewer, reuses VehicleTrailRenderer directly for the same
-             animated marker/heading experience owned vehicles get. -->
         <activity android:name=".ui.vehicles.SharedVehicleMapActivity" android:exported="false" />
 
-        <!-- ============================================================ -->
-        <!-- !! DO NOT ADD A LAUNCHER INTENT-FILTER TO HomeActivity !!      -->
-        <!-- The launcher (MAIN/LAUNCHER) belongs on SplashActivity, below. -->
-        <!-- HomeActivity is reached BY the splash screen navigating to it,-->
-        <!-- not by launching directly. This has been reverted by a team   -->
-        <!-- member at least twice already: if you're about to move the -->
-        <!-- launcher here again, please ask first. Confirmed decision:    -->
-        <!-- the splash screen must show on every app open.                -->
-        <!-- ============================================================ -->
         <activity
             android:name=".ui.main.HomeActivity"
             android:exported="false"
@@ -124,13 +99,12 @@
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
         <!-- ============================================================ -->
-        <!-- THE LAUNCHER LIVES HERE. This is the real app entry point.    -->
-        <!-- Do not remove this intent-filter or move it elsewhere.       -->
+        <!-- THE LAUNCHER LIVES HERE. Updated to use SplashScreen Theme  -->
         <!-- ============================================================ -->
         <activity
             android:name=".ui.main.SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
+            android:theme="@style/Theme.ShaloTrack.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -158,7 +132,7 @@
             </intent-filter>
         </service>
 
-        <!-- අලුතින් එකතු කළ Background Real-time Tracking Service -->
+        <!-- Background Real-time Tracking Service -->
         <service
             android:name=".services.TrackingForegroundService"
             android:enabled="true"
@@ -169,7 +143,6 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCCEcm2yd65eBw5aUJI0akiXkwySTBS_LE" />
 
-        <!-- Static API key is called in here for the GPS tracking history-->
         <meta-data android:name="com.example.letstracklanka.STATIC_MAPS_API_KEY"
             android:value="AIzaSyAAk1aVIma-49jfCJ40SDU-8fzufCGmQnA"/>
     </application>

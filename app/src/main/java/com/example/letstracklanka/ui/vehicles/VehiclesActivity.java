@@ -42,6 +42,7 @@ import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.ui.main.AddressResolver;
+import com.example.letstracklanka.ui.main.FallbackPollScheduler;
 import com.example.letstracklanka.ui.main.HomeActivity;
 import com.example.letstracklanka.ui.history.TripHistoryActivity;
 import com.example.letstracklanka.ui.main.TagsActivity;
@@ -105,13 +106,12 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private TextView tvCountMoving, tvCountIdle, tvCountParked, tvCountOffline;
 
     private final Handler handler = new Handler();
-    private Runnable trackingRunnable;
+    private FallbackPollScheduler fallbackPollScheduler;
     private Runnable vehicleListRefreshRunnable;
     private final int UPDATE_INTERVAL = 1000;
-    // NEW -- at 1s/tick, 5 means fetchLocationData() only fires every
-    // 5s once SignalR is actively connected. 5s chosen (not 30), same
-    // reasoning as HomeActivity's identical constant.
-    private static final int FALLBACK_POLL_INTERVAL_TICKS = 5;
+    // (FALLBACK_POLL_INTERVAL_TICKS moved into FallbackPollScheduler,
+    // shared with HomeActivity -- this was the exact, line-for-line
+    // duplicated piece between the two files.)
     // Matches UPDATE_INTERVAL per explicit request. Real cost tradeoff: this
     // fires a full dashboard API call (ALL of the customer's vehicles) every
     // second the Vehicles screen is open, not the lightweight single-vehicle
@@ -1176,26 +1176,15 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     }
 
     private void startRealTimeTracking() {
-        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
-        trackingRunnable = new Runnable() {
-            private int tickCount = 0;
-
-            @Override public void run() {
-                // FIX: same real bug and same fix as HomeActivity's
-                // identical issue -- fetchLocationData() fired every
-                // single tick regardless of whether SignalR was already
-                // pushing the exact same data. Full-speed polling only
-                // while push is down (fast fallback during disconnect/
-                // reconnect), slow 30s safety-net poll once connected.
-                tickCount++;
-                boolean pushConnected = realtimeClient != null && realtimeClient.isConnected();
-                if (tickCount == 1 || !pushConnected || tickCount % FALLBACK_POLL_INTERVAL_TICKS == 0) {
-                    fetchLocationData();
-                }
-                handler.postDelayed(this, UPDATE_INTERVAL);
-            }
-        };
-        handler.post(trackingRunnable);
+        // FIX: was duplicated, line-for-line identical logic between
+        // this file and HomeActivity -- now shared via
+        // FallbackPollScheduler. Behavior is unchanged.
+        if (fallbackPollScheduler == null) fallbackPollScheduler = new FallbackPollScheduler(handler);
+        fallbackPollScheduler.start(
+                () -> realtimeClient != null && realtimeClient.isConnected(),
+                this::fetchLocationData,
+                null // no extra-per-tick action here, unlike HomeActivity's fetchDashboard()
+        );
 
         // FIX: fetchVehiclesTabList() was previously only ever called once,
         // at initial load (plus once more after a delete) -- meaning the
@@ -1391,7 +1380,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     @Override protected void onDestroy() {
         super.onDestroy();
-        if (trackingRunnable != null) handler.removeCallbacks(trackingRunnable);
+        if (fallbackPollScheduler != null) fallbackPollScheduler.stop();
         if (vehicleListRefreshRunnable != null) handler.removeCallbacks(vehicleListRefreshRunnable);
         // Same blocking-call concern as the reconnect fix above: stop() can
         // block up to 3 seconds. onDestroy() runs on the main thread too, so
