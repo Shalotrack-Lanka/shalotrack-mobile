@@ -8,6 +8,8 @@
 
     <!-- Vehicle Activity Strings -->
     <string name="loading">Loading...</string>
+    <string name="connecting_to_vehicles">Connecting to your vehicles\u2026</string>
+    <string name="logo_content_description">ShaloTrack logo</string>
     <string name="syncing">Syncing...</string>
     <string name="locating">Locating...</string>
     <string name="connecting">Connecting...</string>

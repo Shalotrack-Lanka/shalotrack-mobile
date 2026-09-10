@@ -52,6 +52,10 @@ dependencies {
     // Official AndroidX SplashScreen API
     implementation("androidx.core:core-splashscreen:1.0.1")
 
+    // Lottie — lightweight vector animation renderer (used in MainActivity loading screen)
+    // 15KB JSON animation, ~400KB AAR. Industry standard (Airbnb, Grab, Uber).
+    implementation("com.airbnb.android:lottie:6.4.0")
+
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
