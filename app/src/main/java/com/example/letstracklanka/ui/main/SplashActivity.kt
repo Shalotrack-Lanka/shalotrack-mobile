@@ -89,6 +89,7 @@ class SplashActivity : AppCompatActivity() {
             startActivity(destination)
             finish()
             // Smooth cross-fade into the next screen
+            @Suppress("DEPRECATION")
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         }, TOTAL_SPLASH_MS)
     }
