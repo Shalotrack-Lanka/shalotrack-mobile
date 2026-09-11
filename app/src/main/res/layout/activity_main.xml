@@ -7,7 +7,13 @@
     android:layout_height="match_parent"
     android:background="@color/splash_background">
 
-    <!-- Full-screen Lottie animation: car driving on a night road -->
+    <!--
+        Lottie animation — file and playback are set programmatically in
+        MainActivity.java based on device time:
+          06:00–18:59  →  shalotrack_drive_day.json   (sun, clouds, daylight)
+          19:00–05:59  →  shalotrack_drive_night.json  (stars, city glow, headlights)
+        Do NOT set lottie_fileName or lottie_autoPlay here — they are overridden in code.
+    -->
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottieCarAnimation"
         android:layout_width="match_parent"
@@ -17,12 +23,10 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:lottie_fileName="shalotrack_drive.json"
         app:lottie_loop="true"
-        app:lottie_autoPlay="true"
         app:lottie_speed="1.0" />
 
-    <!-- ShaloTrack logo — centred in upper third of screen -->
+    <!-- ShaloTrack logo — centred in upper third, fades in at 300ms -->
     <ImageView
         android:id="@+id/mainLogo"
         android:layout_width="140dp"
@@ -38,7 +42,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintVertical_bias="0.30" />
 
-    <!-- Loading message -->
+    <!-- Loading message — fades in at 600ms -->
     <TextView
         android:id="@+id/tvLoadingMessage"
         android:layout_width="wrap_content"
@@ -54,7 +58,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Orange progress line at the bottom -->
+    <!-- Orange progress line — grows left→right from 800ms -->
     <View
         android:id="@+id/progressLine"
         android:layout_width="match_parent"
