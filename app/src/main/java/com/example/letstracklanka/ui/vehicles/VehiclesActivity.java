@@ -129,6 +129,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     // variable inside fetchVehicles(), never available where it was
     // actually needed.
     private boolean selectedVehicleIsShared = false;
+    // NEW -- same reasoning as selectedVehicleIsShared above, for the
+    // one, shared demo vehicle every customer can see. Structural
+    // controls stay hidden for this vehicle too, regardless of whoever
+    // the recorded owner actually is.
+    private boolean selectedVehicleIsDemo = false;
     private String selectedVehicleName = "No vehicle yet";
     private boolean hasRealVehicle = false;
 
@@ -700,8 +705,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         // the "full view access, no structural changes" boundary used
         // everywhere else for shared vehicles.
         if (btnEdit != null) {
-            btnEdit.setVisibility(selectedVehicleIsShared ? View.GONE : View.VISIBLE);
-            if (!selectedVehicleIsShared) {
+            boolean hideStructuralActions = selectedVehicleIsShared || selectedVehicleIsDemo;
+            btnEdit.setVisibility(hideStructuralActions ? View.GONE : View.VISIBLE);
+            if (!hideStructuralActions) {
                 btnEdit.setOnClickListener(v -> {
                     dialog.dismiss();
                     android.content.Intent intent = new android.content.Intent(this, AddVehicleActivity.class);
@@ -750,8 +756,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         // should still be visible to a shared viewer, they just can't
         // act on it.
         if (btnLinkGpsDevice != null) {
-            btnLinkGpsDevice.setVisibility(selectedVehicleIsShared ? View.GONE : View.VISIBLE);
-            if (!selectedVehicleIsShared) {
+            boolean hideLinkDevice = selectedVehicleIsShared || selectedVehicleIsDemo;
+            btnLinkGpsDevice.setVisibility(hideLinkDevice ? View.GONE : View.VISIBLE);
+            if (!hideLinkDevice) {
                 btnLinkGpsDevice.setOnClickListener(v -> showLinkGpsDeviceDialog(dialog, selectedVehicle.getVehicleId()));
             }
         }
@@ -931,6 +938,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         selectedVehicle = detailMatch; // may be null; showVehicleDetails() already null-checks this
                         selectedVehicleId = dashboardMatch != null ? dashboardMatch.getVehicleId() : detailMatch.getVehicleId();
                         selectedVehicleIsShared = dashboardMatch != null && dashboardMatch.isShared();
+                        selectedVehicleIsDemo = dashboardMatch != null && dashboardMatch.isDemo();
 
                         // NEW -- same real gap fixed in HomeActivity: the
                         // marker's type was never set on initial load,

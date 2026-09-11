@@ -60,8 +60,17 @@ public class DashboardVehicle {
     @SerializedName("ownerName")
     private String ownerName;
 
+    // NEW -- the one, shared demo vehicle every customer can see,
+    // regardless of ownership/sharing records. Same reasoning as
+    // isShared above: hides owner-only actions (delete, edit, link
+    // device, Immobilize), since the demo vehicle is staff-managed only
+    // even for whoever the recorded owner happens to be.
+    @SerializedName("isDemo")
+    private Boolean isDemo;
+
     public boolean isShared() { return isShared != null && isShared; }
     public String getOwnerName() { return ownerName; }
+    public boolean isDemo() { return isDemo != null && isDemo; }
 
     public String getVehicleId() { return vehicleId; }
     public String getVehicleNumber() { return vehicleNumber; }
