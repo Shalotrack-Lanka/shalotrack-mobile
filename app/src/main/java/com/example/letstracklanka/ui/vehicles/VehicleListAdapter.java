@@ -186,7 +186,13 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         // that's an owner-only action, and offering it here would just
         // fail against the backend's own ownership check anyway (better
         // to not offer it at all than show a button that errors).
-        if (vehicle.isShared()) {
+        // FIX: extended to also cover the one, shared demo vehicle every
+        // customer can see -- same reasoning, staff-managed only.
+        if (vehicle.isDemo()) {
+            holder.tvCaption.setText(plate + " \u2022 Shalotrack Demo Vehicle");
+            holder.btnSwipeRemove.setVisibility(View.GONE);
+            holder.foregroundRow.setOnTouchListener(null);
+        } else if (vehicle.isShared()) {
             String ownerName = vehicle.getOwnerName() != null ? vehicle.getOwnerName() : "someone";
             holder.tvCaption.setText(plate + " \u2022 Shared by " + ownerName);
             holder.btnSwipeRemove.setVisibility(View.GONE);
