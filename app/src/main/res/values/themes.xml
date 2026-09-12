@@ -1,25 +1,52 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+
+    <!-- ════════════════════════════════════════════════════════════
+         Base application theme
+         ════════════════════════════════════════════════════════════ -->
     <style name="Base.Theme.LetsTrackLanka" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- NEW - previously unset, meaning the app ran on Material3's default
-             template purple system-wide (status bar, ripple effects, and any
-             element relying on the theme rather than an explicit color). This
-             is why the status bar looked disconnected from the navy branding
-             even on screens we'd already color-passed - system chrome was
-             never actually pointed at the brand color until now. -->
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorPrimaryDark">@color/brand_primary</item>
         <item name="colorOnPrimary">@color/text_on_dark</item>
         <item name="colorSecondary">@color/brand_accent</item>
         <item name="colorOnSecondary">@color/text_on_dark</item>
 
-        <!-- Directly controls the status bar background - the most reliable
-             fix for the exact purple-bar issue, on top of colorPrimaryDark
-             above (some OEM/Android version combinations respect one over
-             the other, so setting both is the safe choice). -->
+        <!-- Status & Navigation Bar Branding -->
         <item name="android:statusBarColor">@color/brand_primary</item>
         <item name="android:navigationBarColor">@color/surface_white</item>
     </style>
 
     <style name="Theme.LetsTrackLanka" parent="Base.Theme.LetsTrackLanka" />
+
+    <!-- ════════════════════════════════════════════════════════════
+         Splash Screen Theme
+         ════════════════════════════════════════════════════════════
+         Applied to SplashActivity via android:theme in AndroidManifest.xml.
+
+         This theme's sole job is to paint the navy background (#081427)
+         the instant the window opens — BEFORE setContentView is called.
+         This eliminates the white flash that would otherwise appear on
+         cold start while the layout inflates.
+
+         SplashActivity drives the full animation from code (ObjectAnimator)
+         using activity_splash.xml with the real ic_logo_simple.png logo.
+         We do NOT use installSplashScreen() because the SplashScreen compat
+         API constrains icons to ~110 dp — too small for the ShaloTrack logo.
+
+         windowSplashScreenAnimatedIcon is kept pointing at the static logo
+         PNG so Android's recents thumbnail looks correct (not a blank square)
+         on devices that pull the splash icon for the task switcher preview.
+         ════════════════════════════════════════════════════════════ -->
+    <style name="Theme.ShaloTrack.Starting" parent="Theme.MaterialComponents.Light.NoActionBar">
+
+        <!-- Fires immediately on window open — prevents white flash -->
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
+
+        <!-- Full-screen: hide status bar decor during splash -->
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowTranslucentStatus">false</item>
+
+    </style>
+
 </resources>

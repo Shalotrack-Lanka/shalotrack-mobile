@@ -3,6 +3,7 @@ package com.example.letstracklanka.ui.main;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.view.animation.LinearInterpolator;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
@@ -58,7 +59,7 @@ public class VehicleTrailRenderer {
     private static final String TAG = "VehicleTrailRenderer";
 
     // How many hours of previous travel history to load when opening the app
-    private static final int HISTORY_WINDOW_HOURS = 2;
+    private static final int HISTORY_WINDOW_HOURS = 1;
 
     // Minimum and maximum time for the smooth movement animation (in milliseconds)
     // Marker animation duration matches the real elapsed time since the
@@ -74,12 +75,19 @@ public class VehicleTrailRenderer {
     private static final double MAX_PLAUSIBLE_SPEED_MPS = 55.6; // ~200 km/h
 
     // Adjusting the car icon rotation so it points to the correct front side
-    private static final float ICON_ROTATION_OFFSET = -90f;
+    // FIX: was -90f, correcting for the OLD icon's artwork having its
+    // front drawn facing sideways rather than up. The new PNG (real
+    // Flaticon asset) already has its front facing straight up in its own
+    // unrotated form -- matching Google's own documented convention for
+    // rotating vehicle markers -- so no correction is needed anymore.
+    // Left at -90f, this would have made the car consistently point 90
+    // degrees off from the real direction of travel.
+    private static final float ICON_ROTATION_OFFSET = 0f;
 
     // Variables for Google Maps and server API
     private final GoogleMap map;
     private final ShaloTrackApi api;
-    private final BitmapDescriptor carIcon;
+    // (carIcon field removed -- replaced by iconsByType map above)
 
     // Variables to hold the map marker (Car) and the blue line (Trail)
     private Marker marker;
@@ -107,35 +115,62 @@ public class VehicleTrailRenderer {
     private static final int SNAP_BUFFER_SIZE = 5;
     private String vehicleId;
 
+    private static final int MARKER_SIZE_PX = 80;
+    // NEW -- was a single final BitmapDescriptor for every vehicle
+    // regardless of type. Now loads every variant upfront (car/SUV/van/
+    // truck/bike/tuk), keyed the same way the spinner options and
+    // vehicleType string are already cased. "car" also serves as the
+    // fallback for null/unrecognized types.
+    private final java.util.Map<String, BitmapDescriptor> iconsByType = new java.util.HashMap<>();
+    // Set right before a vehicle switch (see resetForVehicleSwitch), read
+    // when the marker is actually created in updatePosition()'s
+    // marker == null branch below.
+    private String pendingVehicleType = "car";
+
     // Setup the Renderer and prepare the Car icon graphic
     public VehicleTrailRenderer(Context context, GoogleMap map, ShaloTrackApi api) {
         this.map = map;
         this.api = api;
 
-        // Try to load the custom car picture (res/drawable/ic_car_marker.xml)
-        BitmapDescriptor icon;
+        iconsByType.put("car", loadIconFromDrawableName(context, "ic_car_marker"));
+        iconsByType.put("suv", loadIconFromDrawableName(context, "ic_car_marker")); // MDI has no SUV-distinct top-down asset; reuses the car marker
+        iconsByType.put("van", loadIconFromDrawableName(context, "ic_type_van"));
+        iconsByType.put("truck", loadIconFromDrawableName(context, "ic_type_truck"));
+        iconsByType.put("bike", loadIconFromDrawableName(context, "ic_type_bike"));
+        iconsByType.put("tuk", loadIconFromDrawableName(context, "ic_type_tuk"));
+    }
+
+    // Extracted from what used to be inline constructor logic -- looks up
+    // a drawable by name (dynamic getIdentifier lookup, not a hardcoded
+    // R.drawable reference, matching how ic_car_marker was already being
+    // found), draws it into a bitmap, and falls back to the default
+    // Google Maps pin if the drawable is missing or fails to load.
+    private BitmapDescriptor loadIconFromDrawableName(Context context, String drawableName) {
         try {
             int resId = context.getResources().getIdentifier(
-                    "ic_car_marker", "drawable", context.getPackageName());
+                    drawableName, "drawable", context.getPackageName());
             if (resId != 0) {
-                // If custom icon exists, draw it into a bitmap
                 android.graphics.drawable.Drawable drawable = androidx.core.content.ContextCompat.getDrawable(context, resId);
-                int width = 80, height = 80;
-                android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+                android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(
+                        MARKER_SIZE_PX, MARKER_SIZE_PX, android.graphics.Bitmap.Config.ARGB_8888);
                 android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
-                drawable.setBounds(0, 0, width, height);
+                drawable.setBounds(0, 0, MARKER_SIZE_PX, MARKER_SIZE_PX);
                 drawable.draw(canvas);
-                icon = BitmapDescriptorFactory.fromBitmap(bitmap);
-            } else {
-                // If custom icon is missing, use default Google Maps blue pin
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+                return BitmapDescriptorFactory.fromBitmap(bitmap);
             }
         } catch (Exception e) {
-            // Error loading icon, fallback to default Google Maps blue pin
-            Log.w(TAG, "ic_car_marker not found, falling back to default marker", e);
-            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+            Log.w(TAG, drawableName + " not found or failed to load, falling back to default marker", e);
         }
-        this.carIcon = icon;
+        return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+    }
+
+    // Real key normalization matching AddVehicleActivity's exact spinner
+    // strings ("Car", "SUV", "Van", "Truck", "Bike", "Tuk"),
+    // case-insensitive for safety, falling back to "car" for null/
+    // unrecognized values.
+    private BitmapDescriptor iconForCurrentType() {
+        BitmapDescriptor icon = iconsByType.get(pendingVehicleType);
+        return icon != null ? icon : iconsByType.get("car");
     }
 
     /**
@@ -188,11 +223,45 @@ public class VehicleTrailRenderer {
         });
     }
 
-    /**
-     * Call this every time your existing polling loop gets a fresh position.
-     * This moves the car on the map from its old position to the new one.
-     * @param heading compass bearing in degrees (0 = north). Pass 0 if unknown/stationary.
-     */
+    // NEW -- real bug fix. Without this, switching to a different vehicle
+    // went through the exact same animateMarkerTo() path as a normal live
+    // poll of the SAME vehicle -- since the marker object persists for the
+    // renderer's entire lifetime (marker == null is only ever true once,
+    // the very first time a position ever arrives), the marker would
+    // sweep/animate across the whole map from the previously-selected
+    // vehicle's position to the newly-selected one's, taking up to
+    // MAX_ANIMATION_DURATION_MS (25s) if elapsed time happened to be
+    // large. Confirmed as the actual root cause of "the switching
+    // transition is really bad."
+    //
+    // Removing the marker entirely makes the next updatePosition() call
+    // go through the marker == null branch again, placing the new
+    // vehicle's marker instantly with no animation -- correct behavior
+    // for a genuine switch, since there's no real continuous motion to
+    // animate between two different vehicles' positions.
+    // NEW -- for the initial marker placement on app load, where there's
+    // no existing marker/trail to reset, just the type to set before the
+    // very first updatePosition() call creates the marker.
+    public void setVehicleTypeForNextMarker(String vehicleType) {
+        pendingVehicleType = vehicleType != null
+                ? vehicleType.trim().toLowerCase(java.util.Locale.US) : "car";
+    }
+
+    public void resetForVehicleSwitch(String vehicleType) {
+        pendingVehicleType = vehicleType != null
+                ? vehicleType.trim().toLowerCase(java.util.Locale.US) : "car";
+        if (marker != null) {
+            marker.remove();
+            marker = null;
+        }
+        if (polyline != null) {
+            polyline.remove();
+            polyline = null;
+        }
+        pathPoints.clear();
+        lastAcceptedFixTimeMs = 0;
+    }
+
     public void updatePosition(LatLng newPos, float heading, String title) {
         long now = System.currentTimeMillis();
 
@@ -200,7 +269,7 @@ public class VehicleTrailRenderer {
         if (marker == null) {
             marker = map.addMarker(new MarkerOptions()
                     .position(newPos)
-                    .icon(carIcon)
+                    .icon(iconForCurrentType())
                     .anchor(0.5f, 0.5f) // Put the icon center directly on the coordinate
                     .flat(true) // Make the car icon lie flat on the map
                     .rotation(heading + ICON_ROTATION_OFFSET)
@@ -393,6 +462,17 @@ public class VehicleTrailRenderer {
         ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
         final boolean[] wasCancelled = {false};
         animator.setDuration(durationMs);
+
+        // FIX: no interpolator was set, so this used Android's platform
+        // default (AccelerateDecelerateInterpolator). Fine for a single,
+        // isolated animation, but each new GPS fix cancels the previous
+        // animator and starts a fresh one -- chaining multiple ease-in-
+        // ease-out segments back-to-back means the marker decelerates to
+        // a stop at the end of each segment, then re-accelerates for the
+        // next one, creating a subtle stutter/pulse at every boundary.
+        // Linear keeps a constant speed through each segment, which flows
+        // continuously into the next update instead.
+        animator.setInterpolator(new LinearInterpolator());
 
         // Calculate the smooth position of the car for every single animation frame
         animator.addUpdateListener(animation -> {

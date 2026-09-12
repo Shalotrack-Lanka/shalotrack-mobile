@@ -3,10 +3,16 @@ package com.example.letstracklanka.data.remote;
 import com.example.letstracklanka.data.model.CreateDeviceAssignmentRequest;
 import com.example.letstracklanka.data.model.CreateEmergencyContactRequest;
 import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
+import com.example.letstracklanka.data.model.CreateSavedPlaceRequest;
+import com.example.letstracklanka.data.model.CreateGeofenceRequest;
 import com.example.letstracklanka.data.model.CreateVehicleRequest;
 import com.example.letstracklanka.data.model.CustomerRequest;
+import com.example.letstracklanka.data.model.InviteVehicleShareRequest;
 import com.example.letstracklanka.data.model.RegisterFcmTokenRequest;
+import com.example.letstracklanka.data.model.RespondToVehicleShareRequest;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
+import com.example.letstracklanka.data.model.UpdateGeofenceRequest;
+import com.example.letstracklanka.data.model.UpdateVehicleRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
 
 import okhttp3.ResponseBody;
@@ -36,6 +42,32 @@ public interface ApiService {
     @POST("api/Vehicles")
     Call<VehicleResponse> createVehicle(@Body CreateVehicleRequest request);
 
+    // NEW -- real, existing backend endpoint (PUT /api/Vehicles/{id}),
+    // was never called from anywhere in the Android app until now.
+    @PUT("api/Vehicles/{vehicleId}")
+    Call<VehicleResponse> updateVehicle(@Path("vehicleId") String vehicleId, @Body UpdateVehicleRequest request);
+
+    // NEW -- real, existing backend endpoint, was never called from
+    // anywhere in the Android app. Needed specifically because
+    // getVehiclesByCustomer only ever returns owned vehicles by design --
+    // a shared vehicle needs this separate, genuinely different path to
+    // the same rich VehicleResponse shape.
+    @GET("api/Vehicles/{vehicleId}")
+    Call<VehicleResponse> getVehicleById(@Path("vehicleId") String vehicleId);
+
+    // NEW -- Geofencing.
+    @GET("api/Geofences")
+    Call<ResponseBody> getMyGeofences();
+
+    @POST("api/Geofences")
+    Call<ResponseBody> addGeofence(@Body CreateGeofenceRequest request);
+
+    @PUT("api/Geofences/{geofenceId}")
+    Call<ResponseBody> updateGeofence(@Path("geofenceId") String geofenceId, @Body UpdateGeofenceRequest request);
+
+    @DELETE("api/Geofences/{geofenceId}")
+    Call<ResponseBody> deleteGeofence(@Path("geofenceId") String geofenceId);
+
     // NOTE: still points at the staff-only device list. A regular customer token will
     // get 403 here. Known limitation, deliberately not fixed tonight.
     @GET("api/GpsDevices")
@@ -50,8 +82,12 @@ public interface ApiService {
     @GET("api/GpsDevices/lookup/{imei}")
     Call<ResponseBody> lookupDeviceByImei(@Path("imei") String imei);
 
+    // NEW: vehicleId is optional -- pass null for the existing "all my
+    // vehicles" behavior, or a real ID to filter to one vehicle. Retrofit
+    // omits the query parameter entirely from the URL when it's null,
+    // rather than sending "vehicleId=null" literally.
     @GET("api/Alerts")
-    Call<ResponseBody> getMyAlerts(@Query("page") int page, @Query("pageSize") int pageSize);
+    Call<ResponseBody> getMyAlerts(@Query("page") int page, @Query("pageSize") int pageSize, @Query("vehicleId") String vehicleId);
 
     @PATCH("api/Alerts/{alertId}/read")
     Call<ResponseBody> markAlertAsRead(@Path("alertId") long alertId);
@@ -81,4 +117,46 @@ public interface ApiService {
 
     @DELETE("api/EmergencyContacts/{emergencyContactId}")
     Call<ResponseBody> deleteEmergencyContact(@Path("emergencyContactId") String emergencyContactId);
+
+    // NEW -- matches the real SOSController route confirmed working
+    // server-side (POST /api/SOS/{vehicleId}/trigger). No request body;
+    // location is resolved server-side from CurrentLocations, not sent
+    // from the client.
+    @POST("api/SOS/{vehicleId}/trigger")
+    Call<ResponseBody> triggerSOS(@Path("vehicleId") String vehicleId);
+
+    // NEW -- matches the real SavedPlacesController routes. GET returns
+    // places already sorted by VisitCount descending server-side.
+    @GET("api/SavedPlaces")
+    Call<ResponseBody> getMyPlaces();
+
+    @POST("api/SavedPlaces")
+    Call<ResponseBody> addPlace(@Body CreateSavedPlaceRequest request);
+
+    @DELETE("api/SavedPlaces/{placeId}")
+    Call<ResponseBody> deletePlace(@Path("placeId") String placeId);
+
+    // NEW -- matches the real VehicleStatsController route.
+    @GET("api/VehicleStats/{vehicleId}")
+    // period: "today" | "week" | "month" | "all"
+    Call<ResponseBody> getVehicleStats(@Path("vehicleId") String vehicleId, @Query("period") String period);
+
+    // NEW -- Vehicle Sharing. Matches the real VehicleSharesController routes.
+    @POST("api/VehicleShares/invite")
+    Call<ResponseBody> inviteVehicleShare(@Body InviteVehicleShareRequest request);
+
+    @POST("api/VehicleShares/{shareId}/respond")
+    Call<ResponseBody> respondToVehicleShare(@Path("shareId") String shareId, @Body RespondToVehicleShareRequest request);
+
+    @DELETE("api/VehicleShares/{shareId}")
+    Call<ResponseBody> revokeVehicleShare(@Path("shareId") String shareId);
+
+    @GET("api/VehicleShares/my-shares")
+    Call<ResponseBody> getMyVehicleShares(@Query("vehicleId") String vehicleId);
+
+    @GET("api/VehicleShares/shared-with-me")
+    Call<ResponseBody> getVehiclesSharedWithMe();
+
+    @GET("api/VehicleShares/pending-invites")
+    Call<ResponseBody> getPendingVehicleShareInvites();
 }

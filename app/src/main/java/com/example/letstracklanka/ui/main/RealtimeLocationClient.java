@@ -21,7 +21,7 @@ import io.reactivex.rxjava3.core.Single;
  * whoever registered a listener -- same shape as the existing polling result,
  * so callers can feed it into the exact same trailRenderer.updatePosition()/
  * updateUI() pipeline already built for the poll-based path.
- *
+
  * This does NOT replace polling -- it's meant to run ALONGSIDE a much-slower
  * fallback poll (see HomeActivity/VehiclesActivity wiring notes). If the push
  * connection drops for any reason (backgrounding, network blip, server
@@ -40,6 +40,9 @@ public class RealtimeLocationClient {
     private HubConnection hubConnection;
     private String pendingVehicleId;
     private LocationUpdateListener listener;
+    private final android.os.Handler reconnectHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final long RECONNECT_DELAY_MS = 5000;
+    private volatile boolean intentionalStop = false;
 
     /**
      * Builds the connection and starts it. Safe to call once per screen (Activity)
@@ -48,6 +51,7 @@ public class RealtimeLocationClient {
     public void connect(String vehicleId, LocationUpdateListener listener) {
         this.pendingVehicleId = vehicleId;
         this.listener = listener;
+        this.intentionalStop = false; // fresh connect -- any prior stop() no longer applies
 
         hubConnection = HubConnectionBuilder.create(HUB_URL)
                 .withAccessTokenProvider(getTokenSingle())
@@ -65,9 +69,26 @@ public class RealtimeLocationClient {
                         error -> Log.e(TAG, "Hub connection failed to start", error)
                 );
 
-        // Re-join the group automatically after any reconnect -- SignalR groups
-        // don't survive a dropped/reestablished connection on their own.
-        hubConnection.onClosed(exception -> Log.w(TAG, "Hub connection closed", exception));
+        // FIX: withAutomaticReconnect()/onReconnecting()/onReconnected()
+        // don't exist on this project's actual version of the SignalR
+        // Java client (confirmed via a real "cannot resolve method"
+        // build error) -- reverted that approach entirely. Reconnecting
+        // manually here instead, using only methods already proven to
+        // work in this exact file. Re-calling connect() naturally
+        // reuses the existing start().subscribe() success path above,
+        // which already joins the group -- no separate rejoin logic
+        // needed. Guarded against reconnecting after a DELIBERATE
+        // stop() via intentionalStop, since onClosed() fires in both
+        // cases and only one of them should trigger a retry.
+        hubConnection.onClosed(exception -> {
+            Log.w(TAG, "Hub connection closed", exception);
+            if (intentionalStop) {
+                Log.d(TAG, "Connection closed intentionally, not reconnecting.");
+                return;
+            }
+            Log.d(TAG, "Connection dropped unexpectedly, retrying in " + RECONNECT_DELAY_MS + "ms");
+            reconnectHandler.postDelayed(() -> connect(pendingVehicleId, listener), RECONNECT_DELAY_MS);
+        });
     }
 
     private void handlePayload(JsonObject json) {
@@ -108,6 +129,8 @@ public class RealtimeLocationClient {
     }
 
     public void stop() {
+        intentionalStop = true;
+        reconnectHandler.removeCallbacksAndMessages(null); // cancel any pending reconnect attempt
         if (hubConnection != null) {
             try {
                 hubConnection.stop().timeout(3, TimeUnit.SECONDS).blockingAwait();

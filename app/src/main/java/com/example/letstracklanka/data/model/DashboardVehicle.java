@@ -23,6 +23,13 @@ public class DashboardVehicle {
     @SerializedName("model")
     private String model;
 
+    // NEW -- needed to show a type-specific icon (car/SUV/van/truck/bike/
+    // tuk) instead of one generic icon for every vehicle.
+    @SerializedName("vehicleType")
+    private String vehicleType;
+
+    public String getVehicleType() { return vehicleType; }
+
     @SerializedName("deviceId")
     private String deviceId;
 
@@ -40,6 +47,30 @@ public class DashboardVehicle {
 
     @SerializedName("ignition")
     private Boolean ignition;
+
+    // NEW -- Vehicle Sharing. isShared is false/absent for vehicles the
+    // customer actually owns, true for entries merged in from an
+    // Accepted share. Used to hide owner-only actions (delete, edit,
+    // Immobilize) for shared vehicles -- "full access" for a shared
+    // viewer means live tracking and alerts, not the ability to modify
+    // or remove someone else's vehicle.
+    @SerializedName("isShared")
+    private Boolean isShared;
+
+    @SerializedName("ownerName")
+    private String ownerName;
+
+    // NEW -- the one, shared demo vehicle every customer can see,
+    // regardless of ownership/sharing records. Same reasoning as
+    // isShared above: hides owner-only actions (delete, edit, link
+    // device, Immobilize), since the demo vehicle is staff-managed only
+    // even for whoever the recorded owner happens to be.
+    @SerializedName("isDemo")
+    private Boolean isDemo;
+
+    public boolean isShared() { return isShared != null && isShared; }
+    public String getOwnerName() { return ownerName; }
+    public boolean isDemo() { return isDemo != null && isDemo; }
 
     public String getVehicleId() { return vehicleId; }
     public String getVehicleNumber() { return vehicleNumber; }

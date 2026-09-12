@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.vehicles;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +30,15 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
     private static final int COLOR_IDLE_PARKED = 0xFF0A2463;
     private static final int COLOR_NO_DEVICE = 0xFFE53935;   // red -- nothing assigned at all
     private static final int COLOR_OFFLINE = 0xFFF59E0B;     // amber -- device assigned but not currently reporting
+
+    // FIX: real dead end found during audit -- the favorite star was
+    // findViewById'd but never given a click listener or connected to
+    // any data, always showed empty, did nothing on tap. No backend
+    // concept of "favorite vehicle" exists (would need a new DB column/
+    // migration/endpoint -- a real new feature, not a bug fix), so this
+    // is local, per-device persistence, matching the exact same pattern
+    // already proven for SettingsActivity's notification toggles.
+    private static final String FAVORITES_PREFS_NAME = "ShaloTrackVehicleFavorites";
 
     public interface OnVehicleClickListener {
         void onVehicleClick(DashboardVehicle vehicle);
@@ -132,6 +143,14 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
 
         holder.tvName.setText((vehicle.getMake() + " " + vehicle.getModel()).trim());
 
+        // NEW -- real dead-end-adjacent gap found: every vehicle showed
+        // the exact same generic car icon regardless of type. Defaults to
+        // the regular car icon for null/unrecognized types (vehicles
+        // created before this field existed, or left blank).
+        if (holder.imgIcon != null) {
+            holder.imgIcon.setImageResource(getIconForVehicleType(vehicle.getVehicleType()));
+        }
+
         String statusText;
         int statusColor;
         String gpsLinkText;
@@ -161,7 +180,28 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         // timestamp field (checked the actual model, not guessed). Using
         // plate + GPS-link status instead, which we do have real data for.
         String plate = vehicle.getVehicleNumber() != null ? vehicle.getVehicleNumber() : "";
-        holder.tvCaption.setText(plate + " \u2022 " + gpsLinkText);
+
+        // NEW -- Vehicle Sharing. A shared entry shows who it's shared by
+        // instead of the GPS-link status, and can't be swiped-to-remove --
+        // that's an owner-only action, and offering it here would just
+        // fail against the backend's own ownership check anyway (better
+        // to not offer it at all than show a button that errors).
+        // FIX: extended to also cover the one, shared demo vehicle every
+        // customer can see -- same reasoning, staff-managed only.
+        if (vehicle.isDemo()) {
+            holder.tvCaption.setText(plate + " \u2022 Shalotrack Demo Vehicle");
+            holder.btnSwipeRemove.setVisibility(View.GONE);
+            holder.foregroundRow.setOnTouchListener(null);
+        } else if (vehicle.isShared()) {
+            String ownerName = vehicle.getOwnerName() != null ? vehicle.getOwnerName() : "someone";
+            holder.tvCaption.setText(plate + " \u2022 Shared by " + ownerName);
+            holder.btnSwipeRemove.setVisibility(View.GONE);
+            holder.foregroundRow.setOnTouchListener(null);
+        } else {
+            holder.tvCaption.setText(plate + " \u2022 " + gpsLinkText);
+            holder.btnSwipeRemove.setVisibility(View.VISIBLE);
+            holder.foregroundRow.setOnTouchListener(holder.swipeController);
+        }
 
         holder.foregroundRow.setOnClickListener(v -> {
             if (clickListener != null) clickListener.onVehicleClick(vehicle);
@@ -171,6 +211,24 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
             holder.swipeController.close();
             if (removeListener != null) removeListener.onRemoveClick(vehicle);
         });
+
+        // NEW: real favorite toggle, was previously unwired.
+        String vehicleId = vehicle.getVehicleId();
+        SharedPreferences favPrefs = holder.itemView.getContext()
+                .getSharedPreferences(FAVORITES_PREFS_NAME, Context.MODE_PRIVATE);
+        boolean isFavorite = vehicleId != null && favPrefs.getBoolean(vehicleId, false);
+        holder.imgFavorite.setImageResource(isFavorite
+                ? android.R.drawable.btn_star_big_on
+                : android.R.drawable.btn_star_big_off);
+
+        holder.imgFavorite.setOnClickListener(v -> {
+            if (vehicleId == null) return;
+            boolean newState = !favPrefs.getBoolean(vehicleId, false);
+            favPrefs.edit().putBoolean(vehicleId, newState).apply();
+            holder.imgFavorite.setImageResource(newState
+                    ? android.R.drawable.btn_star_big_on
+                    : android.R.drawable.btn_star_big_off);
+        });
     }
 
     @Override
@@ -178,9 +236,27 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         return vehicles == null ? 0 : vehicles.size();
     }
 
+    // Matches the real spinner options in AddVehicleActivity exactly
+    // ("Car", "SUV", "Van", "Truck", "Bike", "Tuk"), case-insensitive for
+    // safety. MDI has no dedicated SUV silhouette (reuses the car shape
+    // with a distinct tint) or tuk-tuk/rickshaw icon at all (hand-built,
+    // not from a verified icon library) -- both confirmed and decided
+    // directly rather than guessed at.
+    private static int getIconForVehicleType(String vehicleType) {
+        if (vehicleType == null) return R.drawable.ic_car;
+        switch (vehicleType.trim().toLowerCase(java.util.Locale.US)) {
+            case "suv": return R.drawable.ic_car_suv;
+            case "van": return R.drawable.ic_type_van;
+            case "truck": return R.drawable.ic_type_truck;
+            case "bike": return R.drawable.ic_type_bike;
+            case "tuk": return R.drawable.ic_type_tuk;
+            default: return R.drawable.ic_car;
+        }
+    }
+
     static class VehicleViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvStatus, tvCaption;
-        ImageView imgFavorite;
+        ImageView imgFavorite, imgIcon;
 
         // Package-visible (not private): the adapter needs direct access
         // both to attach the touch listener at creation time and to close
@@ -198,6 +274,7 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
             tvStatus = itemView.findViewById(R.id.tvVehicleListStatus);
             tvCaption = itemView.findViewById(R.id.tvVehicleListCaption);
             imgFavorite = itemView.findViewById(R.id.imgVehicleListFavorite);
+            imgIcon = itemView.findViewById(R.id.imgVehicleListIcon);
         }
     }
 }

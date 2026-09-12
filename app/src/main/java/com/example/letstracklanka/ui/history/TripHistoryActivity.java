@@ -8,10 +8,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.util.Pair;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,9 +21,6 @@ import com.example.letstracklanka.data.model.TripsReportResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
-import com.google.android.material.datepicker.CalendarConstraints;
-import com.google.android.material.datepicker.DateValidatorPointBackward;
-import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -68,7 +65,14 @@ public class TripHistoryActivity extends AppCompatActivity {
     public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
     public static final String EXTRA_VEHICLE_NAME = "extra_vehicle_name";
 
-    private static final int DEFAULT_RANGE_DAYS = 7;
+    // Was DEFAULT_RANGE_DAYS = 7 (too narrow), briefly changed to 365*5
+    // (dangerously wide -- GetTripsSummaryAsync processes raw GPS points
+    // to derive trips, so one request covering years of data risks
+    // scanning millions of points server-side, not just being slow to
+    // render). Real fix: small initial window, loaded incrementally as
+    // the user actually scrolls, never one giant request.
+    private static final int INITIAL_RANGE_DAYS = 30;
+    private static final int LOAD_MORE_CHUNK_DAYS = 30;
 
     private ApiService mainApiService;
     private ShaloTrackApi trackingApi;
@@ -84,6 +88,16 @@ public class TripHistoryActivity extends AppCompatActivity {
 
     private Date rangeFrom;
     private Date rangeTo;
+
+    // Incremental loading state -- accumulated across multiple fetches
+    // rather than replacing the list each time. isCustomRangeSelected
+    // stops auto-loading-further-back once the user has explicitly picked
+    // their own range via the calendar picker -- they asked for exactly
+    // that period, not an ever-expanding one.
+    private final List<TripSummary> allLoadedTrips = new ArrayList<>();
+    private boolean isLoadingMore = false;
+    private boolean hasMoreToLoad = true;
+    private boolean isCustomRangeSelected = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,40 +141,59 @@ public class TripHistoryActivity extends AppCompatActivity {
         adapter = new TripHistoryAdapter(this::openTripDetail, trackingApi);
         adapter.setVehicleId(selectedVehicleId);
         rvTripHistory.setAdapter(adapter);
+
+        // Real chunked loading -- fires loadOlderTrips() when the user
+        // scrolls near the bottom, instead of ever fetching years of data
+        // in one request.
+        rvTripHistory.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                if (dy <= 0 || isLoadingMore || !hasMoreToLoad || isCustomRangeSelected) return;
+                LinearLayoutManager lm = (LinearLayoutManager) recyclerView.getLayoutManager();
+                if (lm == null) return;
+                int lastVisible = lm.findLastVisibleItemPosition();
+                int totalCount = adapter.getItemCount();
+                if (lastVisible >= totalCount - 5) {
+                    loadOlderTrips();
+                }
+            }
+        });
     }
 
     private void setDefaultRange() {
         Calendar cal = Calendar.getInstance();
         rangeTo = cal.getTime();
-        cal.add(Calendar.DAY_OF_YEAR, -DEFAULT_RANGE_DAYS);
+        cal.add(Calendar.DAY_OF_YEAR, -INITIAL_RANGE_DAYS);
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         rangeFrom = cal.getTime();
     }
 
+    // Replaced the previous raw MaterialDatePicker calendar grid with a
+    // structured Month -> Week -> Day drill-down, per explicit request.
+    // Selecting a day sets that single day as the range, using the same
+    // isCustomRangeSelected + fetchTrips() path already established for
+    // the old range picker.
     private void showRangePicker() {
-        CalendarConstraints constraints = new CalendarConstraints.Builder()
-                .setValidator(DateValidatorPointBackward.now())
-                .build();
+        DateDrillDownBottomSheet drillDown = new DateDrillDownBottomSheet(this, selectedDay -> {
+            Calendar startOfDay = (Calendar) selectedDay.clone();
+            startOfDay.set(Calendar.HOUR_OF_DAY, 0);
+            startOfDay.set(Calendar.MINUTE, 0);
+            startOfDay.set(Calendar.SECOND, 0);
 
-        MaterialDatePicker<Pair<Long, Long>> picker = MaterialDatePicker.Builder.dateRangePicker()
-                .setTitleText("Select date range")
-                .setCalendarConstraints(constraints)
-                .build();
+            Calendar endOfDay = (Calendar) selectedDay.clone();
+            endOfDay.set(Calendar.HOUR_OF_DAY, 23);
+            endOfDay.set(Calendar.MINUTE, 59);
+            endOfDay.set(Calendar.SECOND, 59);
 
-        picker.addOnPositiveButtonClickListener(selection -> {
-            rangeFrom = new Date(selection.first);
-            Calendar endCal = Calendar.getInstance();
-            endCal.setTimeInMillis(selection.second);
-            endCal.set(Calendar.HOUR_OF_DAY, 23);
-            endCal.set(Calendar.MINUTE, 59);
-            endCal.set(Calendar.SECOND, 59);
-            rangeTo = endCal.getTime();
+            rangeFrom = startOfDay.getTime();
+            rangeTo = endOfDay.getTime();
+            isCustomRangeSelected = true;
+            allLoadedTrips.clear();
             fetchTrips();
         });
-
-        picker.show(getSupportFragmentManager(), "trip_history_date_range_picker");
+        drillDown.show();
     }
 
     private void fetchTrips() {
@@ -177,8 +210,13 @@ public class TripHistoryActivity extends AppCompatActivity {
                     if (response.isSuccessful() && body != null) {
                         TripsReportResponse report = extractObject(body.string(), TripsReportResponse.class);
                         List<TripSummary> trips = report != null ? report.getTrips() : null;
-                        if (trips != null && !trips.isEmpty()) {
-                            adapter.updateTrips(trips);
+
+                        allLoadedTrips.clear();
+                        if (trips != null) allLoadedTrips.addAll(trips);
+                        hasMoreToLoad = !isCustomRangeSelected; // a custom pick is exactly what was asked for, nothing more to load
+
+                        if (!allLoadedTrips.isEmpty()) {
+                            adapter.updateTrips(allLoadedTrips);
                             hideErrorBanner();
                         } else {
                             adapter.updateTrips(new ArrayList<>());
@@ -198,6 +236,61 @@ public class TripHistoryActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("TripHistory", "fetchTrips network error", t);
                 showErrorBanner("Network error — check your connection.", TripHistoryActivity.this::fetchTrips);
+            }
+        });
+    }
+
+    // Extends the window another LOAD_MORE_CHUNK_DAYS further back and
+    // fetches just that smaller slice, appending to what's already shown
+    // -- never re-fetches the whole accumulated range. A failure here
+    // shows a quiet Toast rather than the full-screen error banner, since
+    // the trips already on screen are still valid and shouldn't be hidden
+    // by a failed "load more" attempt.
+    private void loadOlderTrips() {
+        if (rangeFrom == null) return;
+        isLoadingMore = true;
+
+        Date newTo = new Date(rangeFrom.getTime() - 1000); // just before the current window starts
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(rangeFrom);
+        cal.add(Calendar.DAY_OF_YEAR, -LOAD_MORE_CHUNK_DAYS);
+        Date newFrom = cal.getTime();
+
+        String fromIso = toIsoUtc(newFrom);
+        String toIso = toIsoUtc(newTo);
+
+        trackingApi.getTripsSummary(selectedVehicleId, fromIso, toIso).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                isLoadingMore = false;
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        TripsReportResponse report = extractObject(body.string(), TripsReportResponse.class);
+                        List<TripSummary> olderTrips = report != null ? report.getTrips() : null;
+
+                        rangeFrom = newFrom; // window only advances after a successful fetch
+
+                        if (olderTrips != null && !olderTrips.isEmpty()) {
+                            allLoadedTrips.addAll(olderTrips);
+                            adapter.updateTrips(allLoadedTrips);
+                        }
+                        // An empty chunk doesn't mean "no more ever" -- an
+                        // idle 30-day stretch is normal. Keep hasMoreToLoad
+                        // true and let the next scroll try the next chunk.
+                    } else {
+                        Log.w("TripHistory", "loadOlderTrips failed, code " + response.code());
+                        Toast.makeText(TripHistoryActivity.this, "Couldn't load older trips.", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    Log.e("TripHistory", "loadOlderTrips parse error", e);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                isLoadingMore = false;
+                Log.e("TripHistory", "loadOlderTrips network error", t);
+                Toast.makeText(TripHistoryActivity.this, "Network error \u2014 couldn't load older trips.", Toast.LENGTH_SHORT).show();
             }
         });
     }

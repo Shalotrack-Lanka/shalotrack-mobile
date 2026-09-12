@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ShaloTrack splash screen icon — animated via avd_shalotrack_splash.xml.
+
+    Design intent:
+    ─────────────
+    • Navy "S" shield silhouette — brand navy #081E3D
+    • Orange sweeping road drawn via trimPathEnd animation (~500 ms)
+    • Signal arcs (WiFi/GPS) fading in sequentially (500–950 ms)
+    • Small perspective car on the road
+    Total AVD animation time: ~950 ms (matches windowSplashScreenAnimationDuration)
+
+    SplashScreen API icon sizing rules (enforced by the system):
+    ─────────────────────────────────────────────────────────────
+    The system wraps this in an adaptive icon container:
+      • Outer viewport = 108 × 108 dp  (this file)
+      • Safe zone      = 72 × 72 dp    (centre 2/3 — keep all important shapes here)
+    The system applies a circular mask and scales to fit. Keep the shield and
+    car centred in the 72 dp safe zone (roughly x:18–90, y:18–90 in this viewport).
+
+    Color corrections (vs original):
+      • Orange changed from #FF5500 → #FA6908 (brand token, matches colors.xml)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ── 1. Navy shield / "S" silhouette ──────────────────────── -->
+    <path
+        android:name="navy_s_shape"
+        android:fillColor="#081E3D"
+        android:pathData="M 54,10
+                  C 34,10 20,24 20,46
+                  C 20,60 30,72 38,82
+                  L 46,68
+                  C 40,60 32,52 32,44
+                  C 32,30 42,20 54,20
+                  C 66,20 76,30 76,44
+                  C 76,52 70,58 60,62
+                  L 72,70
+                  C 84,62 88,52 88,44
+                  C 88,24 74,10 54,10 Z" />
+
+    <!-- ── 2. Orange perspective road — trimPathEnd animated 0→1 ── -->
+    <!--    Kept inside the 18-90 safe zone so nothing clips under mask -->
+    <path
+        android:name="orange_road"
+        android:fillColor="#FA6908"
+        android:strokeColor="#FA6908"
+        android:strokeWidth="1"
+        android:trimPathEnd="0"
+        android:pathData="M 54,98
+                  C 54,98 26,66 42,56
+                  C 51,50 66,44 66,34
+                  C 66,27 60,23 52,23
+                  C 46,23 40,26 36,31
+                  L 27,23
+                  C 34,16 44,12 54,12
+                  C 70,12 78,20 78,32
+                  C 78,46 58,54 48,60
+                  C 38,66 54,98 54,98 Z" />
+
+    <!-- ── 3. White lane divider dashes ─────────────────────────── -->
+    <path
+        android:name="road_lane_lines"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M 54,96 C 50,82 43,70 46,62" />
+
+    <!-- ── 4. Perspective car silhouette ─────────────────────────  -->
+    <!-- Body -->
+    <path
+        android:name="car_body"
+        android:fillColor="#081E3D"
+        android:pathData="M 45,53
+                  C 45,53 47,46 54,46
+                  C 61,46 63,53 63,53
+                  L 65,55
+                  C 66,57 65,59 63,59
+                  L 45,59
+                  C 43,59 42,57 43,55 Z" />
+
+    <!-- Windshield -->
+    <path
+        android:name="car_windshield"
+        android:fillColor="#FFFFFF"
+        android:pathData="M 48,52 C 49,48 52,47 54,47 C 56,47 59,48 60,52 Z" />
+
+    <!-- Left headlight -->
+    <path
+        android:name="car_headlight_left"
+        android:fillColor="#FA6908"
+        android:pathData="M 44,55 L 48,55 L 47,57 L 44,56 Z" />
+
+    <!-- Right headlight -->
+    <path
+        android:name="car_headlight_right"
+        android:fillColor="#FA6908"
+        android:pathData="M 60,55 L 64,55 L 64,56 L 61,57 Z" />
+
+    <!-- ── 5. Signal arcs — faded in sequentially via AVD ─────────  -->
+    <!-- Inner arc (fades in at 500 ms) -->
+    <path
+        android:name="signal_arc_1"
+        android:strokeColor="#FA6908"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:strokeAlpha="0"
+        android:pathData="M 74,22 C 78,26 80,30 80,34" />
+
+    <!-- Middle arc (fades in at 650 ms) -->
+    <path
+        android:name="signal_arc_2"
+        android:strokeColor="#FA6908"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:strokeAlpha="0"
+        android:pathData="M 80,16 C 86,21 88,28 88,34" />
+
+    <!-- Outer arc (fades in at 800 ms) -->
+    <path
+        android:name="signal_arc_3"
+        android:strokeColor="#FA6908"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:strokeAlpha="0"
+        android:pathData="M 86,10 C 94,17 96,26 96,34" />
+
+</vector>

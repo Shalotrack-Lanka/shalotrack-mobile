@@ -1,20 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Splash screen layout — custom animation, NOT installSplashScreen().
+    Theme.ShaloTrack.Starting fires the navy background instantly on window
+    open before setContentView, eliminating any white flash.
+    SplashActivity drives all animation via ObjectAnimator.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF">
+    android:background="@color/splash_background">
 
-    <!-- logo-->
+    <!--
+        Pulse ring — expands outward from behind the logo.
+        Sits slightly larger than the logo so it appears to radiate from it.
+        Animated in SplashActivity.startRingPulse().
+    -->
     <ImageView
-        android:id="@+id/imgSimpleLogo"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:id="@+id/splashPulseRing"
+        android:layout_width="240dp"
+        android:layout_height="240dp"
+        android:alpha="0"
+        android:src="@drawable/splash_pulse_ring"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.40" />
+
+    <!--
+        ShaloTrack logo — the new circular logo PNG (white circle + navy S + orange elements).
+        Starts at alpha=0, scale=0.3. Animated to full size with overshoot in SplashActivity.
+        elevation gives a subtle drop shadow so the white circle lifts off the navy bg.
+    -->
+    <ImageView
+        android:id="@+id/splashLogo"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:alpha="0"
+        android:elevation="8dp"
+        android:outlineProvider="bounds"
+        android:scaleType="fitCenter"
+        android:scaleX="0.3"
+        android:scaleY="0.3"
         android:src="@drawable/ic_logo_simple"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.40" />
+
+    <!-- "ShaloTrack" wordmark — fades in after logo settles -->
+    <TextView
+        android:id="@+id/splashWordmark"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:alpha="0"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.10"
+        android:text="ShaloTrack"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/splashLogo" />
+
+    <!-- Tagline — fades in after wordmark -->
+    <TextView
+        android:id="@+id/splashTagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:alpha="0"
+        android:fontFamily="sans-serif"
+        android:letterSpacing="0.06"
+        android:text="Always Connected"
+        android:textColor="#80FFFFFF"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/splashWordmark" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

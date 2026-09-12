@@ -1,189 +1,251 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<!-- FIX: wrapped in a real DrawerLayout so the "Menu" bottom-nav tab can
+     open an actual, working drawer directly on this screen, previously
+     it expanded bottomSheetCircles (the "no circles added" empty-state
+     box), which had nothing to do with a menu at all. Wiring is done via
+     DrawerMenuHelper.wireDrawer(), shared with Home/Vehicles/Alerts/Tags
+     so this isn't duplicated per screen. -->
+<androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fitsSystemWindows="true">
+    android:layout_height="match_parent">
 
-    <!-- 1. Background Map -->
-    <fragment
-        android:id="@+id/mapCircles"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavBar" />
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
 
-    <!-- 2. Dark Overlay -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="#99000000"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavBar" />
-
-    <!-- 3. Main UI Content -->
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottomNavBar">
-
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <!-- 1. Background Map -->
+        <fragment
+            android:id="@+id/mapCircles"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:paddingBottom="150dp">
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/bottomNavBar" />
 
-            <ImageView
-                android:id="@+id/imgCirclesIcon"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_marginTop="80dp"
-                android:src="@drawable/ic_radar"
-                app:tint="@color/white"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
-            <TextView
-                android:id="@+id/tvMainTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="You currently have no Circles.\nPlease create your first Circle to display it here"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textAlignment="center"
-                android:layout_marginTop="16dp"
-                app:layout_constraintTop_toBottomOf="@id/imgCirclesIcon"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCreateCircle"
-                android:layout_width="200dp"
-                android:layout_height="55dp"
-                android:text="Create Circle"
-                android:textColor="#000000"
-                android:textSize="16sp"
-                android:layout_marginTop="24dp"
-                app:backgroundTint="#EBF0FF"
-                app:cornerRadius="20dp"
-                app:layout_constraintTop_toBottomOf="@id/tvMainTitle"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
-            <TextView
-                android:id="@+id/tvOr"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="or"
-                android:textColor="@color/white"
-                android:layout_marginTop="16dp"
-                app:layout_constraintTop_toBottomOf="@id/btnCreateCircle"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnWatchHelp"
-                android:layout_width="200dp"
-                android:layout_height="55dp"
-                android:text="Watch Help Videos"
-                android:textColor="#000000"
-                android:textSize="16sp"
-                android:layout_marginTop="16dp"
-                app:backgroundTint="#EBF0FF"
-                app:cornerRadius="20dp"
-                app:layout_constraintTop_toBottomOf="@id/tvOr"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- Right Side Plus FAB -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabAddCircle"
-            android:layout_width="wrap_content"
+        <!-- NEW: shown only while placing a new geofence's center. -->
+        <TextView
+            android:id="@+id/tvPlacementHint"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="24dp"
-            android:layout_marginBottom="120dp"
-            app:backgroundTint="@color/white"
-            app:tint="#1877F2"
-            android:src="@android:drawable/ic_input_add" />
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:padding="12dp"
+            android:text="Tap the map to place the center of your geofence"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/bg_stat_card"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Bottom Sheet -->
-        <LinearLayout
-            android:id="@+id/bottomSheetCircles"
+        <!-- 2. Dark Overlay -->
+        <!-- FIX: real, severe bug. This had no ID at all, so it was
+             never toggled anywhere in Java. It permanently covered the
+             map with "You currently have no Circles" messaging even
+             after real geofences existed, since nothing ever hid it. -->
+        <View
+            android:id="@+id/viewDarkOverlay"
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:orientation="vertical"
-            android:background="@drawable/bottom_sheet_bg"
-            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
-            app:behavior_hideable="false"
-            app:behavior_peekHeight="120dp">
+            android:layout_height="0dp"
+            android:background="#99000000"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/bottomNavBar" />
 
-            <View
-                android:layout_width="40dp"
-                android:layout_height="4dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:background="#CCCCCC" />
+        <!-- 3. Main UI Content -->
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/bottomNavBar">
 
-            <TextView
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/layoutEmptyStateOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="150dp">
+
+                <ImageView
+                    android:id="@+id/imgCirclesIcon"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_marginTop="80dp"
+                    android:src="@drawable/ic_radar"
+                    app:tint="@color/white"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <TextView
+                    android:id="@+id/tvMainTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="You currently have no Circles.\nPlease create your first Circle to display it here"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textAlignment="center"
+                    android:layout_marginTop="16dp"
+                    app:layout_constraintTop_toBottomOf="@id/imgCirclesIcon"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCreateCircle"
+                    android:layout_width="200dp"
+                    android:layout_height="55dp"
+                    android:text="Create Circle"
+                    android:textColor="#000000"
+                    android:textSize="16sp"
+                    android:layout_marginTop="24dp"
+                    app:backgroundTint="#EBF0FF"
+                    app:cornerRadius="20dp"
+                    app:layout_constraintTop_toBottomOf="@id/tvMainTitle"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <TextView
+                    android:id="@+id/tvOr"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="or"
+                    android:textColor="@color/white"
+                    android:layout_marginTop="16dp"
+                    app:layout_constraintTop_toBottomOf="@id/btnCreateCircle"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnWatchHelp"
+                    android:layout_width="200dp"
+                    android:layout_height="55dp"
+                    android:text="Watch Help Videos"
+                    android:textColor="#000000"
+                    android:textSize="16sp"
+                    android:layout_marginTop="16dp"
+                    app:backgroundTint="#EBF0FF"
+                    app:cornerRadius="20dp"
+                    app:layout_constraintTop_toBottomOf="@id/tvOr"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- FIX: real, still-broken bug. A fixed bottom margin only
+                 ever worked for one specific list length. With 2+
+                 geofences the bottom sheet needs more room and the FAB
+                 started overlapping the list again. Moved to top-right,
+                 which never conflicts with the bottom sheet's content
+                 regardless of how many geofences exist. -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fabAddCircle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginTop="30dp"
-                android:text="There are no circles added to your account!"
-                android:textColor="#888888"
-                android:textSize="15sp" />
+                android:layout_gravity="top|end"
+                android:layout_margin="24dp"
+                app:backgroundTint="@color/white"
+                app:tint="#1877F2"
+                android:src="@android:drawable/ic_input_add" />
+
+            <!-- Bottom Sheet -->
+            <LinearLayout
+                android:id="@+id/bottomSheetCircles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="120dp"
+                android:orientation="vertical"
+                android:background="@drawable/bottom_sheet_bg"
+                app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+                app:behavior_hideable="false"
+                app:behavior_peekHeight="120dp">
+
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="4dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:background="#CCCCCC" />
+
+                <!-- NEW: real list, shown once there's at least one
+                     geofence; the "no circles" text below stays as the
+                     genuine empty state. -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerGeofences"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="320dp"
+                    android:paddingHorizontal="8dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvNoCirclesBottomSheet"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="30dp"
+                    android:text="There are no circles added to your account!"
+                    android:textColor="#888888"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+        <!-- 4. Bottom Navigation Bar (Circles is active) -->
+        <LinearLayout
+            android:id="@+id/bottomNavBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="65dp"
+            android:orientation="horizontal"
+            android:background="#FFFFFF"
+            android:elevation="16dp"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/nav_vehicles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/nav_tags" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_tag" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <!-- Circles is Active (Blue) -->
+            <LinearLayout android:id="@+id/nav_circles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#1976D2"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/nav_alerts" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/nav_menu" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+            </LinearLayout>
         </LinearLayout>
 
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- 4. Bottom Navigation Bar (Circles is active) -->
-    <LinearLayout
-        android:id="@+id/bottomNavBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="65dp"
-        android:orientation="horizontal"
-        android:background="#FFFFFF"
-        android:elevation="16dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+    <include
+        layout="@layout/layout_drawer_menu"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start" />
 
-        <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_home" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <LinearLayout android:id="@+id/nav_vehicles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_car" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vehicles" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <LinearLayout android:id="@+id/nav_tags" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_tag" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tags" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <!-- Circles is Active (Blue) -->
-        <LinearLayout android:id="@+id/nav_circles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_radar" app:tint="#1976D2"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Circles" android:textSize="11sp" android:textColor="#1976D2" android:textStyle="bold" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <LinearLayout android:id="@+id/nav_alerts" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_alert" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alerts" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-
-        <LinearLayout android:id="@+id/nav_menu" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu" app:tint="#757575"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Menu" android:textSize="11sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
-        </LinearLayout>
-    </LinearLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

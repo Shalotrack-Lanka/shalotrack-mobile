@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Letstrack-style flat row (from real reference screenshots): no card
-     border/elevation/per-row corner radius, just a continuous list with a
-     hairline divider between rows. Swipe-to-reveal Remove still lives
-     behind it (Letstrack's own row shows no delete affordance at all,
-     which lines up with our existing decision to keep Remove off the
-     permanent face). Heart icon replaces the old star, purely visual
-     parity, still decorative/unwired, same as the star was before it. -->
+<!-- Rounded-card style, confirmed via mockup comparison against the
+     previous flat Letstrack-style row. Each row stays its own
+     independent card (not a shared continuous card with dividers)
+     because the swipe-to-remove mechanism needs the foreground row's
+     own opaque background to properly cover the red reveal layer
+     underneath, a continuous card with dividers would let that red
+     layer show through the gaps between rows. Swipe structure, view
+     IDs, and all existing logic are otherwise completely unchanged. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="6dp">
 
     <!-- Static background reveal layer. Never translated, only the
-         foreground row on top of it moves. Full-bleed (no horizontal
-         margin) to match the flat, edge-to-edge list style. -->
+         foreground row on top of it moves. Rounded to match the
+         foreground card so no square corner peeks out from behind it
+         mid-swipe. -->
     <LinearLayout
         android:id="@+id/layoutVehicleListSwipeBg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/status_danger"
+        android:background="@drawable/bg_swipe_remove_rounded"
         android:orientation="horizontal"
         android:gravity="center_vertical|end">
 
@@ -50,21 +54,21 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Foreground: flat row, no MaterialCardView. -->
+    <!-- Foreground: now its own rounded card. -->
     <LinearLayout
         android:id="@+id/layoutVehicleListForeground"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/surface_white">
+        android:background="@drawable/bg_stat_card">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="14dp">
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="16dp">
 
             <androidx.cardview.widget.CardView
                 android:layout_width="48dp"
@@ -136,13 +140,6 @@
                 app:tint="#BDBDBD" />
 
         </LinearLayout>
-
-        <!-- Full-bleed hairline divider, matching the flat reference list
-             (no inset under the icon/text, spans edge to edge). -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#F0F0F0" />
 
     </LinearLayout>
 

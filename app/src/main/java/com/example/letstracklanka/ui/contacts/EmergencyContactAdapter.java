@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.contacts;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,6 +48,7 @@ public class EmergencyContactAdapter extends RecyclerView.Adapter<EmergencyConta
 
         holder.tvName.setText(contact.getName());
         holder.tvPhone.setText(contact.getPhoneNumber());
+        holder.tvInitials.setText(computeInitials(contact.getName()));
 
         if (contact.getRelationship() != null && !contact.getRelationship().trim().isEmpty()) {
             holder.tvRelationship.setText(contact.getRelationship());
@@ -57,6 +60,14 @@ public class EmergencyContactAdapter extends RecyclerView.Adapter<EmergencyConta
         holder.btnDelete.setOnClickListener(v -> {
             if (deleteListener != null) deleteListener.onDeleteClick(contact);
         });
+
+        // NEW -- matches the approved mockup's tap-to-call button, same
+        // ACTION_DIAL pattern already used in the post-SOS call sheet.
+        holder.btnCall.setOnClickListener(v -> {
+            Intent dialIntent = new Intent(Intent.ACTION_DIAL);
+            dialIntent.setData(Uri.parse("tel:" + contact.getPhoneNumber()));
+            v.getContext().startActivity(dialIntent);
+        });
     }
 
     @Override
@@ -64,16 +75,40 @@ public class EmergencyContactAdapter extends RecyclerView.Adapter<EmergencyConta
         return contacts.size();
     }
 
+    // First letter of the first two real words (e.g. "Sister Malsha" ->
+    // "SM"), or the first two letters if there's only one word (e.g.
+    // "Dad" -> "DA"). Filters out empty tokens from stray punctuation
+    // like a dash-separated name ("Sister - Malsha").
+    private static String computeInitials(String name) {
+        if (name == null || name.trim().isEmpty()) return "?";
+        String[] words = name.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+        for (String word : words) {
+            String cleaned = word.replaceAll("[^a-zA-Z]", "");
+            if (!cleaned.isEmpty()) {
+                initials.append(Character.toUpperCase(cleaned.charAt(0)));
+                if (initials.length() == 2) break;
+            }
+        }
+        if (initials.length() == 1 && words[0].replaceAll("[^a-zA-Z]", "").length() > 1) {
+            String firstWordCleaned = words[0].replaceAll("[^a-zA-Z]", "");
+            initials.append(Character.toUpperCase(firstWordCleaned.charAt(1)));
+        }
+        return initials.length() > 0 ? initials.toString() : "?";
+    }
+
     static class ContactViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName, tvPhone, tvRelationship;
-        ImageView btnDelete;
+        TextView tvName, tvPhone, tvRelationship, tvInitials;
+        ImageView btnDelete, btnCall;
 
         ContactViewHolder(@NonNull View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tvContactName);
             tvPhone = itemView.findViewById(R.id.tvContactPhone);
             tvRelationship = itemView.findViewById(R.id.tvContactRelationship);
+            tvInitials = itemView.findViewById(R.id.tvContactInitials);
             btnDelete = itemView.findViewById(R.id.btnDeleteContact);
+            btnCall = itemView.findViewById(R.id.btnCallContact);
         }
     }
 }

@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.letstracklanka.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -76,21 +77,38 @@ public class EmailInputActivity extends AppCompatActivity {
         btnContinue.setEnabled(false);
         Toast.makeText(this, "Requesting verification for: " + email, Toast.LENGTH_SHORT).show();
 
-        user.verifyBeforeUpdateEmail(email).addOnCompleteListener(task -> {
+        // Configure ActionCodeSettings for App Links
+        ActionCodeSettings actionCodeSettings = ActionCodeSettings.newBuilder()
+                .setUrl("https://shalotrack.com/verified") // Fallback URL for web
+                .setHandleCodeInApp(true)
+                .setAndroidPackageName("com.example.letstracklanka", true, null)
+                .build();
+
+        user.verifyBeforeUpdateEmail(email, actionCodeSettings).addOnCompleteListener(task -> {
             btnContinue.setEnabled(true);
             if (task.isSuccessful()) {
                 showVerificationDialog();
                 startChecking();
             } else {
+                // If verifyBeforeUpdateEmail fails, try simple update + verification
                 user.updateEmail(email).addOnCompleteListener(linkTask -> {
                     if (linkTask.isSuccessful()) {
-                        user.sendEmailVerification();
+                        user.sendEmailVerification(actionCodeSettings);
                         showVerificationDialog();
                         startChecking();
                     } else {
+                        // FIX: real, severe bypass found during the
+                        // pre-launch auth review -- this used to call
+                        // moveToProcessing() here, completing
+                        // registration with ZERO email verification
+                        // ever having happened. Now genuinely blocks and
+                        // lets the user retry instead. This is also the
+                        // ONLY path a user could hit this failure
+                        // through in normal use (transient Firebase
+                        // errors, rate limits) -- there's no legitimate
+                        // reason to let it silently succeed.
                         Log.e("EMAIL_FIX", "Firebase blocked email: " + task.getException());
-                        Toast.makeText(this, "Email service busy. Moving to sync...", Toast.LENGTH_LONG).show();
-                        moveToProcessing();
+                        Toast.makeText(this, "Couldn't send verification email. Please try again.", Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -187,7 +205,25 @@ public class EmailInputActivity extends AppCompatActivity {
         dialog.show();
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (dialog.isShowing()) dialog.dismiss();
-            moveToProcessing();
+
+            // FIX: real, critical dependency for the new backend
+            // enforcement -- AuthInterceptor calls getIdToken(false)
+            // (no forced refresh), reusing whatever's already cached.
+            // Without forcing a refresh here, the token used for the
+            // registration call would still be the one issued at phone
+            // sign-in, before email verification ever happened, and
+            // would still show emailVerified=false even though the user
+            // genuinely just verified it. Proceeds regardless of this
+            // refresh's own outcome -- the backend's own check is the
+            // final, authoritative gate either way, and a transient
+            // failure here shouldn't permanently block a legitimately-
+            // verified user.
+            FirebaseUser user = mAuth.getCurrentUser();
+            if (user != null) {
+                user.getIdToken(true).addOnCompleteListener(task -> moveToProcessing());
+            } else {
+                moveToProcessing();
+            }
         }, 2000);
     }
 

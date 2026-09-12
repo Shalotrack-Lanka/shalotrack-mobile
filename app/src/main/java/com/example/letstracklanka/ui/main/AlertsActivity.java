@@ -17,6 +17,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -41,8 +43,18 @@ import retrofit2.Response;
 
 public class AlertsActivity extends AppCompatActivity {
 
+    public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
+    public static final String EXTRA_VEHICLE_NAME = "extra_vehicle_name";
+
     // API Service for making network calls
     private ApiService mainApiService;
+
+    // NEW: null means "all my vehicles" -- the existing bottom-nav Alerts
+    // tab behavior, unchanged. A real value means this screen was opened
+    // for one specific vehicle (e.g. from its detail panel) and only that
+    // vehicle's alerts should show.
+    private String filterVehicleId;
+    private String filterVehicleName;
 
     // UI Components for the Alerts list
     private RecyclerView recyclerAlerts;
@@ -54,6 +66,7 @@ public class AlertsActivity extends AppCompatActivity {
     private View errorBanner;
     private TextView tvErrorBannerMessage, tvErrorBannerRetry;
     private ConnectivityManager.NetworkCallback networkCallback;
+    private DrawerLayout drawerLayout;
 
     // Variable to track which tab is currently active (Alerts or Promotions)
     // "Promotions" has no backend or data model behind it anywhere in this app --
@@ -66,6 +79,16 @@ public class AlertsActivity extends AppCompatActivity {
 
         // Link this activity to its XML layout file
         setContentView(R.layout.activity_alerts);
+
+        drawerLayout = findViewById(R.id.drawerLayout);
+        DrawerMenuHelper.wireDrawer(this, drawerLayout,
+                findViewById(R.id.tvDrawerName), findViewById(R.id.tvDrawerPhone), findViewById(R.id.tvDrawerEmail));
+
+        // NEW: optional -- if this screen was opened for a specific
+        // vehicle, only that vehicle's alerts should load. If absent,
+        // behaves exactly as before (all vehicles).
+        filterVehicleId = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
+        filterVehicleName = getIntent().getStringExtra(EXTRA_VEHICLE_NAME);
 
         // Initialize the API client
         mainApiService = ApiClient.getClient().create(ApiService.class);
@@ -173,6 +196,16 @@ public class AlertsActivity extends AppCompatActivity {
                 overridePendingTransition(0, 0);
             });
         }
+
+        // FIX: Menu wasn't wired to anything at all before -- found during
+        // a systematic dead-end audit of "Menu doesn't work from every
+        // tab". Opens this screen's own real drawer directly.
+        View navMenu = findViewById(R.id.nav_menu);
+        if (navMenu != null) {
+            navMenu.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
+            });
+        }
     }
 
     // Set up the RecyclerView (List) to show alerts
@@ -197,8 +230,11 @@ public class AlertsActivity extends AppCompatActivity {
         recyclerAlerts.setVisibility(View.GONE);
         tvEmptyAlerts.setVisibility(View.GONE);
 
-        // Send network request to get page 1, max 20 alerts
-        mainApiService.getMyAlerts(1, 20).enqueue(new Callback<ResponseBody>() {
+        // Send network request to get page 1, max 20 alerts, optionally
+        // filtered to one vehicle. Retrofit omits the vehicleId query
+        // parameter entirely when it's null, so this is safe for both the
+        // "all vehicles" and "one vehicle" cases with the same call.
+        mainApiService.getMyAlerts(1, 20, filterVehicleId).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 progressAlerts.setVisibility(View.GONE); // Hide loading spinner
@@ -235,7 +271,12 @@ public class AlertsActivity extends AppCompatActivity {
         if (!showingAlertsTab) return;   // Stop if the user switched tabs before data arrived
 
         if (alerts == null || alerts.isEmpty()) {
-            showEmpty("No alerts yet."); // Show message if list is empty
+            // NEW: specific message when filtered to one vehicle, since
+            // the vehicle name is already available here.
+            String emptyMessage = (filterVehicleName != null && !filterVehicleName.trim().isEmpty())
+                    ? "No alerts yet for " + filterVehicleName + "."
+                    : "No alerts yet.";
+            showEmpty(emptyMessage);
             return;
         }
 

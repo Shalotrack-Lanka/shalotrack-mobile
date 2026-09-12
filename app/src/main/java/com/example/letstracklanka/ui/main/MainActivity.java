@@ -1,124 +1,155 @@
 package com.example.letstracklanka.ui.main;
 
-import android.animation.ValueAnimator;
-import android.os.Bundle;
-import android.view.animation.LinearInterpolator;
-import android.widget.ImageView;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import androidx.activity.EdgeToEdge;
+import android.view.View;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.ImageView;
+import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.airbnb.lottie.LottieAnimationView;
 import com.example.letstracklanka.R;
 
+import java.util.Calendar;
 
+/**
+ * MainActivity — loading/transition screen between SplashActivity and HomeActivity.
+ *
+ * ── Time-aware animation ─────────────────────────────────────────────────────
+ * Reads the device clock at launch and selects the appropriate Lottie scene:
+ *
+ *   06:00 – 18:59  →  shalotrack_drive_day.json
+ *                      Blue sky, sun, moving clouds, daylight buildings,
+ *                      headlights off, sky reflections in windows.
+ *
+ *   19:00 – 05:59  →  shalotrack_drive_night.json
+ *                      Deep navy sky, stars, glowing city windows,
+ *                      street lights, headlight beams, tail light glow.
+ *
+ * ── Timing ───────────────────────────────────────────────────────────────────
+ *   0 ms      Lottie starts (file resolved from device time)
+ *   300 ms    Logo fades in (350ms, scale 0.85 → 1.0)
+ *   600 ms    "Connecting to your vehicles..." fades in (300ms)
+ *   800 ms    Progress line grows left → right (2200ms)
+ *   3000 ms   Crossfade to HomeActivity
+ */
 public class MainActivity extends AppCompatActivity {
+
+    private static final long NAVIGATE_AFTER_MS  = 3000L;
+    private static final int  DAY_START_HOUR      = 6;   // 06:00
+    private static final int  NIGHT_START_HOUR    = 19;  // 19:00
+
+    private LottieAnimationView lottieAnim;
+    private ImageView           mainLogo;
+    private TextView            tvLoadingMessage;
+    private View                progressLine;
+    private Handler             handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Make the app take up the full screen
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        // Adjust the layout so it doesn't hide behind the phone's top or bottom status bars
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return insets;
         });
 
-        // Find the main logo and the glowing ring from the screen design
-        ImageView imgFullLogo = findViewById(R.id.imgFullLogo);
-        ImageView imgNeonRing = findViewById(R.id.imgNeonRing);
+        lottieAnim       = findViewById(R.id.lottieCarAnimation);
+        mainLogo         = findViewById(R.id.mainLogo);
+        tvLoadingMessage = findViewById(R.id.tvLoadingMessage);
+        progressLine     = findViewById(R.id.progressLine);
 
-        // Find all the small floating icons that will orbit around the logo
-        ImageView[] items = new ImageView[]{
-                findViewById(R.id.imgItem1),
-                findViewById(R.id.imgItem2),
-                findViewById(R.id.imgItem3),
-                findViewById(R.id.imgItem4),
-                findViewById(R.id.imgItem5),
-                findViewById(R.id.imgItem6),
-                findViewById(R.id.imgItem7),
-                findViewById(R.id.imgItem8),
-                findViewById(R.id.imgItem9)
-        };
+        handler = new Handler(Looper.getMainLooper());
 
-        // Wait until the glowing ring is fully drawn on the screen before doing math
-        imgNeonRing.post(() -> {
+        // Select day or night animation from device clock — no permissions needed
+        lottieAnim.setAnimation(resolveAnimationFileName());
+        lottieAnim.playAnimation();
 
-            // Find the exact center point of the glowing ring
-            float centerX = imgNeonRing.getX() + (imgNeonRing.getWidth() / 2f);
-            float centerY = imgNeonRing.getY() + (imgNeonRing.getHeight() / 2f);
+        playEntrance();
 
-            // Calculate how wide and tall the orbit path should be
-            float orbitWidth  = imgNeonRing.getWidth()  / 2f;
-            float orbitHeight = imgNeonRing.getHeight() / 2f;
-
-            // Get the center point of the small floating icons
-            float itemHalfW = items[0].getWidth()  / 2f;
-            float itemHalfH = items[0].getHeight() / 2f;
-
-            // Slowly show the ring and all the small icons
-            imgNeonRing.animate().alpha(1f).setDuration(400).start();
-            for (ImageView item : items) {
-                item.animate().alpha(1f).setDuration(400).start();
-            }
-
-            // Create a looping animation that spins in a full circle
-            ValueAnimator orbitAnimator = ValueAnimator.ofFloat(0f, (float) (2 * Math.PI));
-            orbitAnimator.setDuration(14000); // One full spin takes 14 seconds
-            orbitAnimator.setRepeatCount(ValueAnimator.INFINITE); // Keep spinning forever
-            orbitAnimator.setInterpolator(new LinearInterpolator()); // Spin at a steady, smooth speed
-
-            // This runs continuously to move the icons step-by-step
-            orbitAnimator.addUpdateListener(animation -> {
-                float currentAngle = (float) animation.getAnimatedValue();
-
-                for (int i = 0; i < items.length; i++) {
-                    // Space the icons equally around the circle
-                    float angleOffset = (float) (i * (2 * Math.PI / items.length));
-                    float finalAngle  = currentAngle + angleOffset;
-
-                    // Calculate the new X and Y position for this specific icon
-                    float x = centerX + orbitWidth  * (float) Math.cos(finalAngle) - itemHalfW;
-                    float y = centerY + orbitHeight * (float) Math.sin(finalAngle) - itemHalfH;
-
-                    items[i].setX(x);
-                    items[i].setY(y);
-
-                    // Create a 3D effect
-                    float sinVal = (float) Math.sin(finalAngle);
-                    float depthScale = 0.65f + 0.35f * ((sinVal + 1f) / 2f);
-                    float depthAlpha = 0.45f + 0.55f * ((sinVal + 1f) / 2f);
-
-                    items[i].setScaleX(depthScale);
-                    items[i].setScaleY(depthScale);
-                    items[i].setAlpha(depthAlpha);
-
-                    // Make sure icons at the front overlap the ones at the back
-                    items[i].setTranslationZ(sinVal * 8f);
-                }
-            });
-
-            // Start the spinning animation
-            orbitAnimator.start();
-
-            // Wait for 4 seconds and then move to the Home screen
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                Intent intent = new Intent(MainActivity.this, HomeActivity.class);
-                startActivity(intent);
-
-                // Close this animation screen so the user can't come back to it using the back button
-                finish();
-            }, 4000);
-        });
+        handler.postDelayed(this::goToHome, NAVIGATE_AFTER_MS);
     }
 
+    // ── Time logic ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the Lottie asset filename for the current time of day.
+     * Day   = 06:00–18:59  →  shalotrack_drive_day.json
+     * Night = 19:00–05:59  →  shalotrack_drive_night.json
+     */
+    private String resolveAnimationFileName() {
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        boolean isDay = (hour >= DAY_START_HOUR && hour < NIGHT_START_HOUR);
+        return isDay ? "shalotrack_drive_day.json" : "shalotrack_drive_night.json";
+    }
+
+    // ── Animation ─────────────────────────────────────────────────────────────
+
+    private void playEntrance() {
+
+        // Logo fade-in at 300ms (scale from 0.85 → 1.0 for a gentle pop)
+        handler.postDelayed(() -> {
+            ObjectAnimator logoFade   = ObjectAnimator.ofFloat(mainLogo, View.ALPHA,   0f, 1f);
+            ObjectAnimator logoScaleX = ObjectAnimator.ofFloat(mainLogo, View.SCALE_X, 0.85f, 1f);
+            ObjectAnimator logoScaleY = ObjectAnimator.ofFloat(mainLogo, View.SCALE_Y, 0.85f, 1f);
+            logoFade.setDuration(350);
+            logoScaleX.setDuration(350);
+            logoScaleY.setDuration(350);
+            logoFade.setInterpolator(new DecelerateInterpolator());
+            logoScaleX.setInterpolator(new DecelerateInterpolator());
+            logoScaleY.setInterpolator(new DecelerateInterpolator());
+            AnimatorSet logoSet = new AnimatorSet();
+            logoSet.playTogether(logoFade, logoScaleX, logoScaleY);
+            logoSet.start();
+        }, 300);
+
+        // "Connecting to your vehicles..." fades in at 600ms
+        handler.postDelayed(() -> {
+            ObjectAnimator textFade = ObjectAnimator.ofFloat(tvLoadingMessage, View.ALPHA, 0f, 1f);
+            textFade.setDuration(300);
+            textFade.setInterpolator(new DecelerateInterpolator());
+            textFade.start();
+        }, 600);
+
+        // Progress line grows left → right from 800ms over 2200ms
+        handler.postDelayed(() -> {
+            progressLine.setAlpha(1f);
+            ObjectAnimator lineGrow = ObjectAnimator.ofFloat(progressLine, View.SCALE_X, 0f, 1f);
+            lineGrow.setDuration(2200);
+            lineGrow.setInterpolator(new DecelerateInterpolator(1.5f));
+            lineGrow.start();
+        }, 800);
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+
+    private void goToHome() {
+        lottieAnim.cancelAnimation();
+        Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+        startActivity(intent);
+        @SuppressWarnings("deprecation")
+        int unused = 0; // overridePendingTransition is deprecated in API 34 but needed for API 26+
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        finish();
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+        lottieAnim.cancelAnimation();
+    }
 }
