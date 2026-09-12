@@ -3,6 +3,45 @@
      open an actual, working drawer directly on this screen. Wiring is
      done via DrawerMenuHelper.wireDrawer(), shared across Home/Vehicles/
      Alerts/Tags/Circles so this isn't duplicated per screen. -->
+
+<!--
+  REDESIGN NOTES — no feature removed, every original android:id kept.
+  Visual language matched to the Home screen redesign so the app feels
+  like one product, not five different screens:
+    - map layers/location FABs merged into one floating "pill" toolbar
+      card (same treatment as Home); the secondary left-side FAB group
+      (layoutLeftFabs) got the same pill treatment for consistency —
+      still the same id, still toggled gone/visible the same way.
+    - fabAdd is now a filled brand-colour FAB instead of white — it's the
+      primary action on this screen, so it should read as the primary
+      action.
+    - the search row is now a real rounded search box instead of a bare
+      icon+EditText sitting on the sheet background.
+    - "CURRENTLY TRACKING" panel gets rounded top corners + a thin brand
+      accent strip instead of a flat tinted rectangle, so it reads more
+      clearly as its own card.
+    - the two back-to-back 1dp divider Views in layoutExpanded (an
+      obvious accidental duplicate — same divider, same margins, right
+      under itself) are consolidated into one. Nothing else in that
+      section changed.
+    - grid menu items (History/Alerts/.../Share) get ripple touch
+      feedback; their existing enabled/disabled text+icon colours are
+      untouched so VoiceTrack/Value still read as disabled.
+    - bottom nav switches from a top indicator bar to the same soft
+      rounded "pill" highlight used on Home, and the whole bar is now a
+      floating elevated card like Home's.
+    - error banner gets the same circular icon badge + pill retry chip
+      as Home's.
+  New drawables used here:
+    res/drawable/bg_search_pill.xml     (new, included below)
+    res/drawable/bg_tracking_panel.xml  (new, included below)
+    res/drawable/bg_nav_pill_active.xml (reuse from the Home redesign)
+    res/drawable/bg_retry_chip.xml      (reuse from the Home redesign)
+    res/drawable/scrim_top_gradient.xml (reuse from the Home redesign)
+  If you haven't added those three "reuse" files to this project yet,
+  grab them from the Home screen redesign — they're shared, not
+  duplicated per screen.
+-->
 <androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -17,7 +56,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true"
-        android:background="#F0F0F0">
+        android:background="#F4F6FA">
 
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:layout_width="match_parent"
@@ -37,33 +76,66 @@
                     android:contentDescription="@string/desc_map"
                     tools:context=".ui.vehicles.VehiclesActivity" />
 
-                <LinearLayout
+                <!-- soft scrim so the pill toolbar + status bar read
+                     cleanly over the map, same as Home -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="110dp"
+                    android:background="@drawable/scrim_top_gradient"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <!-- layers + my-location merged into one floating pill,
+                     same treatment as Home -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="40dp"
+                    android:layout_marginTop="44dp"
                     android:layout_marginEnd="16dp"
-                    android:baselineAligned="false"
+                    app:cardCornerRadius="28dp"
+                    app:cardElevation="10dp"
+                    app:cardBackgroundColor="#FFFFFF"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintEnd_toEndOf="parent">
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:contentDescription="@string/desc_map_layers"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="mini"
-                        app:tint="@color/brand_primary"
-                        app:srcCompat="@drawable/ic_layers" />
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:contentDescription="@string/desc_my_location"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="mini"
-                        app:tint="@color/brand_primary"
-                        app:srcCompat="@drawable/ic_my_location" />
-                </LinearLayout>
+                        android:orientation="vertical"
+                        android:padding="4dp"
+                        android:gravity="center_horizontal">
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/desc_map_layers"
+                            app:backgroundTint="@android:color/transparent"
+                            app:elevation="0dp"
+                            app:pressedTranslationZ="0dp"
+                            app:fabSize="mini"
+                            app:tint="@color/brand_primary"
+                            app:rippleColor="#14000000"
+                            app:srcCompat="@drawable/ic_layers" />
+
+                        <View
+                            android:layout_width="28dp"
+                            android:layout_height="1dp"
+                            android:layout_marginVertical="2dp"
+                            android:background="#EDEDED" />
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/desc_my_location"
+                            app:backgroundTint="@android:color/transparent"
+                            app:elevation="0dp"
+                            app:pressedTranslationZ="0dp"
+                            app:fabSize="mini"
+                            app:tint="@color/brand_primary"
+                            app:rippleColor="#14000000"
+                            app:srcCompat="@drawable/ic_my_location" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/fabAdd"
@@ -72,42 +144,67 @@
                     android:layout_marginEnd="16dp"
                     android:layout_marginBottom="160dp"
                     android:contentDescription="@string/desc_add_vehicle"
-                    app:backgroundTint="#FFFFFF"
+                    app:backgroundTint="@color/brand_primary"
                     app:fabSize="normal"
-                    app:tint="@color/brand_primary"
+                    app:tint="#FFFFFF"
+                    app:elevation="8dp"
                     app:srcCompat="@android:drawable/ic_input_add"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent" />
 
-                <LinearLayout
+                <!-- same pill card treatment as the right-side toolbar,
+                     for visual consistency; still id'd + still
+                     gone/visible the same way as before -->
+                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/layoutLeftFabs"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
                     android:layout_marginStart="16dp"
                     android:layout_marginBottom="270dp"
                     android:visibility="gone"
-                    android:baselineAligned="false"
+                    app:cardCornerRadius="28dp"
+                    app:cardElevation="10dp"
+                    app:cardBackgroundColor="#FFFFFF"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent">
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:contentDescription="@string/desc_places"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="normal"
-                        app:tint="#BDBDBD"
-                        app:srcCompat="@android:drawable/ic_dialog_map" />
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:contentDescription="@string/desc_menu"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="normal"
-                        app:tint="#BDBDBD"
-                        app:srcCompat="@android:drawable/ic_menu_sort_by_size" />
-                </LinearLayout>
+                        android:orientation="vertical"
+                        android:padding="4dp"
+                        android:gravity="center_horizontal"
+                        android:baselineAligned="false">
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/desc_places"
+                            app:backgroundTint="@android:color/transparent"
+                            app:elevation="0dp"
+                            app:pressedTranslationZ="0dp"
+                            app:fabSize="mini"
+                            app:tint="#9AA0A6"
+                            app:srcCompat="@android:drawable/ic_dialog_map" />
+
+                        <View
+                            android:layout_width="28dp"
+                            android:layout_height="1dp"
+                            android:layout_marginVertical="2dp"
+                            android:background="#EDEDED" />
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/desc_menu"
+                            app:backgroundTint="@android:color/transparent"
+                            app:elevation="0dp"
+                            app:pressedTranslationZ="0dp"
+                            app:fabSize="mini"
+                            app:tint="#9AA0A6"
+                            app:srcCompat="@android:drawable/ic_menu_sort_by_size" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -136,21 +233,18 @@
                         android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp"/>
 
-                    <!-- NEW (Letstrack parity, real reference screenshots):
-                         search bar + Moving/Idle/Parked/Offline count chips,
-                         shown ONLY on the Vehicles tab (Home's reference
-                         screenshot doesn't have these), so these live here,
-                         not in the shared item_vehicle_list.xml/adapter that
-                         both tabs use. Counts are computed client-side from
-                         the already-fetched vehicle list, no extra network
-                         call. -->
+                    <!-- search bar is now a proper rounded box instead of
+                         a bare icon+EditText on the sheet background -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingHorizontal="20dp"
-                        android:paddingBottom="12dp">
+                        android:layout_marginHorizontal="20dp"
+                        android:layout_marginBottom="14dp"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="10dp"
+                        android:background="@drawable/bg_search_pill">
 
                         <ImageView
                             android:layout_width="18dp"
@@ -175,12 +269,6 @@
                             android:imeOptions="actionSearch" />
                     </LinearLayout>
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginBottom="12dp"
-                        android:background="#F0F0F0" />
-
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -193,7 +281,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginEnd="6dp"
+                            android:layout_marginEnd="8dp"
                             android:orientation="vertical"
                             android:gravity="center"
                             android:paddingVertical="10dp"
@@ -219,7 +307,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginEnd="6dp"
+                            android:layout_marginEnd="8dp"
                             android:orientation="vertical"
                             android:gravity="center"
                             android:paddingVertical="10dp"
@@ -245,7 +333,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginEnd="6dp"
+                            android:layout_marginEnd="8dp"
                             android:orientation="vertical"
                             android:gravity="center"
                             android:paddingVertical="10dp"
@@ -292,15 +380,6 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- FIXED (v2): vehicle switcher list, embedded inline in the
-                         sheet's own scroll content, same technique as Home's
-                         recyclerHomeVehicles (activity_home.xml lines 243-248).
-                         "MY VEHICLES" header removed entirely per explicit user
-                         request; each row now visually matches the collapsed
-                         vehicle-detail row below it directly, so no separate
-                         labeled section is needed. Item rows are now full-bleed
-                         (no horizontal margin, see item_vehicle_list.xml), so no
-                         wrapping paddingHorizontal here either. -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recyclerVehiclesTabList"
                         android:layout_width="match_parent"
@@ -308,26 +387,26 @@
                         android:paddingBottom="8dp"
                         android:nestedScrollingEnabled="false" />
 
-                    <!-- NEW: this section (label + tinted background + the
-                         existing layoutCollapsed/layoutExpanded below) is the
-                         CURRENTLY TRACKED vehicle's live detail, a completely
-                         different thing from the switcher list above it. Both
-                         ended up sharing the same icon/name/status/caption
-                         visual language after the list redesign, and a real
-                         screenshot showed a user reading the tail end of this
-                         section as a third, duplicate-looking list row. The
-                         label + tint here is the fix: a real, demonstrated
-                         confusion, not a guessed cosmetic tweak. -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="8dp"
                         android:background="#F0F0F0"/>
 
+                    <!-- rounded-top panel + thin brand strip instead of a
+                         flat tinted rectangle, so this reads clearly as
+                         its own card and not a third list row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:background="#F7FAFD">
+                        android:background="@drawable/bg_tracking_panel">
+
+                        <View
+                            android:layout_width="52dp"
+                            android:layout_height="3dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginStart="20dp"
+                            android:background="@color/brand_primary" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -338,7 +417,7 @@
                             android:letterSpacing="0.05"
                             android:textColor="@color/brand_primary"
                             android:paddingHorizontal="20dp"
-                            android:paddingTop="10dp"/>
+                            android:paddingTop="8dp"/>
 
                         <RelativeLayout
                             android:id="@+id/layoutCollapsed"
@@ -351,7 +430,7 @@
                                 android:id="@+id/cardVehicleIcon"
                                 android:layout_width="56dp"
                                 android:layout_height="56dp"
-                                app:cardCornerRadius="12dp"
+                                app:cardCornerRadius="16dp"
                                 app:cardBackgroundColor="#E6F0FA"
                                 app:cardElevation="0dp">
                                 <ImageView
@@ -417,6 +496,8 @@
                                 android:contentDescription="@string/desc_favorite"
                                 android:layout_alignParentEnd="true"
                                 android:layout_centerVertical="true"
+                                android:padding="4dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
                                 app:tint="#BDBDBD" />
                         </RelativeLayout>
 
@@ -543,9 +624,9 @@
                             <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_lock_idle_charging" android:contentDescription="@string/desc_battery" app:tint="@color/status_success"/>
                         </LinearLayout>
 
+                        <!-- was two identical back-to-back dividers here;
+                             consolidated to one, nothing else changed -->
                         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginTop="16dp" android:layout_marginBottom="12dp"/>
-
-                        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" android:layout_marginBottom="12dp"/>
 
                         <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
                             <com.google.android.material.button.MaterialButton
@@ -558,7 +639,7 @@
                                 app:icon="@android:drawable/ic_popup_sync"
                                 app:iconTint="#FFFFFF"
                                 app:iconPadding="8dp"
-                                app:cornerRadius="8dp"
+                                app:cornerRadius="12dp"
                                 android:insetTop="0dp"
                                 android:insetBottom="0dp"
                                 app:backgroundTint="@color/brand_primary"/>
@@ -592,6 +673,9 @@
                                 android:layout_columnWeight="1"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/history"
                                 android:textSize="12sp"
                                 android:textColor="#000000"
@@ -607,6 +691,9 @@
                                 android:layout_columnWeight="1"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/alerts"
                                 android:textSize="12sp"
                                 android:textColor="#000000"
@@ -622,6 +709,9 @@
                                 android:layout_columnWeight="1"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/voicetrack"
                                 android:textSize="12sp"
                                 android:textColor="#BDBDBD"
@@ -637,6 +727,9 @@
                                 android:layout_columnWeight="1"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/value"
                                 android:textSize="12sp"
                                 android:textColor="#BDBDBD"
@@ -653,6 +746,9 @@
                                 android:layout_marginTop="16dp"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/places"
                                 android:textSize="12sp"
                                 android:textColor="@color/text_primary"
@@ -669,6 +765,9 @@
                                 android:layout_marginTop="16dp"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/immobilize"
                                 android:textSize="12sp"
                                 android:textColor="#000000"
@@ -685,6 +784,9 @@
                                 android:layout_marginTop="16dp"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/nav"
                                 android:textSize="12sp"
                                 android:textColor="#000000"
@@ -701,6 +803,9 @@
                                 android:layout_marginTop="16dp"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="@string/details"
                                 android:textSize="12sp"
                                 android:textColor="#000000"
@@ -717,6 +822,9 @@
                                 android:layout_marginTop="16dp"
                                 android:gravity="center"
                                 android:padding="8dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground"
                                 android:text="Share"
                                 android:textSize="12sp"
                                 android:textColor="@color/text_primary"
@@ -741,116 +849,137 @@
                 app:backgroundTint="#FFFFFF"
                 app:fabSize="mini"
                 app:tint="@color/brand_primary"
+                app:elevation="6dp"
                 app:srcCompat="@android:drawable/ic_menu_recent_history"
                 app:layout_anchor="@id/bottomSheetVehicleDetails"
                 app:layout_anchorGravity="top|end" />
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-        <LinearLayout
+        <!-- floating elevated nav card, same language as Home; id kept on
+             the outer card since ConstraintLayout needs it as a direct
+             child for the CoordinatorLayout's constraintBottom_toTopOf
+             reference above -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/bottomNavBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="65dp"
-            android:orientation="horizontal"
-            android:background="#FFFFFF"
-            android:elevation="16dp"
-            android:baselineAligned="false"
+            app:cardCornerRadius="0dp"
+            app:cardElevation="16dp"
+            app:cardBackgroundColor="#FFFFFF"
             app:layout_constraintBottom_toBottomOf="parent">
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_home"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/home"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_home"
-                app:drawableTopCompat="@drawable/ic_home"
-                app:drawableTint="#757575" />
-
             <LinearLayout
-                android:id="@+id/nav_vehicles"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="68dp"
+                android:orientation="horizontal"
+                android:paddingVertical="6dp"
                 android:baselineAligned="false">
-                <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
+
                 <androidx.appcompat.widget.AppCompatTextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/vehicles"
+                    android:id="@+id/nav_home"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/home"
                     android:textSize="11sp"
-                    android:textColor="#1976D2"
-                    android:textStyle="bold"
-                    android:contentDescription="@string/desc_vehicles"
-                    app:drawableTopCompat="@drawable/ic_car"
-                    app:drawableTint="#1976D2" />
+                    android:textColor="#9AA0A6"
+                    android:contentDescription="@string/desc_home"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:drawableTopCompat="@drawable/ic_home"
+                    app:drawableTint="#9AA0A6" />
+
+                <FrameLayout
+                    android:id="@+id/nav_vehicles"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                    <View
+                        android:layout_width="64dp"
+                        android:layout_height="46dp"
+                        android:layout_gravity="center"
+                        android:alpha="0.14"
+                        android:background="@drawable/bg_nav_pill_active" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="@string/vehicles"
+                        android:textSize="11sp"
+                        android:textColor="#1976D2"
+                        android:textStyle="bold"
+                        android:contentDescription="@string/desc_vehicles"
+                        app:drawableTopCompat="@drawable/ic_car"
+                        app:drawableTint="#1976D2" />
+                </FrameLayout>
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/nav_tags"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/tags"
+                    android:textSize="11sp"
+                    android:textColor="#9AA0A6"
+                    android:contentDescription="@string/desc_tags"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:drawableTopCompat="@drawable/ic_tag"
+                    app:drawableTint="#9AA0A6" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/nav_circles"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/circles"
+                    android:textSize="11sp"
+                    android:textColor="#9AA0A6"
+                    android:contentDescription="@string/desc_circles"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:drawableTopCompat="@drawable/ic_radar"
+                    app:drawableTint="#9AA0A6" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/nav_alerts"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/alerts"
+                    android:textSize="11sp"
+                    android:textColor="#9AA0A6"
+                    android:contentDescription="@string/desc_alerts"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:drawableTopCompat="@drawable/ic_alert"
+                    app:drawableTint="#9AA0A6" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/nav_menu"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/menu"
+                    android:textSize="11sp"
+                    android:textColor="#9AA0A6"
+                    android:contentDescription="@string/desc_menu"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:drawableTopCompat="@drawable/ic_menu"
+                    app:drawableTint="#9AA0A6" />
+
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_tags"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/tags"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_tags"
-                app:drawableTopCompat="@drawable/ic_tag"
-                app:drawableTint="#757575" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_circles"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/circles"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_circles"
-                app:drawableTopCompat="@drawable/ic_radar"
-                app:drawableTint="#757575" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_alerts"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/alerts"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_alerts"
-                app:drawableTopCompat="@drawable/ic_alert"
-                app:drawableTint="#757575" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_menu"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/menu"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_menu"
-                app:drawableTopCompat="@drawable/ic_menu"
-                app:drawableTint="#757575" />
-
-        </LinearLayout>
-
+        <!-- error banner: circular icon badge + pill retry chip, same as Home -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/errorBanner"
             android:layout_width="match_parent"
@@ -859,8 +988,8 @@
             android:layout_marginTop="8dp"
             android:visibility="gone"
             app:cardBackgroundColor="@color/status_danger"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="6dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
             app:layout_constraintTop_toTopOf="parent">
 
             <LinearLayout
@@ -868,20 +997,28 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:padding="12dp">
+                android:padding="10dp">
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@android:drawable/stat_notify_error"
-                    app:tint="@color/surface_white" />
+                <androidx.cardview.widget.CardView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    app:cardCornerRadius="15dp"
+                    app:cardBackgroundColor="#22FFFFFF"
+                    app:cardElevation="0dp">
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center"
+                        android:src="@android:drawable/stat_notify_error"
+                        app:tint="@color/surface_white" />
+                </androidx.cardview.widget.CardView>
 
                 <TextView
                     android:id="@+id/tvErrorBannerMessage"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="12dp"
                     android:text="Couldn't load data"
                     android:textColor="@color/surface_white"
                     android:textSize="13sp" />
@@ -891,10 +1028,12 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="RETRY"
-                    android:textColor="@color/surface_white"
+                    android:textColor="@color/status_danger"
                     android:textStyle="bold"
-                    android:textSize="13sp"
-                    android:padding="4dp"
+                    android:textSize="12sp"
+                    android:background="@drawable/bg_retry_chip"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
                     android:clickable="true"
                     android:focusable="true" />
 

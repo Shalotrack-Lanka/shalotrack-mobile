@@ -87,7 +87,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private RealtimeLocationClient realtimeClient;
 
     private View layoutCollapsed;
-    private LinearLayout layoutExpanded, layoutLeftFabs;
+    private LinearLayout layoutExpanded;
+    private View layoutLeftFabs; // FIX: Changed from LinearLayout to View to prevent ClassCastException
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
     private View fabAdd, fabHistory, btnRefresh;

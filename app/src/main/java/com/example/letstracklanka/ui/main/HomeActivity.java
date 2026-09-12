@@ -132,6 +132,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final long SOS_HOLD_DURATION_MS = 3000;
     private CountDownTimer sosHoldTimer;
 
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1002;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -161,16 +163,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         startRealTimeTracking();
         loadUserData();
 
-        // -------------------------------------------------------------------
-        // Start Background Tracking Foreground Service
-        // -------------------------------------------------------------------
-        Intent serviceIntent = new Intent(this, com.example.letstracklanka.services.TrackingForegroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
-        // -------------------------------------------------------------------
+        // Check Location Permission and Start Service to avoid SecurityException on Android 14+
+        checkLocationPermissionAndStartService();
 
         // Open the side menu automatically if requested by another screen
         handleOpenDrawerExtra(getIntent());
@@ -378,14 +372,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     // Start a timer to get location and dashboard data continuously
     private void startRealTimeTracking() {
-        // FIX: was duplicated, line-for-line identical logic between
-        // this file and VehiclesActivity -- now shared via
-        // FallbackPollScheduler. Behavior is unchanged: full-speed
-        // polling only while SignalR is down, 5s safety-net poll once
-        // connected, always fetches on the very first tick regardless of
-        // connection state. fetchDashboard() stays here as the "extra
-        // per tick" action -- it covers the whole vehicle list, which
-        // has no SignalR equivalent to suppress against.
         if (fallbackPollScheduler == null) fallbackPollScheduler = new FallbackPollScheduler(handler);
         fallbackPollScheduler.start(
                 () -> realtimeClient != null && realtimeClient.isConnected(),
@@ -422,21 +408,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         homeVehicleAdapter.updateVehicles(dashboardVehicles);
                     }
 
-                    // Save vehicle names to memory, and set up live-tracking
-                    // connections -- but only the first time each vehicle is
-                    // seen, since this whole method runs every poll cycle
-                    // (~1s) and re-initializing the trail/realtime connection
-                    // that often would be wasteful. myVehicles.containsKey()
-                    // doubles as the "already set up" check.
-                    //
-                    // FIX: this is now the single writer for myVehicles --
-                    // fetchMyVehicles() used to also clear() and repopulate
-                    // it from a separate, owned-only endpoint, racing
-                    // against this method with no ordering guarantee. If
-                    // that response landed after this one, it would wipe
-                    // out shared vehicles this method had just added. This
-                    // method already covers every vehicle (owned and
-                    // shared), so it's the correct single source of truth.
                     for (com.google.gson.JsonElement el : data.getAsJsonArray("vehicles")) {
                         JsonObject v = el.getAsJsonObject();
                         if (!v.has("vehicleId") || v.get("vehicleId").isJsonNull()) continue;
@@ -448,14 +419,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         myVehicles.put(vehicleId, (make + " " + model).trim());
 
                         if (!alreadySeen) {
-                            // NEW -- real gap found: the marker's type was
-                            // never set on initial load at all, only on a
-                            // later switch, so the first vehicle shown
-                            // could get the wrong icon until the user
-                            // switched away and back. Only relevant for
-                            // the actual currently-selected vehicle, since
-                            // that's the only one whose marker gets
-                            // created (this renderer shows one at a time).
                             if (vehicleId.equalsIgnoreCase(getSelectedVehicleId())) {
                                 String vehicleType = v.has("vehicleType") && !v.get("vehicleType").isJsonNull()
                                         ? v.get("vehicleType").getAsString() : null;
@@ -506,17 +469,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .putString(com.example.letstracklanka.ui.vehicles.VehicleListActivity.SELECTED_VEHICLE_ID_KEY, vehicle.getVehicleId())
                 .apply();
 
-        // FIX: real root cause of "the switching transition is really
-        // bad" -- fetchLocation() unconditionally called
-        // trailRenderer.updatePosition(), which after the marker exists
-        // once always animates. Switching to a different vehicle went
-        // through that exact same animation path as a normal live poll,
-        // so the marker would sweep across the whole map from the
-        // previously-selected vehicle's position to the new one's,
-        // taking up to 25 seconds. resetForVehicleSwitch() clears the
-        // marker/trail so the new vehicle's marker places instantly
-        // instead, and loadInitialTrail() draws that vehicle's own
-        // history rather than leaving the old one's trail on screen.
         trailRenderer.resetForVehicleSwitch(vehicle.getVehicleType());
         cameraFollowPendingForSwitch = true;
         trailRenderer.loadInitialTrail(vehicle.getVehicleId(), this::fetchLocation);
@@ -582,14 +534,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     trailRenderer.updatePosition(pos, loc.getHeading(), title);
                                     updateUI(loc);
 
-                                    // NEW -- the camera never moved at all
-                                    // before, so even once the marker
-                                    // placement itself was fixed, a newly-
-                                    // selected vehicle could still be
-                                    // sitting off-screen with nothing
-                                    // visibly indicating it. Only follows
-                                    // on an actual switch, not every
-                                    // regular poll of the same vehicle.
                                     if (cameraFollowPendingForSwitch && mMap != null) {
                                         cameraFollowPendingForSwitch = false;
                                         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
@@ -691,11 +635,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                         hideErrorBanner();
                         String json = body.string();
 
-                        // Drawer header (name/phone/email) is now populated
-                        // independently by DrawerMenuHelper.wireDrawer(),
-                        // called once from initViews() -- no longer
-                        // duplicated here.
-
                         CustomerResponse customer = extractCustomer(json);
                         if (customer != null && customer.getCustomerId() != null) {
                             currentCustomerId = customer.getCustomerId();
@@ -762,18 +701,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     if (response.isSuccessful() && body != null) {
                         hideErrorBanner();
                         List<VehicleResponse> list = parseList(body.string(), VehicleResponse.class);
-                        // FIX: this used to clear() and repopulate myVehicles
-                        // here too, racing against fetchDashboard() (called
-                        // right after this at the same call site, and
-                        // repeatedly via polling) -- since both write to the
-                        // same map asynchronously with no ordering guarantee,
-                        // if this response landed second it would wipe out
-                        // shared vehicles fetchDashboard() had just added.
-                        // fetchDashboard() is now the single writer for
-                        // myVehicles (it already includes every vehicle,
-                        // owned and shared); this method keeps its
-                        // owned-vehicle tracking-connection setup below,
-                        // which is unaffected by the map ordering issue.
                         for (VehicleResponse v : list) {
                             trailRenderer.loadInitialTrail(v.getVehicleId(), () -> {});
                             if (realtimeClient == null) {
@@ -840,11 +767,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startActivity(new Intent(HomeActivity.this, EmergencyContactsActivity.class));
             });
         }
-
-        // NOTE: btnUpgradeCallCenter is deliberately left unwired -- no
-        // "24/7 emergency call center" feature exists anywhere in this
-        // backend. Not guessing at what "Upgrade" should actually do here
-        // until that's a real, scoped feature.
 
         View btnTapSOS = view.findViewById(R.id.btnTapSOS);
         View bgPulseCircle = view.findViewById(R.id.bgPulseCircle);
@@ -939,20 +861,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    // Real, interactive redesign -- previous version was a plain
-    // AlertDialog with unstyled text rows that technically had a click
-    // listener but gave zero visual indication of being tappable,
-    // confirmed directly by the user as not usable in a real emergency.
-    //
-    // National numbers are limited to 119 (Police) and 1990 (Suwa Seriya
-    // Ambulance) deliberately -- these are the only two confirmed
-    // unambiguously consistent across every source checked, including
-    // Sri Lanka Police's own site and Wikipedia's citation of the actual
-    // Telecommunications Regulatory Commission registry. Fire/rescue
-    // numbers conflicted across sources (110 vs 111 depending on the
-    // source) and were deliberately left out rather than risk a wrong
-    // number in a genuine emergency -- worth getting verified locally
-    // before adding.
     private void showEmergencyContactsAfterSOS() {
         mainApiService.getMyEmergencyContacts().enqueue(new Callback<ResponseBody>() {
             @Override
@@ -969,17 +877,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 } catch (Exception e) {
                     Log.e("HomeActivity", "showEmergencyContactsAfterSOS parse error", e);
                 }
-                // Show the sheet regardless -- national emergency numbers
-                // are still useful even if the personal-contacts fetch
-                // failed, and SOS itself already succeeded either way.
                 showSosContactsSheet(contacts);
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("HomeActivity", "showEmergencyContactsAfterSOS network error", t);
-                // Still show national numbers even if the personal
-                // contacts fetch fails outright over the network.
                 showSosContactsSheet(new java.util.ArrayList<>());
             }
         });
@@ -1017,10 +920,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
     }
 
-    // Shared row builder for both national numbers and personal contacts
-    // -- avatar/initials circle, name + number, and a large, unmistakably
-    // tappable call-icon circle. Every row is a real ripple-enabled
-    // clickable target, not plain text with an invisible listener.
     private void addSosRow(LinearLayout container, String title, String subtitle,
                            String phoneNumberToDial, String avatarLetter, int avatarColor) {
         int density = (int) getResources().getDisplayMetrics().density;
@@ -1187,6 +1086,38 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         };
         cm.registerDefaultNetworkCallback(networkCallback);
+    }
+
+    // Check Location Permission and Start Service to avoid SecurityException on Android 14+
+    private void checkLocationPermissionAndStartService() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            startTrackingService();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void startTrackingService() {
+        Intent serviceIntent = new Intent(this, com.example.letstracklanka.services.TrackingForegroundService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startTrackingService();
+            } else {
+                Toast.makeText(this, "Location permission is required for background tracking.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     // Clean up background jobs to save memory when closing the screen

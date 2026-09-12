@@ -557,7 +557,6 @@
         <!-- Bottom nav: floating rounded card, active item shown with a
              soft pill highlight behind icon+label instead of a top bar -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/bottomNavBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="0dp"
@@ -566,6 +565,7 @@
             app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout
+                android:id="@+id/bottomNavBar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="68dp"

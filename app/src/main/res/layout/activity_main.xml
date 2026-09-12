@@ -1,4 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  NEW CONCEPT — "Satellite Lock-On"
+  Completely different idea from the radar-rings/pill version: instead of
+  static decoration, this screen has REAL motion graphics driving a GPS
+  "acquiring signal" story:
+    - a radar sweep that spins continuously behind the logo
+      (@id/sweepArm, spun by SplashAnimations — pure rotation, no custom
+      drawing needed)
+    - a ring (@id/signalRing, a custom SignalRingView) that fills up like
+      a lock-on progress arc
+    - three small satellite dots (@id/dotA/dotB/dotC) that pop in with a
+      stagger, pulse gently, then "flash-lock" once the ring finishes
+    - the ShaloTrack logo bounces into the centre with an overshoot, instead
+      of a flat fade
+    - the status text slides up + fades in
+
+  WIRING THIS UP:
+  1) Add SignalRingView.java and SplashAnimations.java to your project
+     (fix the package/import lines marked TODO).
+  2) Add the three new drawables to res/drawable/:
+       sweep_gradient.xml
+       circle_dot_satellite.xml
+       vignette_dark.xml
+  3) In MainActivity.java, after setContentView() and your existing
+     Lottie day/night setup, call:
+       SplashAnimations.play(
+           findViewById(R.id.signalRing),
+           findViewById(R.id.sweepArm),
+           findViewById(R.id.dotA), findViewById(R.id.dotB), findViewById(R.id.dotC),
+           findViewById(R.id.mainLogo),
+           findViewById(R.id.tvLoadingMessage),
+           () -> { /* your existing "go to next screen" call */ }
+       );
+     Remove any old code that animated a "progressLine" view — it's been
+     replaced by the ring.
+  4) lottie_fileName / lottie_autoPlay are still left unset in XML and are
+     still driven by your existing MainActivity logic (unchanged).
+-->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -7,13 +45,6 @@
     android:layout_height="match_parent"
     android:background="@color/splash_background">
 
-    <!--
-        Lottie animation — file and playback are set programmatically in
-        MainActivity.java based on device time:
-          06:00–18:59  →  shalotrack_drive_day.json   (sun, clouds, daylight)
-          19:00–05:59  →  shalotrack_drive_night.json  (stars, city glow, headlights)
-        Do NOT set lottie_fileName or lottie_autoPlay here — they are overridden in code.
-    -->
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottieCarAnimation"
         android:layout_width="match_parent"
@@ -26,11 +57,69 @@
         app:lottie_loop="true"
         app:lottie_speed="1.0" />
 
-    <!-- ShaloTrack logo — centred in upper third, fades in at 300ms -->
+    <!-- darkens the edges so the lock-on composition pops -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/vignette_dark" />
+
+    <!-- continuously-rotating radar sweep, spun in code -->
+    <View
+        android:id="@+id/sweepArm"
+        android:layout_width="240dp"
+        android:layout_height="240dp"
+        android:background="@drawable/sweep_gradient"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.30" />
+
+    <!-- lock-on progress ring (custom view) -->
+    <com.example.letstracklanka.widget.SignalRingView
+        android:id="@+id/signalRing"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.30" />
+
+    <!-- three orbiting "satellite" dots, positioned purely declaratively
+         via ConstraintLayout's circular constraints around the ring -->
+    <View
+        android:id="@+id/dotA"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/circle_dot_satellite"
+        app:layout_constraintCircle="@id/signalRing"
+        app:layout_constraintCircleRadius="120dp"
+        app:layout_constraintCircleAngle="0" />
+
+    <View
+        android:id="@+id/dotB"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/circle_dot_satellite"
+        app:layout_constraintCircle="@id/signalRing"
+        app:layout_constraintCircleRadius="120dp"
+        app:layout_constraintCircleAngle="120" />
+
+    <View
+        android:id="@+id/dotC"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/circle_dot_satellite"
+        app:layout_constraintCircle="@id/signalRing"
+        app:layout_constraintCircleRadius="120dp"
+        app:layout_constraintCircleAngle="240" />
+
+    <!-- ShaloTrack logo — bounces into the ring's centre (see SplashAnimations) -->
     <ImageView
         android:id="@+id/mainLogo"
-        android:layout_width="140dp"
-        android:layout_height="140dp"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
         android:src="@drawable/ic_logo_simple"
         android:scaleType="fitCenter"
         android:alpha="0"
@@ -42,32 +131,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintVertical_bias="0.30" />
 
-    <!-- Loading message — fades in at 600ms -->
+    <!-- status message — slides up + fades in (see SplashAnimations) -->
     <TextView
         android:id="@+id/tvLoadingMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="56dp"
+        android:layout_marginBottom="64dp"
         android:alpha="0"
         android:fontFamily="sans-serif"
-        android:letterSpacing="0.04"
+        android:letterSpacing="0.06"
         android:text="@string/connecting_to_vehicles"
         android:textColor="#99FFFFFF"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toTopOf="@id/progressLine"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Orange progress line — grows left→right from 800ms -->
-    <View
-        android:id="@+id/progressLine"
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:layout_marginBottom="24dp"
-        android:alpha="0"
-        android:background="@color/brand_accent"
-        android:scaleX="0"
-        android:transformPivotX="0dp"
+        android:textSize="13sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
