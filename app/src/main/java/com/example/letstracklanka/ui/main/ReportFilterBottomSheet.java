@@ -13,15 +13,16 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.letstracklanka.R;
-import com.example.letstracklanka.data.model.VehicleResponse;
+import com.example.letstracklanka.data.model.CustomerResponse;
+import com.example.letstracklanka.data.model.DashboardVehicle;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.ui.history.TripHistoryActivity;
 import com.example.letstracklanka.ui.main.reports.AlertReportActivity;
+import com.example.letstracklanka.ui.main.reports.KmReportActivity;
 import com.example.letstracklanka.ui.main.reports.StopReportActivity;
-import com.example.letstracklanka.ui.vehicles.ValueActivity;
-import com.example.letstracklanka.utils.SessionManager;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -55,7 +56,9 @@ import retrofit2.Response;
  * knows how to show that data, rather than building four parallel result
  * screens from scratch:
  *   - Trip Report  -> TripHistoryActivity (already built, day-grouped list)
- *   - KM Report    -> ValueActivity (already built, stats + per-day chart)
+ *   - KM Report    -> KmReportActivity (period totals + a full day-by-day
+ *                     breakdown -- not ValueActivity, which only shows one
+ *                     chart metric at a time with no itemized daily detail)
  *   - Alert Report -> new AlertReportActivity (nothing existing shows a
  *                     date-ranged, per-type alert summary -- the drawer's
  *                     Alerts tab is a live, unranged notification feed)
@@ -97,7 +100,7 @@ public class ReportFilterBottomSheet {
         TextView tvFilterError = view.findViewById(R.id.tvFilterError);
         View btnSubmit = view.findViewById(R.id.btnSubmitReport);
 
-        List<VehicleResponse> vehicles = new ArrayList<>();
+        List<DashboardVehicle> vehicles = new ArrayList<>();
         ArrayAdapter<String> vehicleAdapter = new ArrayAdapter<>(
                 activity, android.R.layout.simple_spinner_item, new ArrayList<>());
         vehicleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -161,7 +164,7 @@ public class ReportFilterBottomSheet {
                     return;
                 }
 
-                VehicleResponse selectedVehicle = vehicles.get(spinnerVehicles.getSelectedItemPosition());
+                DashboardVehicle selectedVehicle = vehicles.get(spinnerVehicles.getSelectedItemPosition());
                 dialog.dismiss();
                 launchReport(activity, type, selectedVehicle, rangeFrom.getTimeInMillis(), rangeTo.getTimeInMillis());
             });
@@ -185,24 +188,83 @@ public class ReportFilterBottomSheet {
         tvFilterError.setVisibility(View.VISIBLE);
     }
 
+    // FIX #1 (endpoint): was getVehiclesByCustomer() -- GET
+    // api/Vehicles/customer/{customerId}, which VehicleRepository
+    // .GetByCustomerAsync (API side) filters to `CustomerId == customerId`,
+    // i.e. OWNED vehicles only. Shared and demo vehicles never appeared in
+    // this spinner. HomeActivity/VehiclesActivity already abandoned that
+    // endpoint for their vehicle lists in favor of the dashboard endpoint
+    // used below, which is the confirmed-complete source (owned + accepted
+    // shares + the shared demo vehicle).
+    //
+    // FIX #2 (customer id source -- the actual reason the spinner was
+    // showing NOTHING, not just an incomplete list): this previously read
+    // customerId from SessionManager.getCustomerId(), a SharedPreferences
+    // value written only by SessionManager.createLoginSession() -- which is
+    // dead code, never called anywhere in this app. getCustomerId() has
+    // therefore always returned null here, which hit loadVehicles()'s old
+    // early-return before any network call was made -- silently, no log, no
+    // toast, exactly the empty-box-no-arrow symptom reported. HomeActivity
+    // never had this problem because it resolves the customer fresh from
+    // the signed-in Firebase user via GET api/Customers/me (see
+    // HomeActivity.loadUserData()/extractCustomer()) and keeps it in a
+    // local field -- not SessionManager. This method now does the same
+    // resolution itself, since ReportFilterBottomSheet.show() is called
+    // from five different activities' drawers (DrawerMenuHelper.wireDrawer:
+    // HomeActivity, VehiclesActivity, TagsActivity, AlertsActivity,
+    // CirclesActivity) and not all of them already hold a resolved
+    // customerId in memory to hand down as a parameter.
     private static void loadVehicles(
-            AppCompatActivity activity, List<VehicleResponse> outVehicles, ArrayAdapter<String> adapter) {
-        String customerId = new SessionManager(activity).getCustomerId();
-        if (customerId == null) return;
+            AppCompatActivity activity, List<DashboardVehicle> outVehicles, ArrayAdapter<String> adapter) {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
 
         ApiService api = ApiClient.getClient().create(ApiService.class);
-        api.getVehiclesByCustomer(customerId).enqueue(new Callback<ResponseBody>() {
+        api.getMyProfile().enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(retrofit2.Call<ResponseBody> call, Response<ResponseBody> response) {
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                try (ResponseBody body = response.body()) {
+                    if (!response.isSuccessful() || body == null) {
+                        Log.w("ReportFilterSheet", "getMyProfile failed, code " + response.code());
+                        Toast.makeText(activity, "Couldn't load your profile.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    CustomerResponse customer = extractCustomer(body.string());
+                    if (customer == null || customer.getCustomerId() == null) {
+                        Log.w("ReportFilterSheet", "getMyProfile returned no customer id");
+                        Toast.makeText(activity, "Couldn't load your profile.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    fetchDashboardVehicles(activity, customer.getCustomerId(), api, outVehicles, adapter);
+                } catch (Exception e) {
+                    Log.e("ReportFilterSheet", "getMyProfile parse error", e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e("ReportFilterSheet", "getMyProfile network error", t);
+                Toast.makeText(activity, "Network error loading your profile.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private static void fetchDashboardVehicles(
+            AppCompatActivity activity, String customerId, ApiService api,
+            List<DashboardVehicle> outVehicles, ArrayAdapter<String> adapter) {
+        api.getCustomerDashboard(customerId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
-                        List<VehicleResponse> parsed = parseList(body.string());
+                        List<DashboardVehicle> parsed = parseVehicles(body.string());
                         outVehicles.clear();
                         outVehicles.addAll(parsed);
 
                         List<String> labels = new ArrayList<>();
-                        for (VehicleResponse v : parsed) {
-                            labels.add(v.getVehicleNumber() != null ? v.getVehicleNumber() : "Vehicle");
+                        for (DashboardVehicle v : parsed) {
+                            String label = v.getVehicleNumber() != null ? v.getVehicleNumber() : "Vehicle";
+                            if (v.isShared()) label += " (Shared)";
+                            labels.add(label);
                         }
                         adapter.clear();
                         adapter.addAll(labels);
@@ -224,25 +286,48 @@ public class ReportFilterBottomSheet {
         });
     }
 
-    private static List<VehicleResponse> parseList(String json) {
-        List<VehicleResponse> list = new ArrayList<>();
+    // Same "data.<object>" envelope HomeActivity.extractCustomer()/
+    // extractObject() already parse -- duplicated here in miniature rather
+    // than pulled into a shared utility class, matching this file's
+    // existing parseVehicles() precedent below.
+    private static CustomerResponse extractCustomer(String json) {
+        if (json == null || json.trim().isEmpty()) return null;
+        try {
+            Gson gson = new Gson();
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                return gson.fromJson(root.getAsJsonObject("data"), CustomerResponse.class);
+            }
+            return gson.fromJson(json, CustomerResponse.class);
+        } catch (Exception e) {
+            Log.e("ReportFilterSheet", "extractCustomer parse error", e);
+            return null;
+        }
+    }
+
+    // Same "data.vehicles" envelope HomeActivity already parses for the
+    // dashboard endpoint.
+    private static List<DashboardVehicle> parseVehicles(String json) {
+        List<DashboardVehicle> list = new ArrayList<>();
         if (json == null || json.trim().isEmpty()) return list;
         try {
             Gson gson = new Gson();
             JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root != null && root.has("data") && root.get("data").isJsonArray()) {
-                Type listType = new TypeToken<List<VehicleResponse>>() {}.getType();
-                List<VehicleResponse> parsed = gson.fromJson(root.getAsJsonArray("data"), listType);
-                if (parsed != null) list = parsed;
-            }
+            if (root == null || !root.has("data") || root.get("data").isJsonNull()) return list;
+            JsonObject data = root.getAsJsonObject("data");
+            if (data == null || !data.has("vehicles") || !data.get("vehicles").isJsonArray()) return list;
+
+            Type listType = new TypeToken<List<DashboardVehicle>>() {}.getType();
+            List<DashboardVehicle> parsed = gson.fromJson(data.getAsJsonArray("vehicles"), listType);
+            if (parsed != null) list = parsed;
         } catch (Exception e) {
-            Log.e("ReportFilterSheet", "parseList error", e);
+            Log.e("ReportFilterSheet", "parseVehicles error", e);
         }
         return list;
     }
 
     private static void launchReport(
-            AppCompatActivity activity, ReportType type, VehicleResponse vehicle, long fromMillis, long toMillis) {
+            AppCompatActivity activity, ReportType type, DashboardVehicle vehicle, long fromMillis, long toMillis) {
         String vehicleId = vehicle.getVehicleId();
         String vehicleName = vehicle.getVehicleNumber();
 
@@ -257,10 +342,16 @@ public class ReportFilterBottomSheet {
                 break;
             }
             case KM: {
-                Intent intent = new Intent(activity, ValueActivity.class);
-                intent.putExtra(ValueActivity.EXTRA_VEHICLE_ID, vehicleId);
-                intent.putExtra(ValueActivity.EXTRA_REPORT_FROM_MILLIS, fromMillis);
-                intent.putExtra(ValueActivity.EXTRA_REPORT_TO_MILLIS, toMillis);
+                // FIX: was ValueActivity (the live Today/Week/Month/All stats
+                // screen) with a fixed range bolted on -- one chart metric at a
+                // time, no itemized daily detail. KmReportActivity is a
+                // dedicated report screen: period totals plus a full,
+                // scrollable day-by-day breakdown, built for exactly this.
+                Intent intent = new Intent(activity, KmReportActivity.class);
+                intent.putExtra(KmReportActivity.EXTRA_VEHICLE_ID, vehicleId);
+                intent.putExtra(KmReportActivity.EXTRA_VEHICLE_NAME, vehicleName);
+                intent.putExtra(KmReportActivity.EXTRA_FROM_MILLIS, fromMillis);
+                intent.putExtra(KmReportActivity.EXTRA_TO_MILLIS, toMillis);
                 activity.startActivity(intent);
                 break;
             }
