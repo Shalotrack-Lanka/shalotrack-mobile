@@ -16,6 +16,7 @@ import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.ComplaintResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
+import com.example.letstracklanka.utils.PeriodicRefresher;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -45,6 +46,12 @@ public class MyComplaintsActivity extends AppCompatActivity {
      * tap (see ShaloTrackFirebaseMessagingService). */
     public static final String EXTRA_OPEN_COMPLAINT_ID = "extra_open_complaint_id";
 
+    // NEW -- background refresh while this list is on screen, so a status
+    // change or dealer/admin reply shows up without the user needing to
+    // leave and reopen this screen. See PeriodicRefresher's own doc for
+    // why this is foreground-only, not a true OS background poller.
+    private static final long REFRESH_INTERVAL_MS = 20_000;
+
     private ApiService mainApiService;
 
     private View errorBanner, progressBar, layoutEmptyState;
@@ -53,6 +60,7 @@ public class MyComplaintsActivity extends AppCompatActivity {
     private View fabFileComplaint;
     private ComplaintAdapter adapter;
     private ConnectivityManager.NetworkCallback networkCallback;
+    private PeriodicRefresher refresher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,10 +68,11 @@ public class MyComplaintsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_my_complaints);
 
         mainApiService = ApiClient.getClient().create(ApiService.class);
+        refresher = new PeriodicRefresher(REFRESH_INTERVAL_MS, () -> fetchComplaints(false));
 
         initViews();
         registerNetworkMonitor();
-        fetchComplaints();
+        fetchComplaints(true);
 
         // NEW -- pushed straight from a complaint notification tap.
         String openComplaintId = getIntent().getStringExtra(EXTRA_OPEN_COMPLAINT_ID);
@@ -85,7 +94,7 @@ public class MyComplaintsActivity extends AppCompatActivity {
         rvComplaints = findViewById(R.id.rvMyComplaints);
         fabFileComplaint = findViewById(R.id.fabFileComplaint);
 
-        if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchComplaints());
+        if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchComplaints(true));
         if (fabFileComplaint != null) {
             fabFileComplaint.setOnClickListener(v -> startActivity(new Intent(this, FileComplaintActivity.class)));
         }
@@ -101,9 +110,17 @@ public class MyComplaintsActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void fetchComplaints() {
-        hideErrorBanner();
-        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+    // showLoading distinguishes an explicit/user-visible load (first open,
+    // pull-to-retry, reconnect) from a silent background tick: a silent
+    // poll never touches the progress bar and never raises a fresh error
+    // banner over data the user is currently, successfully looking at --
+    // a transient failure every 20s would otherwise flash an error banner
+    // at someone quietly reading their complaint list.
+    private void fetchComplaints(boolean showLoading) {
+        if (showLoading) {
+            hideErrorBanner();
+            if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+        }
 
         mainApiService.getMyComplaints().enqueue(new Callback<ResponseBody>() {
             @Override
@@ -111,6 +128,7 @@ public class MyComplaintsActivity extends AppCompatActivity {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
+                        hideErrorBanner(); // recovered, even if this was a silent retry
                         List<ComplaintResponse> complaints = parseList(body.string());
                         adapter.updateComplaints(complaints);
                         if (layoutEmptyState != null) {
@@ -119,11 +137,11 @@ public class MyComplaintsActivity extends AppCompatActivity {
                         rvComplaints.setVisibility(complaints.isEmpty() ? View.GONE : View.VISIBLE);
                     } else {
                         Log.w("MyComplaints", "fetchComplaints failed, code " + response.code());
-                        showErrorBanner("Couldn't load your complaints.");
+                        if (showLoading) showErrorBanner("Couldn't load your complaints.");
                     }
                 } catch (Exception e) {
                     Log.e("MyComplaints", "fetchComplaints parse error", e);
-                    showErrorBanner("Something went wrong loading your complaints.");
+                    if (showLoading) showErrorBanner("Something went wrong loading your complaints.");
                 }
             }
 
@@ -131,7 +149,7 @@ public class MyComplaintsActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
                 Log.e("MyComplaints", "fetchComplaints network error", t);
-                showErrorBanner("Network error — check your connection.");
+                if (showLoading) showErrorBanner("Network error — check your connection.");
             }
         });
     }
@@ -143,7 +161,14 @@ public class MyComplaintsActivity extends AppCompatActivity {
         // returning from FileComplaintActivity after a successful submit,
         // and from ComplaintDetailActivity after a status change, without
         // either of those screens needing to know about this one.
-        fetchComplaints();
+        fetchComplaints(true);
+        refresher.start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        refresher.stop();
     }
 
     private void showErrorBanner(String message) {
@@ -168,7 +193,7 @@ public class MyComplaintsActivity extends AppCompatActivity {
 
             @Override
             public void onAvailable(@NonNull Network network) {
-                runOnUiThread(MyComplaintsActivity.this::fetchComplaints);
+                runOnUiThread(() -> fetchComplaints(true));
             }
         };
         cm.registerDefaultNetworkCallback(networkCallback);
@@ -177,6 +202,7 @@ public class MyComplaintsActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        refresher.stop(); // safety net -- onPause already stops it in the normal lifecycle
         if (networkCallback != null) {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             if (cm != null) cm.unregisterNetworkCallback(networkCallback);
