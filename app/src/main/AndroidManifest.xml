@@ -52,6 +52,7 @@
 
         <activity android:name=".ui.main.reports.AlertReportActivity" android:exported="false" />
         <activity android:name=".ui.main.reports.StopReportActivity" android:exported="false" />
+        <activity android:name=".ui.main.reports.KmReportActivity" android:exported="false" />
 
         <activity android:name=".ui.contacts.EmergencyContactsActivity" android:exported="false" />
 
