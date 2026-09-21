@@ -14,6 +14,8 @@ import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.UpdateGeofenceRequest;
 import com.example.letstracklanka.data.model.UpdateVehicleRequest;
 import com.example.letstracklanka.data.model.VehicleResponse;
+import com.example.letstracklanka.data.model.CreateComplaintReplyRequest;
+import com.example.letstracklanka.data.model.CreateComplaintRequest;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -159,4 +161,22 @@ public interface ApiService {
 
     @GET("api/VehicleShares/pending-invites")
     Call<ResponseBody> getPendingVehicleShareInvites();
+
+    // NEW -- Complaints/Feedback. Matches the real ComplaintsController
+// routes exactly (api/Complaints, [Authorize]). Category/Status/
+// AuthorType all serialize as raw ints (no JsonStringEnumConverter
+// configured on the API), same constraint already handled elsewhere
+// in this project -- resolved to labels on this side, in
+// ComplaintResponse itself, not re-derived per screen.
+    @POST("api/Complaints")
+    Call<ResponseBody> fileComplaint(@Body CreateComplaintRequest request);
+
+    @GET("api/Complaints/mine")
+    Call<ResponseBody> getMyComplaints();
+
+    @GET("api/Complaints/{complaintId}")
+    Call<ResponseBody> getComplaintById(@Path("complaintId") String complaintId);
+
+    @POST("api/Complaints/{complaintId}/reply")
+    Call<ResponseBody> replyToComplaint(@Path("complaintId") String complaintId, @Body CreateComplaintReplyRequest request);
 }

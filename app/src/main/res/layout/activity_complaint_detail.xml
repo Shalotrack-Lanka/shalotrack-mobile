@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/surface_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/brand_primary"
+        android:padding="16dp"
+        android:elevation="2dp">
+
+        <ImageView
+            android:id="@+id/btnBackComplaintDetail"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="@color/text_on_dark"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:id="@+id/tvDetailTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Complaint"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/text_on_dark" />
+
+        <TextView
+            android:id="@+id/tvDetailStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_status_pill"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="With Dealer" />
+    </LinearLayout>
+
+    <!-- Original complaint, shown as a fixed card above the reply thread,
+         not itself a chat bubble, since it's the subject of the thread
+         rather than a message in it. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/surface_white"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/tvDetailVehicle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            tools:text="Honda Vezel (WP CAD 9934)" />
+
+        <TextView
+            android:id="@+id/tvDetailDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            tools:text="The GPS device keeps disconnecting every night." />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/surface_stroke" />
+
+    <LinearLayout
+        android:id="@+id/errorBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/status_danger"
+        android:padding="12dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/tvErrorBannerMessage"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text=" "
+            android:textColor="@color/text_on_dark"
+            android:textSize="13sp" />
+        <TextView
+            android:id="@+id/tvErrorBannerRetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RETRY"
+            android:textColor="@color/text_on_dark"
+            android:textStyle="bold"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progressComplaintDetail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="24dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvComplaintReplies"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="12dp"
+        android:clipToPadding="false" />
+
+    <!-- Reply composer, hidden entirely once the complaint is Resolved
+         or Closed, since the customer can no longer add to the thread at
+         that point (matches ComplaintService server-side semantics: only
+         WithDealer/WithAdmin complaints accept new replies). -->
+    <LinearLayout
+        android:id="@+id/layoutReplyComposer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/surface_white"
+        android:padding="10dp">
+
+        <EditText
+            android:id="@+id/etReplyMessage"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_edit_text_rounded"
+            android:padding="12dp"
+            android:hint="Type a reply…"
+            android:maxLines="4"
+            android:inputType="textMultiLine|textCapSentences"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:id="@+id/btnSendReply"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:padding="10dp"
+            android:background="@drawable/bg_circle_success"
+            app:tint="@color/text_on_dark"
+            android:src="@android:drawable/ic_menu_send"
+            android:contentDescription="Send reply" />
+    </LinearLayout>
+
+    <!-- Shown instead of the composer once the complaint is closed out. -->
+    <TextView
+        android:id="@+id/tvReplyClosedNotice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface_white"
+        android:padding="16dp"
+        android:gravity="center"
+        android:text="This complaint is closed. No further replies can be added."
+        android:textColor="@color/text_muted"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+</LinearLayout>

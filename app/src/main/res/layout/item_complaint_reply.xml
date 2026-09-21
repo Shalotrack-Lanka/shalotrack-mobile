@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single reply bubble. Root is a FrameLayout spanning the RecyclerView's
+     full width specifically so the inner bubble's android:layout_gravity
+     actually takes effect (a RecyclerView with LinearLayoutManager gives
+     its item views plain RecyclerView.LayoutParams, which ignore
+     layout_gravity, so wrapping in a FrameLayout avoids that trap).
+     ComplaintReplyAdapter sets the inner column's gravity to "end" for
+     the customer's own replies and "start" for dealer/admin replies, and
+     swaps the bubble's background tint the same way. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp">
+
+    <LinearLayout
+        android:id="@+id/columnReply"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvReplyAuthor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="2dp"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="Dealer" />
+
+        <LinearLayout
+            android:id="@+id/bubbleReply"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_edit_text_rounded"
+            android:padding="12dp"
+            android:maxWidth="280dp">
+
+            <TextView
+                android:id="@+id/tvReplyMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                tools:text="Please share a photo of the device installation, that will help us diagnose this faster." />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvReplyTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            tools:text="2:14 PM" />
+
+    </LinearLayout>
+</FrameLayout>
