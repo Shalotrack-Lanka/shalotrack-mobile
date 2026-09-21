@@ -27,6 +27,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -40,10 +41,19 @@ import retrofit2.Response;
  * selected/highlighted), and a per-day bar chart for whichever metric is
  * currently selected. Chart is built entirely from plain Views with
  * programmatically-set heights -- no charting library dependency added.
+ *
+ * Report generation feature: when launched from ReportFilterBottomSheet's
+ * KM Report card, EXTRA_REPORT_FROM_MILLIS/EXTRA_REPORT_TO_MILLIS carry a
+ * fixed date range instead of a period preset. In that mode the period
+ * selector is disabled (a preset would silently disagree with the chosen
+ * report range) and fetchStats() calls getVehicleStatsForRange instead of
+ * getVehicleStats.
  */
 public class ValueActivity extends AppCompatActivity {
 
     public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
+    public static final String EXTRA_REPORT_FROM_MILLIS = "extra_report_from_millis";
+    public static final String EXTRA_REPORT_TO_MILLIS = "extra_report_to_millis";
 
     private enum Metric { IGNITION_ON, STOPS, TRIPS, AVG_SPEED, DISTANCE, MAX_SPEED }
 
@@ -52,6 +62,10 @@ public class ValueActivity extends AppCompatActivity {
     private String currentPeriod = "today";
     private Metric selectedMetric = Metric.DISTANCE; // matches Letstrack's own default in the reference screenshot
     private VehicleStatsResponse currentStats;
+
+    private boolean isReportMode = false;
+    private long reportFromMillis;
+    private long reportToMillis;
 
     private View errorBanner;
     private TextView tvErrorBannerMessage;
@@ -77,8 +91,26 @@ public class ValueActivity extends AppCompatActivity {
 
         mainApiService = ApiClient.getClient().create(ApiService.class);
         vehicleId = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
+        reportFromMillis = getIntent().getLongExtra(EXTRA_REPORT_FROM_MILLIS, -1);
+        reportToMillis = getIntent().getLongExtra(EXTRA_REPORT_TO_MILLIS, -1);
+        isReportMode = reportFromMillis > 0 && reportToMillis > reportFromMillis;
 
         initViews();
+
+        if (isReportMode && btnPeriodSelector != null) {
+            // Report mode -- a fixed range from ReportFilterBottomSheet,
+            // not a period preset. Selecting "Today"/"This Week" here would
+            // silently disagree with the range the user actually chose, so
+            // the selector is disabled rather than left clickable and
+            // misleading.
+            btnPeriodSelector.setOnClickListener(null);
+            btnPeriodSelector.setClickable(false);
+            if (tvPeriodLabel != null) {
+                SimpleDateFormat fmt = new SimpleDateFormat("d MMM", Locale.US);
+                tvPeriodLabel.setText(fmt.format(new java.util.Date(reportFromMillis))
+                        + " - " + fmt.format(new java.util.Date(reportToMillis)));
+            }
+        }
 
         if (vehicleId == null || vehicleId.isEmpty()) {
             showError("No vehicle selected.");
@@ -161,7 +193,7 @@ public class ValueActivity extends AppCompatActivity {
         hideError();
         setLoading(true);
 
-        mainApiService.getVehicleStats(vehicleId, currentPeriod).enqueue(new Callback<ResponseBody>() {
+        Callback<ResponseBody> callback = new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 setLoading(false);
@@ -193,7 +225,17 @@ public class ValueActivity extends AppCompatActivity {
                 Log.e("ValueActivity", "fetchStats network error", t);
                 showError("Network error \u2014 check your connection.");
             }
-        });
+        };
+
+        if (isReportMode) {
+            // Explicit date range from ReportFilterBottomSheet (KM Report)
+            // instead of a period preset. See EXTRA_REPORT_FROM_MILLIS.
+            String fromIso = toIsoUtc(reportFromMillis);
+            String toIso = toIsoUtc(reportToMillis);
+            mainApiService.getVehicleStatsForRange(vehicleId, fromIso, toIso).enqueue(callback);
+        } else {
+            mainApiService.getVehicleStats(vehicleId, currentPeriod).enqueue(callback);
+        }
     }
 
     private void displayStats(VehicleStatsResponse stats) {
@@ -443,6 +485,12 @@ public class ValueActivity extends AppCompatActivity {
 
     private void hideError() {
         if (errorBanner != null) errorBanner.setVisibility(View.GONE);
+    }
+
+    private String toIsoUtc(long epochMillis) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf.format(new java.util.Date(epochMillis));
     }
 
     private <T> T extractObject(String json, Class<T> clazz) {

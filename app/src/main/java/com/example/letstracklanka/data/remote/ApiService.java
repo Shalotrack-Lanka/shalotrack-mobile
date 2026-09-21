@@ -179,4 +179,19 @@ public interface ApiService {
 
     @POST("api/Complaints/{complaintId}/reply")
     Call<ResponseBody> replyToComplaint(@Path("complaintId") String complaintId, @Body CreateComplaintReplyRequest request);
+
+    // NEW -- report generation feature (Alert Report card). Distinct from
+    // getMyAlerts above: requires a specific vehicle + bounded date range,
+    // returns a per-type count summary alongside the full list.
+    @GET("api/Alerts/report")
+    Call<ResponseBody> getAlertReport(@Query("vehicleId") String vehicleId, @Query("from") String fromIso, @Query("to") String toIso);
+
+    // NEW -- report generation feature (KM Report): explicit date range
+    // instead of a period preset. Separate method rather than adding
+    // from/to params to getVehicleStats above -- that one's callers
+    // (ValueActivity's period buttons) never pass a range, and Retrofit
+    // omits a null @Query param cleanly, but a distinct method keeps the
+    // "preset" and "report" call shapes from being silently conflatable.
+    @GET("api/VehicleStats/{vehicleId}")
+    Call<ResponseBody> getVehicleStatsForRange(@Path("vehicleId") String vehicleId, @Query("from") String fromIso, @Query("to") String toIso);
 }

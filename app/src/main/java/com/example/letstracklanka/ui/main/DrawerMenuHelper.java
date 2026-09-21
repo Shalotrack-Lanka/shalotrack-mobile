@@ -492,12 +492,43 @@ public final class DrawerMenuHelper {
         dialog.setContentView(view);
         ImageView btnClose = view.findViewById(R.id.btnCloseReportsMenu);
         if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // Fuel/Fuel Graph/Temperature stay "Coming soon" -- confirmed with
+        // the team there is no sensor data behind any of the three
+        // anywhere in this system, so a filter sheet here would just be a
+        // prettier dead end. KM/Trip/Alert/Stop Alert are real and go
+        // through the shared ReportFilterBottomSheet instead.
         View.OnClickListener comingSoon = v -> Toast.makeText(activity, "Coming soon", Toast.LENGTH_SHORT).show();
-        int[] cardIds = {R.id.cardKmReport, R.id.cardTripReport, R.id.cardFuelReport, R.id.cardTempReport, R.id.cardAlertReport, R.id.cardFuelGraph, R.id.cardStopAlert};
-        for (int id : cardIds) {
+        int[] stubCardIds = {R.id.cardFuelReport, R.id.cardTempReport, R.id.cardFuelGraph};
+        for (int id : stubCardIds) {
             View card = view.findViewById(id);
             if (card != null) card.setOnClickListener(comingSoon);
         }
+
+        View cardKmReport = view.findViewById(R.id.cardKmReport);
+        if (cardKmReport != null) cardKmReport.setOnClickListener(v -> {
+            dialog.dismiss();
+            ReportFilterBottomSheet.show(activity, ReportFilterBottomSheet.ReportType.KM);
+        });
+
+        View cardTripReport = view.findViewById(R.id.cardTripReport);
+        if (cardTripReport != null) cardTripReport.setOnClickListener(v -> {
+            dialog.dismiss();
+            ReportFilterBottomSheet.show(activity, ReportFilterBottomSheet.ReportType.TRIP);
+        });
+
+        View cardAlertReport = view.findViewById(R.id.cardAlertReport);
+        if (cardAlertReport != null) cardAlertReport.setOnClickListener(v -> {
+            dialog.dismiss();
+            ReportFilterBottomSheet.show(activity, ReportFilterBottomSheet.ReportType.ALERT);
+        });
+
+        View cardStopAlert = view.findViewById(R.id.cardStopAlert);
+        if (cardStopAlert != null) cardStopAlert.setOnClickListener(v -> {
+            dialog.dismiss();
+            ReportFilterBottomSheet.show(activity, ReportFilterBottomSheet.ReportType.STOP_ALERT);
+        });
+
         dialog.show();
     }
 

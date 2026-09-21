@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- NEW - Stop Alert Report row. Same rounded-card convention as
+     item_alert.xml (bg_stat_card, same text color tokens) so this new
+     screen reads as part of the same app rather than a bolted-on one-off. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="4dp"
+    android:background="@drawable/bg_stat_card"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="14dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvStopDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Stopped for 12 min"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/tvStopTimeRange"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="10:02 AM – 10:14 AM"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary" />
+
+        <TextView
+            android:id="@+id/tvStopCoordinates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="6.9271, 79.8612"
+            android:textSize="11sp"
+            android:textColor="@color/text_muted" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvStopInProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="Ongoing"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="@color/status_danger"
+        android:visibility="gone" />
+
+</LinearLayout>
