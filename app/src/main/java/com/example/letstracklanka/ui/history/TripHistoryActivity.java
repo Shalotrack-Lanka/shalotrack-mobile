@@ -56,6 +56,12 @@ import retrofit2.Response;
  * TripHistoryAdapter -- both hidden in the layouts per explicit decision to defer them past
  * this deployment.
  *
+ * Report generation feature: when launched from ReportFilterBottomSheet's Trip Report card,
+ * EXTRA_REPORT_FROM_MILLIS/EXTRA_REPORT_TO_MILLIS carry the exact chosen range. Reuses the
+ * existing isCustomRangeSelected mechanism (originally built for DateDrillDownBottomSheet's
+ * single-day picks) rather than introducing a separate "report mode" concept -- a fixed
+ * report window behaves identically to a fixed custom-picked day: no further lazy-loading.
+ *
  * Assumes Material Components version with date-range-picker support (materialdatepicker
  * package) is already a dependency -- consistent with the extensive existing use of Material
  * widgets throughout this app, but not verified against build.gradle directly.
@@ -64,6 +70,8 @@ public class TripHistoryActivity extends AppCompatActivity {
 
     public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
     public static final String EXTRA_VEHICLE_NAME = "extra_vehicle_name";
+    public static final String EXTRA_REPORT_FROM_MILLIS = "extra_report_from_millis";
+    public static final String EXTRA_REPORT_TO_MILLIS = "extra_report_to_millis";
 
     // Was DEFAULT_RANGE_DAYS = 7 (too narrow), briefly changed to 365*5
     // (dangerously wide -- GetTripsSummaryAsync processes raw GPS points
@@ -119,7 +127,15 @@ public class TripHistoryActivity extends AppCompatActivity {
             return;
         }
 
-        setDefaultRange();
+        long reportFromMillis = getIntent().getLongExtra(EXTRA_REPORT_FROM_MILLIS, -1);
+        long reportToMillis = getIntent().getLongExtra(EXTRA_REPORT_TO_MILLIS, -1);
+        if (reportFromMillis > 0 && reportToMillis > reportFromMillis) {
+            rangeFrom = new Date(reportFromMillis);
+            rangeTo = new Date(reportToMillis);
+            isCustomRangeSelected = true;
+        } else {
+            setDefaultRange();
+        }
         fetchTrips();
     }
 
