@@ -149,6 +149,15 @@ public final class DrawerMenuHelper {
             });
         }
 
+        // NEW -- launches MyComplaintsActivity (Complaint/Feedback feature).
+        View btnMenuComplaints = activity.findViewById(R.id.btnMenuComplaints);
+        if (btnMenuComplaints != null) {
+            btnMenuComplaints.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                activity.startActivity(new Intent(activity, com.example.letstracklanka.ui.complaints.MyComplaintsActivity.class));
+            });
+        }
+
         View btnMenuSharing = activity.findViewById(R.id.btnMenuSharing);
         if (btnMenuSharing != null) {
             btnMenuSharing.setOnClickListener(v -> {

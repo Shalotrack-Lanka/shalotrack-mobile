@@ -52,6 +52,11 @@
 
         <activity android:name=".ui.contacts.EmergencyContactsActivity" android:exported="false" />
 
+        <!-- NEW: Complaint/Feedback feature -->
+        <activity android:name=".ui.complaints.MyComplaintsActivity" android:exported="false" />
+        <activity android:name=".ui.complaints.FileComplaintActivity" android:exported="false" />
+        <activity android:name=".ui.complaints.ComplaintDetailActivity" android:exported="false" />
+
         <activity android:name=".ui.main.SettingsActivity" android:exported="false" />
 
         <activity android:name=".ui.vehicles.AddVehicleActivity" android:exported="false" />
