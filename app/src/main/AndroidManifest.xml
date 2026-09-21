@@ -50,6 +50,10 @@
         <activity android:name=".ui.history.TripHistoryActivity" android:exported="false" />
         <activity android:name=".ui.history.TripDetailActivity" android:exported="false" />
 
+        <activity android:name=".ui.main.reports.AlertReportActivity" android:exported="false" />
+        <activity android:name=".ui.main.reports.StopReportActivity" android:exported="false" />
+        <activity android:name=".ui.main.reports.KmReportActivity" android:exported="false" />
+
         <activity android:name=".ui.contacts.EmergencyContactsActivity" android:exported="false" />
 
         <!-- NEW: Complaint/Feedback feature -->

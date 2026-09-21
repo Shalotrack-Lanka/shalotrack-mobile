@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alert Report - report generation feature. Same structural pattern as
+     activity_my_complaints.xml (header, error banner, progress, empty
+     state, RecyclerView), plus a summary strip showing total count and
+     per-type breakdown for the chosen vehicle+range, reusing the existing
+     AlertAdapter for the list itself (day-grouped, same as the live
+     Alerts feed) rather than building a parallel row layout. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/surface_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/brand_primary"
+        android:padding="16dp"
+        android:elevation="2dp">
+
+        <ImageView
+            android:id="@+id/btnBackAlertReport"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="@color/text_on_dark"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:id="@+id/tvAlertReportVehicleName"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Alert Report"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_on_dark" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvAlertReportRange"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        android:background="@color/surface_white" />
+
+    <TextView
+        android:id="@+id/tvAlertReportSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="12dp"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:background="@color/surface_white" />
+
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="60dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No alerts in this period"
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/errorBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/status_danger"
+        android:padding="12dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/tvErrorBannerMessage"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text=" "
+            android:textColor="@color/text_on_dark"
+            android:textSize="13sp" />
+        <TextView
+            android:id="@+id/tvErrorBannerRetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RETRY"
+            android:textColor="@color/text_on_dark"
+            android:textStyle="bold"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progressAlertReport"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="40dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvAlertReport"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_margin="16dp" />
+
+</LinearLayout>
