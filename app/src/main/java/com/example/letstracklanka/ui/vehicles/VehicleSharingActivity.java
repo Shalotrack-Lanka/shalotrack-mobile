@@ -22,6 +22,7 @@ import com.example.letstracklanka.data.model.RespondToVehicleShareRequest;
 import com.example.letstracklanka.data.model.VehicleShareResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
+import com.example.letstracklanka.utils.PeriodicRefresher;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -46,7 +47,19 @@ import retrofit2.Response;
  */
 public class VehicleSharingActivity extends AppCompatActivity {
 
+    // NEW -- background refresh while this screen is open, so a new
+    // invite, an owner's revoke, or the other party's accept/decline shows
+    // up without the user needing to leave and reopen this screen.
+    //
+    // Honest scope note: each silent tick still rebuilds the invite/share
+    // rows from scratch (removeAllViews + re-add), same as every existing
+    // fetch here -- there's no view-diffing in this screen. At a 20s
+    // interval with a handful of simple rows this is a minor, acceptable
+    // flicker, not a real diffing rewrite of how this screen renders.
+    private static final long REFRESH_INTERVAL_MS = 20_000;
+
     private ApiService mainApiService;
+    private PeriodicRefresher refresher;
 
     private View errorBanner;
     private TextView tvErrorBannerMessage;
@@ -66,9 +79,28 @@ public class VehicleSharingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_vehicle_sharing);
 
         mainApiService = ApiClient.getClient().create(ApiService.class);
+        refresher = new PeriodicRefresher(REFRESH_INTERVAL_MS, () -> fetchAll(false));
 
         initViews();
-        fetchAll();
+        fetchAll(true);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refresher.start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        refresher.stop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        refresher.stop(); // safety net -- onPause already stops it in the normal lifecycle
     }
 
     private void initViews() {
@@ -88,13 +120,17 @@ public class VehicleSharingActivity extends AppCompatActivity {
         tvNoMyShares = findViewById(R.id.tvNoMyShares);
     }
 
-    private void fetchAll() {
+    // showLoading distinguishes an explicit/user-visible load (first open,
+    // right after accept/decline/revoke) from a silent background tick --
+    // a silent poll never shows the spinner and never raises a fresh error
+    // banner over a screen the user is currently, successfully looking at.
+    private void fetchAll(boolean showLoading) {
         hideError();
-        setLoading(true);
-        fetchPendingInvites();
+        if (showLoading) setLoading(true);
+        fetchPendingInvites(showLoading);
     }
 
-    private void fetchPendingInvites() {
+    private void fetchPendingInvites(boolean showLoading) {
         mainApiService.getPendingVehicleShareInvites().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
@@ -110,18 +146,18 @@ public class VehicleSharingActivity extends AppCompatActivity {
                     Log.e("VehicleSharingActivity", "fetchPendingInvites parse error", e);
                 }
                 displayPendingInvites(invites);
-                fetchSharedWithMe(); // chained, not parallel -- keeps the screen simple
+                fetchSharedWithMe(showLoading); // chained, not parallel -- keeps the screen simple
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("VehicleSharingActivity", "fetchPendingInvites network error", t);
-                fetchSharedWithMe();
+                fetchSharedWithMe(showLoading);
             }
         });
     }
 
-    private void fetchSharedWithMe() {
+    private void fetchSharedWithMe(boolean showLoading) {
         mainApiService.getVehiclesSharedWithMe().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
@@ -132,20 +168,20 @@ public class VehicleSharingActivity extends AppCompatActivity {
                         if (parsed != null) shared = parsed;
                     } else {
                         Log.w("VehicleSharingActivity", "fetchSharedWithMe failed, code " + response.code());
-                        showError("Couldn't load shared vehicles (code " + response.code() + ")");
+                        if (showLoading) showError("Couldn't load shared vehicles (code " + response.code() + ")");
                     }
                 } catch (Exception e) {
                     Log.e("VehicleSharingActivity", "fetchSharedWithMe parse error", e);
                 }
                 displaySharedWithMe(shared);
-                fetchMyShares(); // chained, not parallel -- keeps the screen simple
+                fetchMyShares(showLoading); // chained, not parallel -- keeps the screen simple
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 Log.e("VehicleSharingActivity", "fetchSharedWithMe network error", t);
-                showError("Network error \u2014 check your connection.");
-                fetchMyShares();
+                if (showLoading) showError("Network error \u2014 check your connection.");
+                fetchMyShares(showLoading);
             }
         });
     }
@@ -153,11 +189,11 @@ public class VehicleSharingActivity extends AppCompatActivity {
     // NEW -- the owner's own "who have I shared with" view, with revoke.
     // Shows Pending and Accepted shares only -- Declined/Revoked ones are
     // dead history the owner doesn't need cluttering this list.
-    private void fetchMyShares() {
+    private void fetchMyShares(boolean showLoading) {
         mainApiService.getMyVehicleShares(null).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                setLoading(false);
+                if (showLoading) setLoading(false);
                 List<VehicleShareResponse> shares = new ArrayList<>();
                 try (ResponseBody body = response.body()) {
                     if (response.isSuccessful() && body != null) {
@@ -180,7 +216,7 @@ public class VehicleSharingActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                setLoading(false);
+                if (showLoading) setLoading(false);
                 Log.e("VehicleSharingActivity", "fetchMyShares network error", t);
             }
         });
@@ -460,7 +496,7 @@ public class VehicleSharingActivity extends AppCompatActivity {
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(VehicleSharingActivity.this, "Done.", Toast.LENGTH_SHORT).show();
-                    fetchAll();
+                    fetchAll(true);
                 } else {
                     Log.w("VehicleSharingActivity", "revokeShare failed, code " + response.code());
                     Toast.makeText(VehicleSharingActivity.this, "Couldn't do that. Try again.", Toast.LENGTH_SHORT).show();
@@ -483,7 +519,7 @@ public class VehicleSharingActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Toast.makeText(VehicleSharingActivity.this,
                             accept ? "Invite accepted." : "Invite declined.", Toast.LENGTH_SHORT).show();
-                    fetchAll();
+                    fetchAll(true);
                 } else {
                     Log.w("VehicleSharingActivity", "respondToInvite failed, code " + response.code());
                     Toast.makeText(VehicleSharingActivity.this, "Couldn't respond. Try again.", Toast.LENGTH_SHORT).show();

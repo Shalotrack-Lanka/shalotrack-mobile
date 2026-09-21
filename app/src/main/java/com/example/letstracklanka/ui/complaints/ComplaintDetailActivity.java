@@ -19,6 +19,7 @@ import com.example.letstracklanka.data.model.ComplaintResponse;
 import com.example.letstracklanka.data.model.CreateComplaintReplyRequest;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
+import com.example.letstracklanka.utils.PeriodicRefresher;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -44,8 +45,19 @@ public class ComplaintDetailActivity extends AppCompatActivity {
     private static final int COLOR_RESOLVED = 0xFF16A34A;
     private static final int COLOR_CLOSED = 0xFF757575;
 
+    // NEW -- background refresh while this thread is open, so a
+    // dealer/admin reply or a status change (Resolved/Closed) shows up on
+    // its own. Shorter interval than the list screen since this is the
+    // closest thing this app has to a chat thread.
+    private static final long REFRESH_INTERVAL_MS = 12_000;
+
     private ApiService mainApiService;
     private String complaintId;
+    private PeriodicRefresher refresher;
+    // Tracks reply count across polls so a silent tick that found nothing
+    // new doesn't yank the user's scroll position back to the bottom if
+    // they've scrolled up to reread something earlier in the thread.
+    private int lastReplyCount = -1;
 
     private TextView tvTitle, tvStatus, tvVehicle, tvDescription;
     private View errorBanner, progressBar, layoutReplyComposer;
@@ -68,8 +80,27 @@ public class ComplaintDetailActivity extends AppCompatActivity {
         }
 
         mainApiService = ApiClient.getClient().create(ApiService.class);
+        refresher = new PeriodicRefresher(REFRESH_INTERVAL_MS, () -> fetchComplaint(false));
         initViews();
-        fetchComplaint();
+        fetchComplaint(true);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refresher.start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        refresher.stop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        refresher.stop(); // safety net -- onPause already stops it in the normal lifecycle
     }
 
     private void initViews() {
@@ -89,7 +120,7 @@ public class ComplaintDetailActivity extends AppCompatActivity {
         etReplyMessage = findViewById(R.id.etReplyMessage);
         btnSendReply = findViewById(R.id.btnSendReply);
 
-        if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchComplaint());
+        if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchComplaint(true));
         if (btnSendReply != null) btnSendReply.setOnClickListener(v -> sendReply());
 
         rvReplies.setLayoutManager(new LinearLayoutManager(this));
@@ -97,9 +128,16 @@ public class ComplaintDetailActivity extends AppCompatActivity {
         rvReplies.setAdapter(replyAdapter);
     }
 
-    private void fetchComplaint() {
-        hideErrorBanner();
-        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+    // showLoading distinguishes an explicit/user-visible load (first open,
+    // retry, right after sending a reply) from a silent background tick --
+    // a silent poll never shows the progress bar and never raises a fresh
+    // error banner over a thread the user is currently, successfully
+    // reading.
+    private void fetchComplaint(boolean showLoading) {
+        if (showLoading) {
+            hideErrorBanner();
+            if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+        }
 
         mainApiService.getComplaintById(complaintId).enqueue(new Callback<ResponseBody>() {
             @Override
@@ -109,17 +147,18 @@ public class ComplaintDetailActivity extends AppCompatActivity {
                     if (response.isSuccessful() && body != null) {
                         ComplaintResponse complaint = extractObject(body.string());
                         if (complaint != null) {
+                            hideErrorBanner(); // recovered, even if this was a silent retry
                             renderComplaint(complaint);
-                        } else {
+                        } else if (showLoading) {
                             showErrorBanner("Something went wrong loading this complaint.");
                         }
                     } else {
                         Log.w("ComplaintDetail", "fetchComplaint failed, code " + response.code());
-                        showErrorBanner("Couldn't load this complaint.");
+                        if (showLoading) showErrorBanner("Couldn't load this complaint.");
                     }
                 } catch (Exception e) {
                     Log.e("ComplaintDetail", "fetchComplaint parse error", e);
-                    showErrorBanner("Something went wrong loading this complaint.");
+                    if (showLoading) showErrorBanner("Something went wrong loading this complaint.");
                 }
             }
 
@@ -127,7 +166,7 @@ public class ComplaintDetailActivity extends AppCompatActivity {
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
                 Log.e("ComplaintDetail", "fetchComplaint network error", t);
-                showErrorBanner("Network error — check your connection.");
+                if (showLoading) showErrorBanner("Network error — check your connection.");
             }
         });
     }
@@ -143,10 +182,16 @@ public class ComplaintDetailActivity extends AppCompatActivity {
         Drawable pillBg = tvStatus.getBackground().mutate();
         pillBg.setTint(withAlpha(statusColor, 60));
 
+        int newReplyCount = complaint.getReplies().size();
         replyAdapter.updateReplies(complaint.getReplies());
-        if (!complaint.getReplies().isEmpty()) {
-            rvReplies.scrollToPosition(complaint.getReplies().size() - 1);
+        // Only jump to the bottom when the count actually changed (first
+        // load, or a new reply arrived via poll/send) -- not on every
+        // silent tick, which would otherwise yank a user who's scrolled up
+        // to reread something back down every 12 seconds.
+        if (newReplyCount > 0 && newReplyCount != lastReplyCount) {
+            rvReplies.scrollToPosition(newReplyCount - 1);
         }
+        lastReplyCount = newReplyCount;
 
         boolean canReply = !complaint.isClosedForReplies();
         layoutReplyComposer.setVisibility(canReply ? View.VISIBLE : View.GONE);
@@ -168,7 +213,7 @@ public class ComplaintDetailActivity extends AppCompatActivity {
                 btnSendReply.setEnabled(true);
                 if (response.isSuccessful()) {
                     etReplyMessage.setText("");
-                    fetchComplaint();
+                    fetchComplaint(true);
                 } else {
                     Log.w("ComplaintDetail", "sendReply failed, code " + response.code());
                     Toast.makeText(ComplaintDetailActivity.this, "Couldn't send your reply. Please try again.", Toast.LENGTH_SHORT).show();
