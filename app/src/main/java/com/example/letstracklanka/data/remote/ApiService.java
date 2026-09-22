@@ -70,11 +70,6 @@ public interface ApiService {
     @DELETE("api/Geofences/{geofenceId}")
     Call<ResponseBody> deleteGeofence(@Path("geofenceId") String geofenceId);
 
-    // NOTE: still points at the staff-only device list. A regular customer token will
-    // get 403 here. Known limitation, deliberately not fixed tonight.
-    @GET("api/GpsDevices")
-    Call<ResponseBody> getGpsDevices();
-
     @POST("api/DeviceAssignments/assign")
     Call<ResponseBody> assignDevice(@Body CreateDeviceAssignmentRequest request);
 
