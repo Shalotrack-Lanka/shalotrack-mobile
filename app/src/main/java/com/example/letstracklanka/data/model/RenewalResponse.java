@@ -15,8 +15,8 @@ public class RenewalResponse {
     public static final String STATUS_CANCELLED = "Cancelled";
 
     /** Index-matched to DURATION_NAMES: the label's position IS the value sent. */
-    public static final String[] DURATION_LABELS = {"3 Months", "6 Months", "1 Year", "2 Years", "3 Years"};
-    public static final String[] DURATION_NAMES = {"ThreeMonths", "SixMonths", "OneYear", "TwoYears", "ThreeYears"};
+    public static final String[] DURATION_LABELS = {"3 Months", "6 Months", "1 Year", "2 Years", "3 Years", "6 Years"};
+    public static final String[] DURATION_NAMES = {"ThreeMonths", "SixMonths", "OneYear", "TwoYears", "ThreeYears", "SixYears"};
 
     @SerializedName("renewalRequestId")
     private String renewalRequestId;
@@ -30,6 +30,8 @@ public class RenewalResponse {
     private String status;
     @SerializedName("hasSlip")
     private Boolean hasSlip;
+    @SerializedName("amountLkr")
+    private Double amountLkr;
     @SerializedName("paymentReference")
     private String paymentReference;
     @SerializedName("decisionReason")
@@ -45,6 +47,8 @@ public class RenewalResponse {
     public String getDuration() { return duration; }
     public String getStatus() { return status; }
     public boolean hasSlip() { return hasSlip != null && hasSlip; }
+    /** The price the customer was shown when the request was made; null for requests made before pricing existed. */
+    public Double getAmountLkr() { return amountLkr; }
     public String getPaymentReference() { return paymentReference; }
     public String getDecisionReason() { return decisionReason; }
     public String getCreatedAt() { return createdAt; }
@@ -53,6 +57,12 @@ public class RenewalResponse {
     /** True while the request can still take a (new) slip or be cancelled. */
     public boolean isOpen() {
         return STATUS_AWAITING_SLIP.equals(status) || STATUS_PENDING_REVIEW.equals(status);
+    }
+
+    /** "Rs. 2,999" (cents only when there are any). The one place money is formatted. */
+    public static String formatLkr(double amount) {
+        boolean whole = Math.abs(amount - Math.rint(amount)) < 0.005;
+        return java.lang.String.format(java.util.Locale.US, whole ? "Rs. %,.0f" : "Rs. %,.2f", amount);
     }
 
     public String getDurationLabel() {

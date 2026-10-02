@@ -37,6 +37,15 @@
         android:inputType="none"
         android:focusable="false" />
 
+    <TextView
+        android:id="@+id/tvRenewalPrice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
     <EditText
         android:id="@+id/etRenewalReference"
         android:layout_width="match_parent"

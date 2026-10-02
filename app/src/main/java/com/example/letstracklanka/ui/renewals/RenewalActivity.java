@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateRenewalRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
+import com.example.letstracklanka.data.model.RenewalPackage;
 import com.example.letstracklanka.data.model.RenewalResponse;
 import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
@@ -50,8 +51,8 @@ import retrofit2.Response;
 /**
  * Vehicle Subscriptions: request a renewal, upload the bank slip, follow the decision.
  *
- * Money rules live on the server. This screen never shows or sends a price (pricing is not final) and
- * never marks anything as paid: it only creates a request, uploads the slip, and shows the status the
+ * Money rules live on the server. The price list is read from the server and shown, but this screen
+ * never SENDS an amount (the server fixes it) and never marks anything as paid: it only creates a request, uploads the slip, and shows the status the
  * API reports. The slip is shrunk/validated on the phone by SlipPreparer, and is never logged.
  *
  * The slip picker is the system document picker (no storage permission needed). The id being
@@ -168,7 +169,7 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
 
     private void startNewRenewal() {
         if (!myVehicles.isEmpty()) {
-            showNewRenewalDialog();
+            loadPackagesThenShowDialog();
             return;
         }
         progress.setVisibility(View.VISIBLE);
@@ -214,7 +215,7 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
                         if (myVehicles.isEmpty()) {
                             toast("You don't have any vehicles to renew.");
                         } else {
-                            showNewRenewalDialog();
+                            loadPackagesThenShowDialog();
                         }
                         return;
                     }
@@ -233,7 +234,56 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
         });
     }
 
-    private void showNewRenewalDialog() {
+    /**
+     * The price list comes from the server every time the dialog opens, so the customer always sees
+     * the current prices and nothing is hard-coded on the phone. If the server has no list yet (it is
+     * pushed from the admin portal), the plain package names are offered without a price and the
+     * server decides the amount when the request is created.
+     */
+    private void loadPackagesThenShowDialog() {
+        showBusy("Loading prices…");
+        api.getRenewalPackages().enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (isFinishing() || isDestroyed()) return;
+                hideBusy();
+                List<RenewalPackage> offered = null;
+                try (ResponseBody body = response.body()) {
+                    if (response.isSuccessful() && body != null) {
+                        offered = extractList(body.string(), RenewalPackage.class);
+                        if (offered == null) offered = new ArrayList<>();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "getRenewalPackages parse error", e);
+                    offered = null;
+                }
+                if (offered == null) {
+                    toastLong("Couldn't load the renewal prices. Try again.");
+                    return;
+                }
+                List<RenewalPackage> orderable = new ArrayList<>();
+                for (RenewalPackage p : offered) if (p.isOrderable()) orderable.add(p);
+                showNewRenewalDialog(orderable);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                if (isFinishing() || isDestroyed()) return;
+                hideBusy();
+                Log.e(TAG, "getRenewalPackages network error", t);
+                toast("Network error — check your connection.");
+            }
+        });
+    }
+
+    /** "12-month warranty from activation" style helper text for a package. */
+    private static String priceLine(RenewalPackage p) {
+        String line = RenewalResponse.formatLkr(p.getPriceLkr());
+        if (p.getWarrantyMonths() > 0) line += " \u00B7 " + p.getWarrantyMonths() + "-month warranty from your first activation";
+        return line;
+    }
+
+    private void showNewRenewalDialog(List<RenewalPackage> offered) {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_new_renewal, null);
         AutoCompleteTextView spVehicle = view.findViewById(R.id.spinnerRenewalVehicle);
         AutoCompleteTextView spDuration = view.findViewById(R.id.spinnerRenewalDuration);
@@ -247,11 +297,36 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
         spVehicle.setOnItemClickListener((parent, v, pos, id) -> vehicleIndex[0] = pos);
         spVehicle.setOnClickListener(v -> spVehicle.showDropDown());
 
-        spDuration.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line,
-                RenewalResponse.DURATION_LABELS));
-        final int[] durationIndex = {2}; // 1 Year
-        spDuration.setText(RenewalResponse.DURATION_LABELS[2], false);
-        spDuration.setOnItemClickListener((parent, v, pos, id) -> durationIndex[0] = pos);
+        TextView tvPrice = view.findViewById(R.id.tvRenewalPrice);
+        final List<String> optionLabels = new ArrayList<>();
+        final List<String> optionDurations = new ArrayList<>();
+        final List<String> optionPriceLines = new ArrayList<>();
+        int defaultIndex = 0;
+        if (offered.isEmpty()) {
+            // No list on the server yet: names only, no price shown.
+            for (int i = 0; i < RenewalResponse.DURATION_LABELS.length; i++) {
+                optionLabels.add(RenewalResponse.DURATION_LABELS[i]);
+                optionDurations.add(RenewalResponse.DURATION_NAMES[i]);
+                optionPriceLines.add("Our team confirms the amount for this package.");
+            }
+            defaultIndex = 2; // 1 Year
+        } else {
+            for (int i = 0; i < offered.size(); i++) {
+                RenewalPackage p = offered.get(i);
+                optionLabels.add(p.getLabel() + " \u2014 " + RenewalResponse.formatLkr(p.getPriceLkr()));
+                optionDurations.add(p.getDuration());
+                optionPriceLines.add(priceLine(p));
+                if ("OneYear".equals(p.getDuration())) defaultIndex = i;
+            }
+        }
+        spDuration.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, optionLabels));
+        final int[] durationIndex = {defaultIndex};
+        spDuration.setText(optionLabels.get(defaultIndex), false);
+        tvPrice.setText(optionPriceLines.get(defaultIndex));
+        spDuration.setOnItemClickListener((parent, v, pos, id) -> {
+            durationIndex[0] = pos;
+            tvPrice.setText(optionPriceLines.get(pos));
+        });
         spDuration.setOnClickListener(v -> spDuration.showDropDown());
 
         new AlertDialog.Builder(this)
@@ -261,7 +336,7 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
                 .setPositiveButton("Continue", (d, w) -> {
                     String ref = etRef.getText() == null ? "" : etRef.getText().toString().trim();
                     createRenewal(myVehicles.get(vehicleIndex[0]).getVehicleId(),
-                            RenewalResponse.DURATION_NAMES[durationIndex[0]],
+                            optionDurations.get(durationIndex[0]),
                             ref.isEmpty() ? null : ref);
                 })
                 .show();
@@ -286,11 +361,15 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
                             final RenewalResponse result = created;
                             if (result != null && result.getRenewalRequestId() != null) {
                                 String msg = result.getInstructionsMessage();
+                                String text = (msg == null || msg.trim().isEmpty()
+                                        ? "Pay by bank transfer, then upload a photo of the slip."
+                                        : msg);
+                                if (result.getAmountLkr() != null) {
+                                    text = "Amount to transfer: " + RenewalResponse.formatLkr(result.getAmountLkr()) + "\n\n" + text;
+                                }
                                 new AlertDialog.Builder(RenewalActivity.this)
                                         .setTitle("Request created")
-                                        .setMessage((msg == null || msg.trim().isEmpty()
-                                                ? "Pay by bank transfer, then upload a photo of the slip."
-                                                : msg))
+                                        .setMessage(text)
                                         .setNegativeButton("Later", null)
                                         .setPositiveButton("Upload slip now", (d, w) -> pickSlipFor(result.getRenewalRequestId()))
                                         .show();
