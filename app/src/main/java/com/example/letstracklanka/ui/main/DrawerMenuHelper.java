@@ -17,6 +17,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateSubscriptionRequest;
 import com.example.letstracklanka.data.model.CustomerResponse;
+import com.example.letstracklanka.data.model.RenewalPackage;
+import com.example.letstracklanka.data.model.RenewalResponse;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
@@ -466,8 +468,66 @@ public final class DrawerMenuHelper {
         }
 
         if (cardOneYear != null) cardOneYear.performClick();
+        loadLiveAppPlanPrices(apiService, dialog, view, cardFree, cardOneYear, cardTwoYears, cardThreeYears);
         dialog.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         dialog.show();
+    }
+
+    /**
+     * The plan prices on this sheet come from the server's price list (the same one device renewals
+     * use), so they always match what the server will charge. The built-in prices in strings.xml are
+     * only what shows until the list arrives, or when it cannot be loaded. A plan the server no longer
+     * offers is greyed out and cannot be picked.
+     */
+    private static void loadLiveAppPlanPrices(ApiService apiService, BottomSheetDialog dialog, View sheet,
+                                              MaterialCardView cardFree, MaterialCardView cardOneYear,
+                                              MaterialCardView cardTwoYears, MaterialCardView cardThreeYears) {
+        apiService.getRenewalPackages().enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(retrofit2.Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (!dialog.isShowing()) return;
+                java.util.List<RenewalPackage> orderable = new java.util.ArrayList<>();
+                try (ResponseBody body = response.body()) {
+                    if (!response.isSuccessful() || body == null) return;
+                    com.google.gson.JsonObject root = new Gson().fromJson(body.string(), com.google.gson.JsonObject.class);
+                    if (root == null) return;
+                    com.google.gson.JsonArray data = root.getAsJsonArray("data");
+                    if (data == null) return;
+                    java.util.List<RenewalPackage> all = new Gson().fromJson(data,
+                            new com.google.gson.reflect.TypeToken<java.util.List<RenewalPackage>>() { }.getType());
+                    if (all != null) for (RenewalPackage p : all) if (p != null && p.isOrderable()) orderable.add(p);
+                } catch (Exception e) {
+                    Log.w("DrawerMenuHelper", "plan prices parse error", e);
+                    return;
+                }
+                if (orderable.isEmpty()) return; // list not published yet: keep the built-in prices
+
+                applyPlanPrice(sheet, R.id.tvPriceOneYear, cardOneYear, "OneYear", orderable);
+                applyPlanPrice(sheet, R.id.tvPriceTwoYears, cardTwoYears, "TwoYears", orderable);
+                applyPlanPrice(sheet, R.id.tvPriceThreeYears, cardThreeYears, "ThreeYears", orderable);
+
+                // The sheet opens with 1 Year selected; if that plan is off, start from Free instead.
+                if (cardOneYear != null && !cardOneYear.isEnabled() && cardFree != null) cardFree.performClick();
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ResponseBody> call, Throwable t) {
+                Log.w("DrawerMenuHelper", "plan prices unavailable, showing built-in prices", t);
+            }
+        });
+    }
+
+    private static void applyPlanPrice(View sheet, int priceViewId, MaterialCardView card, String duration,
+                                       java.util.List<RenewalPackage> orderable) {
+        RenewalPackage match = null;
+        for (RenewalPackage p : orderable) if (duration.equals(p.getDuration())) match = p;
+        TextView tv = sheet.findViewById(priceViewId);
+        if (match == null) {
+            if (card != null) { card.setEnabled(false); card.setAlpha(0.4f); }
+            if (tv != null) tv.setText("Unavailable");
+            return;
+        }
+        if (tv != null) tv.setText(RenewalResponse.formatLkr(match.getPriceLkr()));
     }
 
     private static void showReportsMenuBottomSheet(AppCompatActivity activity) {

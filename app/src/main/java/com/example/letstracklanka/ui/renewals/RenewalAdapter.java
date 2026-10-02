@@ -45,7 +45,8 @@ public class RenewalAdapter extends RecyclerView.Adapter<RenewalAdapter.Holder> 
         RenewalResponse r = items.get(position);
         h.tvVehicle.setText(r.getVehicleNumber() == null ? "Vehicle" : r.getVehicleNumber());
         h.tvStatus.setText(r.getStatusLabel());
-        h.tvDetail.setText(r.getDurationLabel() + " renewal");
+        h.tvDetail.setText(r.getDurationLabel() + " renewal"
+                + (r.getAmountLkr() != null ? " \u00B7 " + RenewalResponse.formatLkr(r.getAmountLkr()) : ""));
 
         String note = null;
         if (RenewalResponse.STATUS_REJECTED.equals(r.getStatus()) && r.getDecisionReason() != null) {

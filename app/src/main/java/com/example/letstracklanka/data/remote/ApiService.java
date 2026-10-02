@@ -198,6 +198,10 @@ public interface ApiService {
     // NEW -- Customer renewals (RenewalsController, api/Renewals, [Authorize]). Unlike the complaint
     // endpoints these use enum NAMES as strings. The slip part must be named "file"; the server checks
     // type by magic bytes and caps size at 2 MB (SlipPreparer already shrinks photos to fit).
+    // The renewal price list (active, priced packages only). Customer-safe: no margins.
+    @GET("api/Renewals/packages")
+    Call<ResponseBody> getRenewalPackages();
+
     @POST("api/Renewals")
     Call<ResponseBody> createRenewal(@Body CreateRenewalRequest request);
 

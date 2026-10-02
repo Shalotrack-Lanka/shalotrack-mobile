@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Rebuilt to match the actual requirement doc's subscription model:
      three fixed-price, one-time, multi-year terms (1/2/3 years at
-     Rs. 2,999/5,499/7,999), not the previous Free/Silver/Gold/Platinum
+     Rs. 2,999/4,999/6,999, kept in step with the server price list), not the previous Free/Silver/Gold/Platinum
      recurring feature-tier model with a monthly/annual billing toggle.
      That model didn't match anything in the written spec at all, this
      one does, price-for-price.
@@ -82,7 +82,7 @@
             android:paddingTop="16dp">
 
             <!-- Three duration plans, matching the requirement doc's
-                 pricing exactly: 1/2/3 years at Rs. 2,999/5,499/7,999.
+                 pricing exactly: 1/2/3 years at Rs. 2,999/4,999/6,999.
                  No monthly/annual toggle, these are one-time terms, not
                  recurring billing choices. -->
             <LinearLayout
