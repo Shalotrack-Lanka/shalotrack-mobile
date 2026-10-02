@@ -9,17 +9,29 @@ import java.util.concurrent.TimeUnit;
 public class ApiClient {
     private static final String BASE_URL = "https://api.shalotrack.com/";
     private static Retrofit retrofit = null;
+    private static boolean debuggable = false;
+
+    /** Called once from ShaloTrackApp. Full HTTP logging is only ever enabled on debuggable builds. */
+    public static void setDebuggable(boolean value) {
+        debuggable = value;
+    }
 
     public static Retrofit getClient() {
         if (retrofit == null) {
 
-            // 1. Create the X-Ray Logger and tell it to show the full JSON Body
+            // 1. HTTP logger. Level.BODY prints the Bearer token, customer data and (now) payment slips into
+            //    logcat, so it is limited to debuggable builds, the token header is always redacted, and a
+            //    release build logs nothing at all.
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+            logging.redactHeader("Authorization");
+            logging.setLevel(debuggable
+                    ? HttpLoggingInterceptor.Level.BASIC
+                    : HttpLoggingInterceptor.Level.NONE);
 
             // 2. Build the client with the logger and 30-second timeouts
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .addInterceptor(new AuthInterceptor())
+                    .addInterceptor(new RenewalRequiredInterceptor())
                     .addInterceptor(logging)
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(30, TimeUnit.SECONDS)

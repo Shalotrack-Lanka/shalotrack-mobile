@@ -129,7 +129,7 @@ public final class DrawerMenuHelper {
         if (btnMenuVehicleSubs != null) {
             btnMenuVehicleSubs.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
-                showDevicesToRenewBottomSheet(activity);
+                activity.startActivity(new Intent(activity, com.example.letstracklanka.ui.renewals.RenewalActivity.class));
             });
         }
 
@@ -352,22 +352,6 @@ public final class DrawerMenuHelper {
                 Toast.makeText(activity, "Network error \u2014 check your connection", Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    private static void showDevicesToRenewBottomSheet(AppCompatActivity activity) {
-        BottomSheetDialog dialog = new BottomSheetDialog(activity);
-        View view = activity.getLayoutInflater().inflate(R.layout.bottom_sheet_devices_to_renew, null);
-        dialog.setContentView(view);
-        ImageView btnClose = view.findViewById(R.id.btnCloseRenew);
-        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
-        MaterialButton btnShopNow = view.findViewById(R.id.btnShopNow);
-        if (btnShopNow != null) {
-            btnShopNow.setOnClickListener(v -> {
-                Toast.makeText(activity, "Opening Shop...", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-            });
-        }
-        dialog.show();
     }
 
     private static void showAppSubscriptionBottomSheet(AppCompatActivity activity, ApiService apiService) {

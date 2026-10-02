@@ -17,14 +17,19 @@ import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.model.CreateComplaintReplyRequest;
 import com.example.letstracklanka.data.model.CreateComplaintRequest;
 
+import com.example.letstracklanka.data.model.CreateRenewalRequest;
+
+import okhttp3.MultipartBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
 import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
+import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
@@ -189,4 +194,20 @@ public interface ApiService {
     // "preset" and "report" call shapes from being silently conflatable.
     @GET("api/VehicleStats/{vehicleId}")
     Call<ResponseBody> getVehicleStatsForRange(@Path("vehicleId") String vehicleId, @Query("from") String fromIso, @Query("to") String toIso);
+
+    // NEW -- Customer renewals (RenewalsController, api/Renewals, [Authorize]). Unlike the complaint
+    // endpoints these use enum NAMES as strings. The slip part must be named "file"; the server checks
+    // type by magic bytes and caps size at 2 MB (SlipPreparer already shrinks photos to fit).
+    @POST("api/Renewals")
+    Call<ResponseBody> createRenewal(@Body CreateRenewalRequest request);
+
+    @Multipart
+    @POST("api/Renewals/{renewalRequestId}/slip")
+    Call<ResponseBody> uploadRenewalSlip(@Path("renewalRequestId") String renewalRequestId, @Part MultipartBody.Part file);
+
+    @GET("api/Renewals")
+    Call<ResponseBody> getMyRenewals();
+
+    @PATCH("api/Renewals/{renewalRequestId}/cancel")
+    Call<ResponseBody> cancelRenewal(@Path("renewalRequestId") String renewalRequestId);
 }

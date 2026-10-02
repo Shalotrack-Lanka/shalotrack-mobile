@@ -2,18 +2,25 @@ package com.example.letstracklanka;
 
 import android.app.Application;
 import android.util.Log;
+import android.content.pm.ApplicationInfo;
+import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.ui.renewals.RenewalPrompt;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.FirebaseAppCheck;
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
 
 public class ShaloTrackApp extends Application {
-    
+
     public static final boolean TEST_MODE = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        
+
+        // Must run before the first ApiClient.getClient() call anywhere in the app.
+        ApiClient.setDebuggable((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0);
+        RenewalPrompt.install(this);
+
         // 1. Initialize Firebase
         FirebaseApp.initializeApp(this);
 

@@ -35,7 +35,7 @@
 
     <!-- Subscription Bottom Sheet Strings -->
     <string name="subscription_title">Choose Your Plan</string>
-    <string name="subscription_subtitle">Select the plan that best fits you</string>
+    <string name="subscription_subtitle">App plan requests. Renewing a vehicle\'s GPS device is done under Vehicle Subscriptions.</string>
     <string name="subscription_plan_free">Free</string>
     <string name="subscription_price_free">Rs. 0</string>
     <string name="subscription_continue_free">Continue - Free</string>
@@ -49,7 +49,7 @@
     <string name="subscription_continue_2_years">Continue - 2 Years</string>
     <string name="subscription_continue_3_years">Continue - 3 Years</string>
     <string name="subscription_best_value">Best Value</string>
-    <string name="subscription_includes">All plans include full real-time GPS tracking, alerts, and app access.</string>
+    <string name="subscription_includes">Live tracking for each vehicle depends on its device subscription, renewed under Vehicle Subscriptions.</string>
     <string name="subscription_warranty_note">Warranty valid only during active subscription period.</string>
 
     <!-- Accessibility Descriptions -->
