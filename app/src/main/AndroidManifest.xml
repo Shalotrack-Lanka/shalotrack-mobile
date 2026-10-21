@@ -3,22 +3,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-    <!-- Background Tracking Permissions -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".ShaloTrackApp"
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -56,13 +47,15 @@
 
         <activity android:name=".ui.contacts.EmergencyContactsActivity" android:exported="false" />
 
-        <!-- NEW: Complaint/Feedback feature -->
         <activity android:name=".ui.complaints.MyComplaintsActivity" android:exported="false" />
         <activity android:name=".ui.complaints.FileComplaintActivity" android:exported="false" />
         <activity android:name=".ui.complaints.ComplaintDetailActivity" android:exported="false" />
         <activity android:name=".ui.renewals.RenewalActivity" android:exported="false" />
 
         <activity android:name=".ui.main.SettingsActivity" android:exported="false" />
+
+        <!-- Account deletion (Google Play: in-app deletion path) and the "keep my account" screen -->
+        <activity android:name=".ui.account.AccountDeletionActivity" android:exported="false" />
 
         <activity android:name=".ui.vehicles.AddVehicleActivity" android:exported="false" />
 
@@ -108,9 +101,7 @@
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
-        <!-- ============================================================ -->
-        <!-- THE LAUNCHER LIVES HERE. Updated to use SplashScreen Theme  -->
-        <!-- ============================================================ -->
+        <!-- Launcher + verified App Link for email verification -->
         <activity
             android:name=".ui.main.SplashActivity"
             android:exported="true"
@@ -133,7 +124,6 @@
             android:name=".ui.main.MainActivity"
             android:exported="false" />
 
-        <!-- Existing Firebase Messaging Service -->
         <service
             android:name=".services.ShaloTrackFirebaseMessagingService"
             android:exported="false">
@@ -142,13 +132,8 @@
             </intent-filter>
         </service>
 
-        <!-- Background Real-time Tracking Service -->
-        <service
-            android:name=".services.TrackingForegroundService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location" />
 
+        <!-- Restrict BOTH keys in Google Cloud Console: Android package + SHA-1 (upload AND Play App Signing certs) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCCEcm2yd65eBw5aUJI0akiXkwySTBS_LE" />

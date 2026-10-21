@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/surface_background">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/brand_primary"
+        android:padding="16dp"
+        android:elevation="2dp">
+
+        <ImageView
+            android:id="@+id/btnBackAccountDeletion"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="@color/text_on_dark"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:id="@+id/tvAccountDeletionTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Delete account"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_on_dark" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- LOADING -->
+            <ProgressBar
+                android:id="@+id/progressAccountDeletion"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="48dp" />
+
+            <!-- LOAD ERROR (inline, with retry) -->
+            <LinearLayout
+                android:id="@+id/groupLoadError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvLoadError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:gravity="center"
+                    android:text="We couldn't load your account status."
+                    android:textSize="15sp"
+                    android:textColor="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRetryAccountDeletion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Try again" />
+            </LinearLayout>
+
+            <!-- ACTIVE: not scheduled, offer deletion -->
+            <LinearLayout
+                android:id="@+id/groupActive"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WHAT HAPPENS"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.05"
+                    android:textColor="@color/brand_primary"
+                    android:layout_marginBottom="10dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stat_card"
+                    android:padding="16dp"
+                    android:lineSpacingExtra="4dp"
+                    android:text="• Your account is locked straight away and you are signed out.\n\n• For 30 days you can sign in again and cancel the deletion.\n\n• After 30 days your profile, trip history, saved places, geofences, emergency contacts, reminders and shares are permanently erased.\n\n• Your GPS device is unlinked from your vehicle.\n\n• Payment records (amount, dates and decision) are kept for accounting, with your slip images and notes removed."
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="CONFIRM"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.05"
+                    android:textColor="@color/brand_primary"
+                    android:layout_marginBottom="10dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Type DELETE to confirm"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+                <EditText
+                    android:id="@+id/etConfirmDelete"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:inputType="textCapCharacters|textNoSuggestions"
+                    android:maxLength="10"
+                    android:hint="DELETE"
+                    android:importantForAutofill="no"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_muted" />
+
+                <!-- Inline error (no Toast / Snackbar / dialog) -->
+                <TextView
+                    android:id="@+id/tvActionError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/danger_banner_bg"
+                    android:padding="12dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/danger_banner_text"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReauth"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Sign out and sign in again"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDeleteAccount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Delete my account"
+                    android:backgroundTint="@color/status_danger"
+                    android:textColor="@color/text_on_dark" />
+            </LinearLayout>
+
+            <!-- PENDING: already scheduled, offer to keep the account -->
+            <LinearLayout
+                android:id="@+id/groupPending"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvPendingHeadline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/danger_banner_bg"
+                    android:padding="16dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/danger_banner_text" />
+
+                <TextView
+                    android:id="@+id/tvPendingBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:lineSpacingExtra="4dp"
+                    android:text="Your account is locked. Until the date above you can keep your account and everything in it. After that, your data is permanently erased and cannot be recovered."
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:id="@+id/tvPendingError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/danger_banner_bg"
+                    android:padding="12dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/danger_banner_text"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnKeepAccount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="Keep my account" />
+
+                <TextView
+                    android:id="@+id/btnSignOutPending"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:padding="14dp"
+                    android:gravity="center"
+                    android:text="Sign out"
+                    android:textSize="15sp"
+                    android:textColor="@color/brand_primary" />
+            </LinearLayout>
+
+            <!-- DONE: deletion has just been scheduled -->
+            <LinearLayout
+                android:id="@+id/groupDone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvDoneBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="Back to sign in" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

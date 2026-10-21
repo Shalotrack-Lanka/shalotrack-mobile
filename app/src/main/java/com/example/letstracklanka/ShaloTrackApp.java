@@ -1,13 +1,12 @@
 package com.example.letstracklanka;
 
 import android.app.Application;
-import android.util.Log;
 import android.content.pm.ApplicationInfo;
+
 import com.example.letstracklanka.data.remote.ApiClient;
+import com.example.letstracklanka.ui.account.PendingDeletionRouter;
 import com.example.letstracklanka.ui.renewals.RenewalPrompt;
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.appcheck.FirebaseAppCheck;
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
 
 public class ShaloTrackApp extends Application {
 
@@ -20,18 +19,16 @@ public class ShaloTrackApp extends Application {
         // Must run before the first ApiClient.getClient() call anywhere in the app.
         ApiClient.setDebuggable((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0);
         RenewalPrompt.install(this);
+        PendingDeletionRouter.install(this);
 
-        // 1. Initialize Firebase
         FirebaseApp.initializeApp(this);
 
-        // 2. Initialize App Check (Mandatory for real devices)
+        // Debug builds -> Debug provider; release builds -> Play Integrity
+        // (two different AppCheckInstaller classes in src/debug and src/release).
         try {
-            FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
-            firebaseAppCheck.installAppCheckProviderFactory(
-                    DebugAppCheckProviderFactory.getInstance());
-            Log.d("ShaloTrackApp", "App Check Provider Installed Successfully.");
-        } catch (Exception e) {
-            Log.e("ShaloTrackApp", "App Check initialization failed: " + e.getMessage());
+            AppCheckInstaller.install();
+        } catch (Exception ignored) {
+            // App Check must never crash app start
         }
     }
 }
