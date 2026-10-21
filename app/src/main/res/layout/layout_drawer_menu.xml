@@ -143,6 +143,10 @@
             android:text="Privacy &amp; Security" android:textColor="#000000" android:textSize="16sp" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
 
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:id="@+id/btnMenuDeleteAccount"
+            android:text="Delete account" android:textColor="#000000" android:textSize="16sp" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0" />
+
         <!-- Log out -->
         <TextView
             android:id="@+id/tvLogOut"

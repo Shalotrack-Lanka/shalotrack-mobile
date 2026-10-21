@@ -161,17 +161,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         startRealTimeTracking();
         loadUserData();
 
-        // -------------------------------------------------------------------
-        // Start Background Tracking Foreground Service
-        // -------------------------------------------------------------------
-        Intent serviceIntent = new Intent(this, com.example.letstracklanka.services.TrackingForegroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
-        // -------------------------------------------------------------------
-
         // Open the side menu automatically if requested by another screen
         handleOpenDrawerExtra(getIntent());
     }

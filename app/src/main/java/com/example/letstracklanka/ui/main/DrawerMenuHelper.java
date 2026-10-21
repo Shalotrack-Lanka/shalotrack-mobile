@@ -176,14 +176,38 @@ public final class DrawerMenuHelper {
             });
         }
 
+        // Privacy & Security -> the public privacy policy (Google Play requires it to be reachable
+        // from inside the app).
+        View btnMenuPrivacy = activity.findViewById(R.id.btnMenuPrivacy);
+        if (btnMenuPrivacy != null) {
+            btnMenuPrivacy.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                try {
+                    activity.startActivity(new Intent(Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://www.shalotrack.com/privacy.html")));
+                } catch (android.content.ActivityNotFoundException e) {
+                    Log.w("DrawerMenuHelper", "No browser available for the privacy policy link", e);
+                }
+            });
+        }
+
+        // Delete account (Google Play: in-app account deletion path).
+        View btnMenuDeleteAccount = activity.findViewById(R.id.btnMenuDeleteAccount);
+        if (btnMenuDeleteAccount != null) {
+            btnMenuDeleteAccount.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                activity.startActivity(new Intent(activity,
+                        com.example.letstracklanka.ui.account.AccountDeletionActivity.class));
+            });
+        }
+
         // Buttons that are not ready yet (Coming soon) -- includes Refer &
         // Earn, which turned out to have no real wiring anywhere, even in
         // the original HomeActivity, despite looking like a real item.
         int[] comingSoonIds = {
                 R.id.btnMenuRefer,
                 R.id.btnMenuShop,
-                R.id.btnMenuHelpVideos,
-                R.id.btnMenuPrivacy
+                R.id.btnMenuHelpVideos
         };
         for (int id : comingSoonIds) {
             View item = activity.findViewById(id);

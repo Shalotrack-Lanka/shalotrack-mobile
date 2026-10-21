@@ -32,6 +32,7 @@ public class ApiClient {
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .addInterceptor(new AuthInterceptor())
                     .addInterceptor(new RenewalRequiredInterceptor())
+                    .addInterceptor(new PendingDeletionInterceptor())
                     .addInterceptor(logging)
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(30, TimeUnit.SECONDS)
