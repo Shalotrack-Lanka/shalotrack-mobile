@@ -11,7 +11,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.letstracklanka.R
-import com.example.letstracklanka.ui.auth.EmailInputActivity
+import com.example.letstracklanka.ui.auth.RouteAfterLoginActivity
 import com.google.firebase.auth.FirebaseAuth
 
 /**
@@ -41,7 +41,7 @@ import com.google.firebase.auth.FirebaseAuth
  *
  * ── Auth routing table ──────────────────────────────────────────────────
  *   Logged in + email linked  →  MainActivity (→ HomeActivity)
- *   Logged in, no email       →  EmailInputActivity (finish account setup)
+ *   Logged in, no email       →  RouteAfterLoginActivity (server decides: app or registration)
  *   Not logged in             →  WelcomeActivity
  *
  * ── Custom animation rationale ──────────────────────────────────────────
@@ -217,7 +217,9 @@ class SplashActivity : AppCompatActivity() {
                 Intent(this, WelcomeActivity::class.java)
             }
             user.email.isNullOrBlank() -> {
-                Intent(this, EmailInputActivity::class.java).apply {
+                // No verified email on this sign-in. Do NOT assume a new customer: ask the server
+                // first, so people who already registered are not sent through the form again.
+                Intent(this, RouteAfterLoginActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 }
             }

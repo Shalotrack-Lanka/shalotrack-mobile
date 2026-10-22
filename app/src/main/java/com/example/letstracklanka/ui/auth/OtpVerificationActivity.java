@@ -210,7 +210,9 @@ public class OtpVerificationActivity extends AppCompatActivity {
         PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
         mAuth.signInWithCredential(credential).addOnCompleteListener(this, task -> {
             if (task.isSuccessful()) {
-                Intent intent = new Intent(this, EmailInputActivity.class);
+                // Ask the server whether this phone already has a profile. Existing customers go
+                // straight in; only genuinely new ones see the registration form.
+                Intent intent = new Intent(this, RouteAfterLoginActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 finish();

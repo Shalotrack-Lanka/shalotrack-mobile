@@ -81,7 +81,7 @@ public class EmailInputActivity extends AppCompatActivity {
         ActionCodeSettings actionCodeSettings = ActionCodeSettings.newBuilder()
                 .setUrl("https://shalotrack.com/verified") // Fallback URL for web
                 .setHandleCodeInApp(true)
-                .setAndroidPackageName("com.example.letstracklanka", true, null)
+                .setAndroidPackageName(getPackageName(), true, null)
                 .build();
 
         user.verifyBeforeUpdateEmail(email, actionCodeSettings).addOnCompleteListener(task -> {
