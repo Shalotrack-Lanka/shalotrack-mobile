@@ -40,6 +40,19 @@
         android:maxLength="10" />
   </com.google.android.material.textfield.TextInputLayout>
 
+  <!-- Inline error (no Toast / Snackbar / dialog) -->
+  <TextView
+      android:id="@+id/tvLoginError"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:background="@color/danger_banner_bg"
+      android:padding="12dp"
+      android:textSize="14sp"
+      android:textColor="@color/danger_banner_text"
+      android:accessibilityLiveRegion="polite"
+      android:visibility="gone" />
+
   <com.google.android.material.button.MaterialButton
       android:id="@+id/btnSendCode"
       android:layout_width="match_parent"
