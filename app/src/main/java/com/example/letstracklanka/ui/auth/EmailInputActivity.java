@@ -1,246 +1,127 @@
 package com.example.letstracklanka.ui.auth;
 
-import android.app.Dialog;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.os.CountDownTimer;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.util.Patterns;
+import android.widget.EditText;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.utils.EmailTypoGuard;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.ActionCodeSettings;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.Locale;
+import java.util.regex.Pattern;
+
+/**
+ * Registration details for a NEW customer (name, NIC, address, email).
+ *
+ * There is NO email verification (owner decision, 2 Nov 2026): the phone number, proven by our own OTP,
+ * is the only identity check. The email is a plain contact field, so nothing may use it for recovery or
+ * trust. A domain typo (gamil.com) is caught here with a "Did you mean...?" question the customer can
+ * dismiss. The profile itself is created by ProcessingActivity.
+ */
 public class EmailInputActivity extends AppCompatActivity {
 
-    private TextInputEditText etFullName, etNicNumber, etAddress, etEmail;
-    private MaterialButton btnContinue;
-    private FirebaseAuth mAuth;
-    private Handler verificationHandler;
-    private Runnable verificationRunnable;
-    private boolean isCheckingVerification = false;
-    private CountDownTimer countDownTimer;
+    /** Sri Lankan NIC: 9 digits + V/X (old) or 12 digits (new). Same rule as the API. */
+    private static final Pattern NIC = Pattern.compile("^([0-9]{9}[VX]|[0-9]{12})$");
 
-    private String verifiedName = "", verifiedNic = "", verifiedAddress = "", verifiedEmail = "";
+    private TextInputEditText etFullName, etNicNumber, etAddress, etEmail;
+    private TextInputLayout layoutFullName, layoutNicNumber, layoutAddress, layoutEmail;
+    private MaterialButton btnContinue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_email_input);
+        AuthUi.edgeToEdge(this, findViewById(R.id.main));
 
-        mAuth = FirebaseAuth.getInstance();
         etFullName = findViewById(R.id.etFullName);
         etNicNumber = findViewById(R.id.etNicNumber);
         etAddress = findViewById(R.id.etAddress);
         etEmail = findViewById(R.id.etEmail);
+        layoutFullName = findViewById(R.id.layoutFullName);
+        layoutNicNumber = findViewById(R.id.layoutNicNumber);
+        layoutAddress = findViewById(R.id.layoutAddress);
+        layoutEmail = findViewById(R.id.layoutEmailInput);
         btnContinue = findViewById(R.id.btnContinue);
-        verificationHandler = new Handler(Looper.getMainLooper());
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
-
-        btnContinue.setOnClickListener(v -> {
-            String name = etFullName.getText() != null ? etFullName.getText().toString().trim() : "";
-            String nic = etNicNumber.getText() != null ? etNicNumber.getText().toString().trim() : "";
-            String address = etAddress.getText() != null ? etAddress.getText().toString().trim() : "";
-            String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-
-            if (name.isEmpty() || nic.isEmpty() || address.isEmpty() || email.isEmpty()) {
-                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            verifiedName = name;
-            verifiedNic = nic;
-            verifiedAddress = address;
-            verifiedEmail = email;
-
-            sendVerification(email);
+        ((MaterialToolbar) findViewById(R.id.toolbar)).setNavigationOnClickListener(v -> finish());
+        btnContinue.setOnClickListener(v -> onContinue());
+        etEmail.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { onContinue(); return true; }
+            return false;
         });
     }
 
-    private void sendVerification(String email) {
-        FirebaseUser user = mAuth.getCurrentUser();
-        if (user == null) {
-            moveToProcessing();
-            return;
-        }
-
-        btnContinue.setEnabled(false);
-        Toast.makeText(this, "Requesting verification for: " + email, Toast.LENGTH_SHORT).show();
-
-        // Configure ActionCodeSettings for App Links
-        ActionCodeSettings actionCodeSettings = ActionCodeSettings.newBuilder()
-                .setUrl("https://shalotrack.com/verified") // Fallback URL for web
-                .setHandleCodeInApp(true)
-                .setAndroidPackageName(getPackageName(), true, null)
-                .build();
-
-        user.verifyBeforeUpdateEmail(email, actionCodeSettings).addOnCompleteListener(task -> {
-            btnContinue.setEnabled(true);
-            if (task.isSuccessful()) {
-                showVerificationDialog();
-                startChecking();
-            } else {
-                // If verifyBeforeUpdateEmail fails, try simple update + verification
-                user.updateEmail(email).addOnCompleteListener(linkTask -> {
-                    if (linkTask.isSuccessful()) {
-                        user.sendEmailVerification(actionCodeSettings);
-                        showVerificationDialog();
-                        startChecking();
-                    } else {
-                        // FIX: real, severe bypass found during the
-                        // pre-launch auth review -- this used to call
-                        // moveToProcessing() here, completing
-                        // registration with ZERO email verification
-                        // ever having happened. Now genuinely blocks and
-                        // lets the user retry instead. This is also the
-                        // ONLY path a user could hit this failure
-                        // through in normal use (transient Firebase
-                        // errors, rate limits) -- there's no legitimate
-                        // reason to let it silently succeed.
-                        Log.e("EMAIL_FIX", "Firebase blocked email: " + task.getException());
-                        Toast.makeText(this, "Couldn't send verification email. Please try again.", Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
-        });
+    private static String text(EditText field) {
+        return field.getText() != null ? field.getText().toString().trim() : "";
     }
 
-    private void showVerificationDialog() {
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.dialog_email_verification);
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+    private void onContinue() {
+        String name = text(etFullName);
+        // One canonical NIC form (no spaces, upper-case V/X) so the uniqueness check cannot be dodged.
+        String nic = text(etNicNumber).replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
+        String address = text(etAddress);
+        String email = text(etEmail);
+
+        layoutFullName.setError(null);
+        layoutNicNumber.setError(null);
+        layoutAddress.setError(null);
+        layoutEmail.setError(null);
+
+        boolean ok = true;
+        if (name.isEmpty()) {
+            layoutFullName.setError(getString(R.string.details_name_error));
+            ok = false;
         }
-        dialog.setCancelable(false);
-
-        TextView txtTimer = dialog.findViewById(R.id.txtTimer);
-        MaterialButton btnOpenEmail = dialog.findViewById(R.id.btnOpenEmail);
-        TextView btnCancel = dialog.findViewById(R.id.btnCancel);
-
-        // RESTORED TIMER LOGIC
-        countDownTimer = new CountDownTimer(174000, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                if (txtTimer != null) {
-                    txtTimer.setText(String.valueOf(millisUntilFinished / 1000));
-                }
-            }
-            @Override
-            public void onFinish() {
-                if (txtTimer != null) txtTimer.setText("0");
-                stopChecking();
-                if (dialog.isShowing()) dialog.dismiss();
-            }
-        }.start();
-
-        if (btnOpenEmail != null) {
-            btnOpenEmail.setOnClickListener(v -> {
-                Intent intent = new Intent(Intent.ACTION_MAIN);
-                intent.addCategory(Intent.CATEGORY_APP_EMAIL);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                try {
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Toast.makeText(this, "No email app found", Toast.LENGTH_SHORT).show();
-                }
-            });
+        if (!NIC.matcher(nic).matches()) {
+            layoutNicNumber.setError(getString(R.string.details_nic_error));
+            ok = false;
         }
-
-        if (btnCancel != null) {
-            btnCancel.setOnClickListener(v -> {
-                if (countDownTimer != null) countDownTimer.cancel();
-                stopChecking();
-                dialog.dismiss();
-                btnContinue.setEnabled(true);
-            });
+        if (address.isEmpty()) {
+            layoutAddress.setError(getString(R.string.details_address_error));
+            ok = false;
         }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            layoutEmail.setError(getString(R.string.details_email_error));
+            ok = false;
+        }
+        if (!ok) return;
 
-        dialog.show();
-    }
-
-    private void startChecking() {
-        isCheckingVerification = true;
-        verificationRunnable = new Runnable() {
-            @Override public void run() {
-                FirebaseUser user = mAuth.getCurrentUser();
-                if (user != null && isCheckingVerification) {
-                    user.reload().addOnCompleteListener(task -> {
-                        if (user.isEmailVerified()) {
-                            stopChecking();
-                            if (countDownTimer != null) countDownTimer.cancel();
-                            showSuccess();
-                        } else {
-                            verificationHandler.postDelayed(this, 3000);
-                        }
-                    });
-                }
-            }
-        };
-        verificationHandler.postDelayed(verificationRunnable, 3000);
-    }
-
-    private void stopChecking() {
-        isCheckingVerification = false;
-        if (verificationHandler != null && verificationRunnable != null) {
-            verificationHandler.removeCallbacks(verificationRunnable);
+        String suggestion = EmailTypoGuard.suggest(email);
+        if (suggestion != null) {
+            askAboutTypo(name, nic, address, email, suggestion);
+        } else {
+            moveToProcessing(name, nic, address, email);
         }
     }
 
-    private void showSuccess() {
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.dialog_email_success);
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
-        dialog.show();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (dialog.isShowing()) dialog.dismiss();
-
-            // FIX: real, critical dependency for the new backend
-            // enforcement -- AuthInterceptor calls getIdToken(false)
-            // (no forced refresh), reusing whatever's already cached.
-            // Without forcing a refresh here, the token used for the
-            // registration call would still be the one issued at phone
-            // sign-in, before email verification ever happened, and
-            // would still show emailVerified=false even though the user
-            // genuinely just verified it. Proceeds regardless of this
-            // refresh's own outcome -- the backend's own check is the
-            // final, authoritative gate either way, and a transient
-            // failure here shouldn't permanently block a legitimately-
-            // verified user.
-            FirebaseUser user = mAuth.getCurrentUser();
-            if (user != null) {
-                user.getIdToken(true).addOnCompleteListener(task -> moveToProcessing());
-            } else {
-                moveToProcessing();
-            }
-        }, 2000);
+    private void askAboutTypo(String name, String nic, String address, String typed, String suggestion) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.details_typo_title)
+                .setMessage(getString(R.string.details_typo_message, suggestion))
+                .setPositiveButton(getString(R.string.details_typo_use, suggestion), (d, w) -> {
+                    etEmail.setText(suggestion);
+                    moveToProcessing(name, nic, address, suggestion);
+                })
+                .setNegativeButton(R.string.details_typo_keep, (d, w) -> moveToProcessing(name, nic, address, typed))
+                .setNeutralButton(R.string.details_typo_edit, null)
+                .show();
     }
 
-    private void moveToProcessing() {
+    private void moveToProcessing(String name, String nic, String address, String email) {
         Intent intent = new Intent(this, ProcessingActivity.class);
-        intent.putExtra("EXTRA_NAME", verifiedName);
-        intent.putExtra("EXTRA_NIC", verifiedNic);
-        intent.putExtra("EXTRA_EMAIL", verifiedEmail);
-        intent.putExtra("EXTRA_ADDRESS", verifiedAddress);
+        intent.putExtra("EXTRA_NAME", name);
+        intent.putExtra("EXTRA_NIC", nic);
+        intent.putExtra("EXTRA_EMAIL", email);
+        intent.putExtra("EXTRA_ADDRESS", address);
         startActivity(intent);
         finish();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (countDownTimer != null) countDownTimer.cancel();
-        stopChecking();
     }
 }

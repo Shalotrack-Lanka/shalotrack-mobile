@@ -18,6 +18,75 @@
     <style name="Theme.LetsTrackLanka" parent="Base.Theme.LetsTrackLanka" />
 
     <!-- ════════════════════════════════════════════════════════════
+         Sign-in flow theme (Welcome, Login, Code, Details, Route)
+         ════════════════════════════════════════════════════════════
+         Material 3 (light on purpose: the sign-in screens are always light and navy-branded).
+         The old screens used Theme.MaterialComponents (Material 2) plus hard-coded hex colours;
+         everything here comes from theme attributes so colour, shape and size live in ONE place.
+         Applied per activity in AndroidManifest.xml. Not applied app-wide, so no other screen changes. -->
+    <style name="Theme.ShaloTrack.Auth" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorOnPrimary">@color/text_on_dark</item>
+        <item name="colorSecondary">@color/brand_accent</item>
+        <item name="colorOnSecondary">@color/text_on_dark</item>
+        <item name="colorSurface">@color/surface_white</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorError">@color/status_danger</item>
+        <item name="android:windowBackground">@color/surface_white</item>
+        <item name="materialButtonStyle">@style/Widget.ShaloTrack.Button</item>
+        <item name="textInputStyle">@style/Widget.ShaloTrack.TextInputLayout</item>
+    </style>
+
+    <!-- Primary button: 56 dp tall (Material 3), rounded, never ALL CAPS. -->
+    <style name="Widget.ShaloTrack.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="cornerRadius">16dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.ShaloTrack.Button</item>
+    </style>
+
+    <!-- Quiet button (Resend, Sign out): still a full 48 dp touch target. -->
+    <style name="Widget.ShaloTrack.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.ShaloTrack.Button</item>
+    </style>
+
+    <style name="TextAppearance.ShaloTrack.Button" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.ShaloTrack.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    </style>
+
+    <style name="TextAppearance.ShaloTrack.Headline" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.ShaloTrack.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <!-- Inline error: always visible text, announced by TalkBack, never a toast. -->
+    <style name="Widget.ShaloTrack.ErrorBanner" parent="">
+        <item name="android:background">@drawable/bg_error_banner</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/danger_banner_text</item>
+        <item name="android:accessibilityLiveRegion">polite</item>
+        <item name="android:visibility">gone</item>
+    </style>
+
+    <!-- ════════════════════════════════════════════════════════════
          Splash Screen Theme
          ════════════════════════════════════════════════════════════
          Applied to SplashActivity via android:theme in AndroidManifest.xml.

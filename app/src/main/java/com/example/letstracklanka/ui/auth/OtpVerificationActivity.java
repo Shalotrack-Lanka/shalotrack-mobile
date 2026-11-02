@@ -10,10 +10,12 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
+import android.os.CountDownTimer;
+import android.os.SystemClock;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -21,18 +23,22 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.data.repository.OtpRepository;
 import com.google.android.gms.auth.api.phone.SmsRetriever;
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.common.api.Status;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.PhoneAuthCredential;
-import com.google.firebase.auth.PhoneAuthProvider;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class OtpVerificationActivity extends AppCompatActivity {
+
+    /** The number the code was sent to (E.164), passed in by LoginActivity. */
+    public static final String EXTRA_PHONE = "phone_number";
 
     private static final String TAG = "OtpVerification";
     // Matches a standalone 6-digit sequence anywhere in the SMS body.
@@ -43,9 +49,16 @@ public class OtpVerificationActivity extends AppCompatActivity {
     // require us to control that format at all.
     private static final Pattern OTP_PATTERN = Pattern.compile("\\b(\\d{6})\\b");
 
-    private EditText[] otpBoxes;
+    private static final long RESEND_COOLDOWN_MS = 45_000L;
+
+    private EditText etOtp;
+    private TextInputLayout otpInput;
+    private TextView tvOtpError;
+    private MaterialButton btnResend;
+    private CountDownTimer resendTimer;
     private MaterialButton btnVerifyCode;
-    private String verificationId;
+    private String phone;
+    private boolean verifying = false;
     private FirebaseAuth mAuth;
 
     private BroadcastReceiver smsConsentReceiver;
@@ -58,28 +71,49 @@ public class OtpVerificationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_otp_verification);
 
         mAuth = FirebaseAuth.getInstance();
-        verificationId = getIntent().getStringExtra("backend_verification_id");
+        phone = getIntent().getStringExtra(EXTRA_PHONE);
+        if (phone == null || phone.isEmpty()) {
+            // Opened without a number (should never happen): nothing to verify, go back to sign-in.
+            finish();
+            return;
+        }
+
+        AuthUi.edgeToEdge(this, findViewById(R.id.main));
+        ((MaterialToolbar) findViewById(R.id.toolbar)).setNavigationOnClickListener(v -> finish());
 
         btnVerifyCode = findViewById(R.id.btnVerifyCode);
-        ImageView btnBack = findViewById(R.id.btnBack);
+        btnResend = findViewById(R.id.btnResend);
+        etOtp = findViewById(R.id.etOtp);
+        otpInput = findViewById(R.id.otpInput);
+        tvOtpError = findViewById(R.id.tvOtpError);
+        ((TextView) findViewById(R.id.tvOtpSubtitle)).setText(getString(R.string.otp_subtitle, phone));
 
-        otpBoxes = new EditText[]{
-                findViewById(R.id.etOtp1), findViewById(R.id.etOtp2),
-                findViewById(R.id.etOtp3), findViewById(R.id.etOtp4),
-                findViewById(R.id.etOtp5), findViewById(R.id.etOtp6)
-        };
-
-        setupOtpInputs();
-        btnBack.setOnClickListener(v -> finish());
+        etOtp.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
+            @Override public void onTextChanged(CharSequence s, int st, int b, int c) {}
+            @Override public void afterTextChanged(Editable s) {
+                otpInput.setError(null);
+                hideError();
+                // Auto-submit on the 6th digit: typed, pasted or autofilled all take the same path.
+                if (s.length() == 6) verifyOtp(s.toString());
+            }
+        });
+        etOtp.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) { btnVerifyCode.performClick(); return true; }
+            return false;
+        });
+        etOtp.requestFocus();
 
         btnVerifyCode.setOnClickListener(v -> {
-            String code = getOtpString();
+            String code = etOtp.getText() != null ? etOtp.getText().toString().trim() : "";
             if (code.length() < 6) {
-                Toast.makeText(this, "Enter 6 digits", Toast.LENGTH_SHORT).show();
+                otpInput.setError(getString(R.string.otp_incomplete));
                 return;
             }
             verifyOtp(code);
         });
+        btnResend.setOnClickListener(v -> resend());
+        startResendCountdown(RESEND_COOLDOWN_MS);
 
         // NEW -- real OTP box auto-fill, not just the existing silent
         // auto-sign-in path (which is Firebase's own onVerificationCompleted()
@@ -158,75 +192,113 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
     private void handleSmsMessage(String message) {
         if (message == null || autoFillHandled) return;
+        // Any sender can reach the consent dialog, so only accept OUR message. A forged SMS with some
+        // other 6 digits would otherwise burn one of the code's 5 attempts.
+        if (!message.contains("Shalotrack")) return;
 
         Matcher matcher = OTP_PATTERN.matcher(message);
         if (!matcher.find()) return;
 
         String code = matcher.group(1);
         autoFillHandled = true;
-        fillOtpBoxes(code);
-        verifyOtp(code);
+        etOtp.setText(code);   // the TextWatcher submits on the 6th digit
     }
 
-    private void fillOtpBoxes(String code) {
-        for (int i = 0; i < otpBoxes.length && i < code.length(); i++) {
-            otpBoxes[i].setText(String.valueOf(code.charAt(i)));
-        }
+    private void resend() {
+        hideError();
+        btnResend.setEnabled(false);
+        OtpRepository.requestOtp(phone, new OtpRepository.RequestCallback() {
+            @Override
+            public void onSent() {
+                if (isFinishing() || isDestroyed()) return;
+                autoFillHandled = false;
+                startSmsUserConsent();
+                startResendCountdown(RESEND_COOLDOWN_MS);
+                showError(getString(R.string.otp_resent));
+            }
+
+            @Override
+            public void onFailure(String message, long retryAfterSeconds) {
+                if (isFinishing() || isDestroyed()) return;
+                showError(message);
+                startResendCountdown(retryAfterSeconds > 0 ? retryAfterSeconds * 1000L : 5_000L);
+            }
+        });
     }
 
-    private void setupOtpInputs() {
-        for (int i = 0; i < otpBoxes.length; i++) {
-            final int currentIndex = i;
-            otpBoxes[i].addTextChangedListener(new TextWatcher() {
-                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    if (s.length() == 1 && currentIndex < otpBoxes.length - 1) otpBoxes[currentIndex + 1].requestFocus();
-                }
-                @Override public void afterTextChanged(Editable s) {}
-            });
-            otpBoxes[i].setOnKeyListener((v, keyCode, event) -> {
-                if (keyCode == KeyEvent.KEYCODE_DEL && event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (otpBoxes[currentIndex].getText().toString().isEmpty() && currentIndex > 0) {
-                        otpBoxes[currentIndex - 1].requestFocus();
-                        otpBoxes[currentIndex - 1].setText("");
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
+    private void startResendCountdown(long millis) {
+        if (resendTimer != null) resendTimer.cancel();
+        btnResend.setEnabled(false);
+        resendTimer = new CountDownTimer(millis, 1000L) {
+            @Override public void onTick(long left) {
+                long sec = (left + 999L) / 1000L;
+                btnResend.setText(getString(R.string.otp_resend_in, sec / 60, sec % 60));
+            }
+            @Override public void onFinish() {
+                btnResend.setText(R.string.otp_resend);
+                btnResend.setEnabled(true);
+            }
+        }.start();
     }
 
-    private String getOtpString() {
-        StringBuilder otp = new StringBuilder();
-        for (EditText box : otpBoxes) otp.append(box.getText().toString().trim());
-        return otp.toString();
+    private void showError(String message) {
+        tvOtpError.setText(message);
+        tvOtpError.setVisibility(View.VISIBLE);
+    }
+
+    private void hideError() {
+        tvOtpError.setVisibility(View.GONE);
     }
 
     private void verifyOtp(String code) {
+        if (verifying) return;
+        verifying = true;
         btnVerifyCode.setEnabled(false);
-        btnVerifyCode.setText("Verifying...");
+        btnVerifyCode.setText(R.string.otp_verifying);
 
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
-        mAuth.signInWithCredential(credential).addOnCompleteListener(this, task -> {
-            if (task.isSuccessful()) {
-                // Ask the server whether this phone already has a profile. Existing customers go
-                // straight in; only genuinely new ones see the registration form.
-                Intent intent = new Intent(this, RouteAfterLoginActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                finish();
-            } else {
-                btnVerifyCode.setEnabled(true);
-                btnVerifyCode.setText("Verify Code");
-                Toast.makeText(this, "Invalid Code", Toast.LENGTH_SHORT).show();
+        OtpRepository.verifyOtp(phone, code, new OtpRepository.VerifyCallback() {
+            @Override
+            public void onVerified(String customToken) {
+                if (isFinishing() || isDestroyed()) return;
+                // The code was right: the API vouches for this phone with a Firebase custom token.
+                mAuth.signInWithCustomToken(customToken).addOnCompleteListener(OtpVerificationActivity.this, task -> {
+                    if (task.isSuccessful()) {
+                        // Ask the server whether this phone already has a profile. Existing customers go
+                        // straight in; only genuinely new ones see the registration form.
+                        Intent intent = new Intent(OtpVerificationActivity.this, RouteAfterLoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
+                    } else {
+                        failVerify(getString(R.string.otp_signin_failed), false);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(String message, boolean codeRejected) {
+                if (isFinishing() || isDestroyed()) return;
+                failVerify(message, codeRejected);
             }
         });
+    }
+
+    private void failVerify(String message, boolean clearCode) {
+        verifying = false;
+        btnVerifyCode.setEnabled(true);
+        btnVerifyCode.setText(R.string.otp_verify);
+        autoFillHandled = false;
+        showError(message);
+        if (clearCode) {
+            etOtp.setText("");
+            etOtp.requestFocus();
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (resendTimer != null) resendTimer.cancel();
         if (smsConsentReceiver != null) {
             try {
                 unregisterReceiver(smsConsentReceiver);
