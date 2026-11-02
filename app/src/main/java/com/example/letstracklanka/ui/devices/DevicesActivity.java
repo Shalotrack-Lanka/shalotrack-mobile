@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.devices;
 
+import com.example.letstracklanka.utils.SecureScreen;
+import com.example.letstracklanka.utils.InputValidator;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -65,6 +67,7 @@ public class DevicesActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_devices);
 
         api = ApiClient.getClient().create(ApiService.class);
@@ -299,8 +302,9 @@ public class DevicesActivity extends AppCompatActivity {
             showMessage(null, false);
 
             String imei = etImei.getText() != null ? etImei.getText().toString().replaceAll("\\D", "") : "";
-            if (imei.length() < 15 || imei.length() > 17) {
-                layoutImei.setError("Enter the 15-digit IMEI from the device label");
+            String imeiError = InputValidator.imei(imei);
+            if (imeiError != null) {
+                layoutImei.setError("Enter the 15-digit IMEI from the device label (check for a typo)");
                 return;
             }
 

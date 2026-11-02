@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Network policy for the whole app (referenced from the manifest).
+     - No plain HTTP anywhere, even if a developer types http:// by mistake.
+     - Only the phone's built-in (system) certificate authorities are trusted. A certificate the user or a
+       malicious app installed on the device ("user CA", the way many interception proxies work) is NOT
+       trusted, so traffic cannot be read on a phone that was set up to intercept it.
+     Certificate pinning is deliberately not enabled yet: traffic goes through Cloudflare, whose certificates
+     rotate, and a wrong pin locks every installed app out until users update. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

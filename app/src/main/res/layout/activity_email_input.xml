@@ -24,24 +24,31 @@
             android:paddingBottom="16dp">
 
             <TextView
-                style="@style/TextAppearance.ShaloTrack.Headline"
+                android:textAppearance="@style/TextAppearance.ShaloTrack.Headline"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:accessibilityHeading="true"
                 android:text="@string/details_title" />
 
             <TextView
-                style="@style/TextAppearance.ShaloTrack.Body"
+                android:textAppearance="@style/TextAppearance.ShaloTrack.Body"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/details_subtitle" />
 
+            <LinearLayout
+                style="@style/Widget.ShaloTrack.GlassPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:orientation="vertical">
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/layoutFullName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="0dp"
                 android:hint="@string/details_name_hint">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -101,6 +108,7 @@
                     android:imeOptions="actionDone"
                     android:inputType="textEmailAddress" />
             </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

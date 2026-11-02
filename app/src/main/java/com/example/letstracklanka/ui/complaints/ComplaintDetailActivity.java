@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.complaints;
 
+import com.example.letstracklanka.utils.ClickGuard;
+import com.example.letstracklanka.utils.InputValidator;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
@@ -121,7 +123,7 @@ public class ComplaintDetailActivity extends AppCompatActivity {
         btnSendReply = findViewById(R.id.btnSendReply);
 
         if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchComplaint(true));
-        if (btnSendReply != null) btnSendReply.setOnClickListener(v -> sendReply());
+        if (btnSendReply != null) btnSendReply.setOnClickListener(ClickGuard.wrap(v -> sendReply()));
 
         rvReplies.setLayoutManager(new LinearLayoutManager(this));
         replyAdapter = new ComplaintReplyAdapter(new java.util.ArrayList<>());
@@ -199,9 +201,10 @@ public class ComplaintDetailActivity extends AppCompatActivity {
     }
 
     private void sendReply() {
-        String message = etReplyMessage.getText() != null ? etReplyMessage.getText().toString().trim() : "";
-        if (message.isEmpty()) {
-            Toast.makeText(this, "Type a message first.", Toast.LENGTH_SHORT).show();
+        String message = InputValidator.clean(etReplyMessage.getText() != null ? etReplyMessage.getText().toString() : "");
+        String messageError = message.isEmpty() ? "Type a message first." : InputValidator.message(message, 2);
+        if (messageError != null) {
+            Toast.makeText(this, messageError, Toast.LENGTH_SHORT).show();
             return;
         }
 

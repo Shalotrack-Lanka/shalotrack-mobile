@@ -10,4 +10,4 @@
     android:background="@android:color/transparent"
     app:navigationContentDescription="@string/action_back"
     app:navigationIcon="@drawable/ic_arrow_back"
-    app:navigationIconTint="?attr/colorPrimary" />
+    app:navigationIconTint="@color/glass_text_primary" />

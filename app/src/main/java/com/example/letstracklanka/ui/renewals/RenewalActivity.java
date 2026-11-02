@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.renewals;
 
+import com.example.letstracklanka.utils.SecureScreen;
+import com.example.letstracklanka.utils.InputValidator;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -86,6 +88,7 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_renewal);
         if (savedInstanceState != null) pendingRenewalId = savedInstanceState.getString(STATE_PENDING_ID);
 
@@ -334,7 +337,11 @@ public class RenewalActivity extends AppCompatActivity implements RenewalAdapter
                 .setView(view)
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Continue", (d, w) -> {
-                    String ref = etRef.getText() == null ? "" : etRef.getText().toString().trim();
+                    String ref = InputValidator.cleanLine(etRef.getText() == null ? "" : etRef.getText().toString());
+                    if (!ref.isEmpty() && InputValidator.label(ref, 1, 40, "the payment reference") != null) {
+                        Toast.makeText(this, "The payment reference must be 40 characters or fewer, without < or >.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     createRenewal(myVehicles.get(vehicleIndex[0]).getVehicleId(),
                             optionDurations.get(durationIndex[0]),
                             ref.isEmpty() ? null : ref);

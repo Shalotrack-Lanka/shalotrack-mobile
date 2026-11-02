@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/surface_background">
+    android:background="@drawable/bg_app_gradient">
 
     <!-- Header -->
     <LinearLayout

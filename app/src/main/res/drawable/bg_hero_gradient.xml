@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark navy glass backdrop with two soft glows: the panels on top look like frosted glass over light. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:angle="315" android:startColor="@color/hero_top"
+                android:centerColor="@color/hero_mid" android:endColor="@color/hero_bottom" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:type="radial" android:centerX="0.9" android:centerY="0.05"
+                android:gradientRadius="70%p" android:startColor="#401976D2" android:endColor="#001976D2" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:type="radial" android:centerX="0.05" android:centerY="0.98"
+                android:gradientRadius="60%p" android:startColor="#3338BDF8" android:endColor="#0038BDF8" />
+        </shape>
+    </item>
+</layer-list>

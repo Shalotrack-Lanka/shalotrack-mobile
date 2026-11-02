@@ -42,6 +42,7 @@ public class RouteAfterLoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_route_after_login);
+        AuthUi.edgeToEdge(this, findViewById(R.id.main));
 
         groupLoading = findViewById(R.id.groupRouteLoading);
         groupError = findViewById(R.id.groupRouteError);

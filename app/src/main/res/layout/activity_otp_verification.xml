@@ -25,7 +25,7 @@
             android:paddingTop="16dp">
 
             <TextView
-                style="@style/TextAppearance.ShaloTrack.Headline"
+                android:textAppearance="@style/TextAppearance.ShaloTrack.Headline"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:accessibilityHeading="true"
@@ -33,16 +33,23 @@
 
             <TextView
                 android:id="@+id/tvOtpSubtitle"
-                style="@style/TextAppearance.ShaloTrack.Body"
+                android:textAppearance="@style/TextAppearance.ShaloTrack.Body"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp" />
+
+            <LinearLayout
+                style="@style/Widget.ShaloTrack.GlassPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:orientation="vertical">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/otpInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="0dp"
                 android:hint="@string/otp_hint">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -53,7 +60,7 @@
                     android:gravity="center"
                     android:imeOptions="actionDone"
                     android:importantForAutofill="yes"
-                    android:inputType="numberDecimal"
+                    android:inputType="number"
                     android:letterSpacing="0.4"
                     android:maxLength="6"
                     android:textSize="28sp"
@@ -75,6 +82,7 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="8dp"
                 android:text="@string/otp_resend" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

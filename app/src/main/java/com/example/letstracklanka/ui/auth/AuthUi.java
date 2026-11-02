@@ -13,11 +13,11 @@ import androidx.core.view.WindowInsetsCompat;
  * bars on every device, so without this the Send/Continue button can sit under the gesture bar and the
  * keyboard can cover the field being typed in. Call after setContentView, passing the root view.
  */
-final class AuthUi {
+public final class AuthUi {
 
     private AuthUi() {}
 
-    static void edgeToEdge(ComponentActivity activity, View root) {
+    public static void edgeToEdge(ComponentActivity activity, View root) {
         EdgeToEdge.enable(activity);
         final int l = root.getPaddingLeft(), t = root.getPaddingTop(),
                 r = root.getPaddingRight(), b = root.getPaddingBottom();

@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.complaints;
 
+import com.example.letstracklanka.utils.ClickGuard;
+import com.example.letstracklanka.utils.InputValidator;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ArrayAdapter;
@@ -80,7 +82,7 @@ public class FileComplaintActivity extends AppCompatActivity {
         spinnerCategory.setText(CATEGORY_LABELS[0], false);
         spinnerCategory.setOnClickListener(v -> spinnerCategory.showDropDown()); // NEW
 
-        btnSubmit.setOnClickListener(v -> submitComplaint());
+        btnSubmit.setOnClickListener(ClickGuard.wrap(v -> submitComplaint()));
 
         loadMyVehicles();
     }
@@ -169,9 +171,10 @@ public class FileComplaintActivity extends AppCompatActivity {
         int categoryIndex = indexOf(CATEGORY_LABELS, categoryText);
         if (categoryIndex < 0) categoryIndex = 0; // "Device Issue" default, matches the pre-selected text
 
-        String description = etDescription.getText() != null ? etDescription.getText().toString().trim() : "";
-        if (description.isEmpty()) {
-            Toast.makeText(this, "Please describe the issue.", Toast.LENGTH_SHORT).show();
+        String description = InputValidator.clean(etDescription.getText() != null ? etDescription.getText().toString() : "");
+        String descriptionError = description.isEmpty() ? "Please describe the issue." : InputValidator.message(description, 10);
+        if (descriptionError != null) {
+            Toast.makeText(this, descriptionError, Toast.LENGTH_SHORT).show();
             return;
         }
 

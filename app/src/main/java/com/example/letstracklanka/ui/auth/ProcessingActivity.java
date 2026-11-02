@@ -1,5 +1,6 @@
 package com.example.letstracklanka.ui.auth;
 
+import com.example.letstracklanka.utils.SecureScreen;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -26,7 +27,9 @@ public class ProcessingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_processing);
+        AuthUi.edgeToEdge(this, findViewById(R.id.main));
 
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             startActivity(new Intent(this, LoginActivity.class));
@@ -75,6 +78,24 @@ public class ProcessingActivity extends AppCompatActivity {
     }
 
     private void goToDashboard() {
+        // The profile now exists, so it is safe to offer the optional password. (Linking an email to the account
+        // BEFORE the profile exists would make SplashActivity skip the profile check on the next launch.)
+        String email = getIntent().getStringExtra("EXTRA_EMAIL");
+        com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        boolean hasPassword = false;
+        if (user != null) {
+            for (com.google.firebase.auth.UserInfo info : user.getProviderData()) {
+                if ("password".equals(info.getProviderId())) hasPassword = true;
+            }
+        }
+        if (user != null && !hasPassword && email != null && !email.isEmpty()) {
+            Intent next = new Intent(this, LinkPasswordActivity.class);
+            next.putExtra(LinkPasswordActivity.EXTRA_EMAIL, email);
+            next.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(next);
+            finish();
+            return;
+        }
         Intent intent = new Intent(this, HomeActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

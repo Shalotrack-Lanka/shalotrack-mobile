@@ -7,13 +7,13 @@ import androidx.annotation.Nullable;
  * with 7. Accepts "0771234567", "771234567", "94771234567" and "+94771234567" (spaces and dashes ignored).
  * The server normalises again; this only gives the customer an instant, friendly answer.
  */
-final class PhoneNumbers {
+public final class PhoneNumbers {
 
     private PhoneNumbers() {}
 
     /** "+94771234567", or null when the input is not a valid Sri Lankan mobile number. */
     @Nullable
-    static String toE164(@Nullable String raw) {
+    public static String toE164(@Nullable String raw) {
         if (raw == null) return null;
         StringBuilder digits = new StringBuilder();
         for (int i = 0; i < raw.length(); i++) {

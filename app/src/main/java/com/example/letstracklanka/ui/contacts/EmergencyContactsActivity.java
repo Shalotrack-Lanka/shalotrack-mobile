@@ -1,5 +1,6 @@
 package com.example.letstracklanka.ui.contacts;
 
+import com.example.letstracklanka.utils.InputValidator;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -135,16 +136,22 @@ public class EmergencyContactsActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setView(dialogView)
                 .setPositiveButton("Add", (dialog, which) -> {
-                    String name = etName.getText().toString().trim();
-                    String phone = etPhone.getText().toString().trim();
-                    String relationship = etRelationship.getText().toString().trim();
+                    String name = InputValidator.cleanLine(etName.getText().toString());
+                    String phone = InputValidator.cleanLine(etPhone.getText().toString());
+                    String relationship = InputValidator.cleanLine(etRelationship.getText().toString());
 
-                    if (name.isEmpty() || phone.isEmpty()) {
-                        Toast.makeText(this, "Name and phone number are required.", Toast.LENGTH_SHORT).show();
+                    String error = InputValidator.name(name);
+                    if (error == null) error = InputValidator.phoneAny(phone);
+                    if (error == null && !relationship.isEmpty()) {
+                        error = InputValidator.label(relationship, 1, 30, "the relationship");
+                    }
+                    if (error != null) {
+                        Toast.makeText(this, error, Toast.LENGTH_LONG).show();
                         return;
                     }
 
-                    addContact(name, phone, relationship.isEmpty() ? null : relationship);
+                    addContact(name, InputValidator.toE164Any(phone),
+                            relationship.isEmpty() ? null : relationship);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

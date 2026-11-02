@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.main;
 
+import com.example.letstracklanka.utils.ClickGuard;
+import com.example.letstracklanka.utils.InputValidator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -393,10 +395,11 @@ public class CirclesActivity extends AppCompatActivity {
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
 
-        btnSave.setOnClickListener(v -> {
-            String name = etName.getText() != null ? etName.getText().toString().trim() : "";
-            if (name.isEmpty()) {
-                Toast.makeText(this, "Enter a name for this geofence.", Toast.LENGTH_SHORT).show();
+        btnSave.setOnClickListener(ClickGuard.wrap(v -> {
+            String name = InputValidator.cleanLine(etName.getText() != null ? etName.getText().toString() : "");
+            String nameError = InputValidator.label(name, 1, 50, "a name for this geofence");
+            if (nameError != null) {
+                Toast.makeText(this, nameError, Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -433,7 +436,7 @@ public class CirclesActivity extends AppCompatActivity {
                     Toast.makeText(CirclesActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
                 }
             });
-        });
+        }));
 
         dialog.show();
     }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
@@ -25,6 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
         android:src="@drawable/logo_full"
+        android:contentDescription="@string/welcome_logo_description"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -34,9 +36,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="Processing....Please wait it will take a while"
+        android:text="@string/processing_message"
+        android:accessibilityLiveRegion="polite"
         android:textColor="#FFFFFF"
-        android:textSize="14sp"
+        android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/progressBar"
         app:layout_constraintEnd_toEndOf="parent"
@@ -50,7 +53,7 @@
         android:layout_marginHorizontal="24dp"
         android:layout_marginBottom="32dp"
         android:indeterminate="true"
-        android:indeterminateTint="#D32F2F"
+        android:indeterminateTint="@color/glass_focus"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
