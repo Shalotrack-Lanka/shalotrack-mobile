@@ -78,6 +78,15 @@ public interface ApiService {
     @POST("api/DeviceAssignments/assign")
     Call<ResponseBody> assignDevice(@Body CreateDeviceAssignmentRequest request);
 
+    // Assignment history of one vehicle; the active row (Status 1, no RemovedAt) carries the
+    // assignmentId that unassign needs.
+    @GET("api/DeviceAssignments/vehicle/{vehicleId}")
+    Call<ResponseBody> getDeviceAssignmentsForVehicle(@Path("vehicleId") String vehicleId);
+
+    // Owner-only on the server. Keeps the subscription on the device.
+    @PATCH("api/DeviceAssignments/{assignmentId}/unassign")
+    Call<ResponseBody> unassignDevice(@Path("assignmentId") String assignmentId);
+
     @GET("api/Customers/{customerId}/dashboard")
     Call<ResponseBody> getCustomerDashboard(@Path("customerId") String customerId);
 
