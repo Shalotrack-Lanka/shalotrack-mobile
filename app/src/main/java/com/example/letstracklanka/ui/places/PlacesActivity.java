@@ -1,5 +1,6 @@
 package com.example.letstracklanka.ui.places;
 
+import com.example.letstracklanka.utils.InputValidator;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
@@ -184,9 +185,12 @@ public class PlacesActivity extends AppCompatActivity {
                 .setTitle("Save this location as")
                 .setView(input)
                 .setPositiveButton("Save", (dialog, which) -> {
-                    String name = input.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        Toast.makeText(this, "Give this place a name.", Toast.LENGTH_SHORT).show();
+                    String name = InputValidator.cleanLine(input.getText().toString());
+                    String nameError = InputValidator.label(name, 1, 50, "a name for this place");
+                    String coordError = InputValidator.inRange(latitude, -90, 90, "latitude");
+                    if (coordError == null) coordError = InputValidator.inRange(longitude, -180, 180, "longitude");
+                    if (nameError != null || coordError != null) {
+                        Toast.makeText(this, nameError != null ? nameError : coordError, Toast.LENGTH_SHORT).show();
                         return;
                     }
                     savePlace(name, latitude, longitude);

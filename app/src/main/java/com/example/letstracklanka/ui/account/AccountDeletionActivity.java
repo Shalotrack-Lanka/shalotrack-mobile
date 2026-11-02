@@ -1,5 +1,6 @@
 package com.example.letstracklanka.ui.account;
 
+import com.example.letstracklanka.utils.SecureScreen;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -79,6 +80,7 @@ public class AccountDeletionActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_account_deletion);
 
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {

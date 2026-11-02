@@ -1,5 +1,6 @@
 package com.example.letstracklanka.ui.auth;
 
+import com.example.letstracklanka.utils.SecureScreen;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -40,6 +41,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_login);
         AuthUi.edgeToEdge(this, findViewById(R.id.main));
         ((MaterialToolbar) findViewById(R.id.toolbar)).setNavigationOnClickListener(v -> finish());
@@ -55,6 +57,9 @@ public class LoginActivity extends AppCompatActivity {
                 return false;
             });
         }
+        findViewById(R.id.btnEmailLogin).setOnClickListener(v ->
+                startActivity(new Intent(LoginActivity.this, EmailLoginActivity.class)));
+
         btnSendCode.setOnClickListener(v -> {
             if (requestInFlight) return;
             String raw = phoneInput.getEditText() != null

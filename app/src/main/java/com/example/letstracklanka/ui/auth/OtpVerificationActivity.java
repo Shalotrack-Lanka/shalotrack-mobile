@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.auth;
 
+import com.example.letstracklanka.utils.InputValidator;
+import com.example.letstracklanka.utils.SecureScreen;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -68,6 +70,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_otp_verification);
 
         mAuth = FirebaseAuth.getInstance();
@@ -95,7 +98,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
                 otpInput.setError(null);
                 hideError();
                 // Auto-submit on the 6th digit: typed, pasted or autofilled all take the same path.
-                if (s.length() == 6) verifyOtp(s.toString());
+                if (InputValidator.otp(s.toString()) == null) verifyOtp(s.toString());
             }
         });
         etOtp.setOnEditorActionListener((v, actionId, event) -> {
@@ -106,7 +109,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
         btnVerifyCode.setOnClickListener(v -> {
             String code = etOtp.getText() != null ? etOtp.getText().toString().trim() : "";
-            if (code.length() < 6) {
+            if (InputValidator.otp(code) != null) {
                 otpInput.setError(getString(R.string.otp_incomplete));
                 return;
             }
@@ -206,6 +209,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
     private void resend() {
         hideError();
+        otpInput.setHelperText(null);
         btnResend.setEnabled(false);
         OtpRepository.requestOtp(phone, new OtpRepository.RequestCallback() {
             @Override
@@ -214,7 +218,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
                 autoFillHandled = false;
                 startSmsUserConsent();
                 startResendCountdown(RESEND_COOLDOWN_MS);
-                showError(getString(R.string.otp_resent));
+                otpInput.setHelperText(getString(R.string.otp_resent));
             }
 
             @Override

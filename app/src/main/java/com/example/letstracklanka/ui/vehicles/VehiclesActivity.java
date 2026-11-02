@@ -1,5 +1,6 @@
 package com.example.letstracklanka.ui.vehicles;
 
+import com.example.letstracklanka.utils.InputValidator;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -501,12 +502,13 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 .setMessage("The person must already have the ShaloTrack app installed and registered with this number.")
                 .setView(input)
                 .setPositiveButton("Invite", (dialog, which) -> {
-                    String phoneNumber = input.getText() != null ? input.getText().toString().trim() : "";
-                    if (phoneNumber.isEmpty()) {
-                        Toast.makeText(this, "Enter a phone number.", Toast.LENGTH_SHORT).show();
+                    String phoneNumber = InputValidator.cleanLine(input.getText() != null ? input.getText().toString() : "");
+                    String phoneError = InputValidator.phone(phoneNumber);
+                    if (phoneError != null) {
+                        Toast.makeText(this, phoneError, Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    sendShareInvite(phoneNumber);
+                    sendShareInvite(com.example.letstracklanka.ui.auth.PhoneNumbers.toE164(phoneNumber));
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -533,9 +535,9 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 .setMessage("Enter the IMEI printed on the device.")
                 .setView(input)
                 .setPositiveButton("Link", (dialog, which) -> {
-                    String imei = input.getText() != null ? input.getText().toString().trim() : "";
-                    if (imei.isEmpty()) {
-                        Toast.makeText(this, "Enter an IMEI.", Toast.LENGTH_SHORT).show();
+                    String imei = input.getText() != null ? input.getText().toString().replaceAll("\\D", "") : "";
+                    if (InputValidator.imei(imei) != null) {
+                        Toast.makeText(this, "Enter the 15-digit IMEI (check for a typo).", Toast.LENGTH_SHORT).show();
                         return;
                     }
                     lookupThenLinkDevice(detailsDialog, vehicleId, imei);

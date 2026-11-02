@@ -1,5 +1,6 @@
 package com.example.letstracklanka.ui.main;
 
+import com.example.letstracklanka.utils.InputValidator;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -151,6 +152,22 @@ public final class DrawerMenuHelper {
             });
         }
 
+        View btnMenuCompare = activity.findViewById(R.id.btnMenuCompare);
+        if (btnMenuCompare != null) {
+            btnMenuCompare.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                activity.startActivity(new Intent(activity, com.example.letstracklanka.ui.stats.StatsCompareActivity.class));
+            });
+        }
+
+        View btnMenuFrequentPlaces = activity.findViewById(R.id.btnMenuFrequentPlaces);
+        if (btnMenuFrequentPlaces != null) {
+            btnMenuFrequentPlaces.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.START);
+                activity.startActivity(new Intent(activity, com.example.letstracklanka.ui.places.FrequentPlacesActivity.class));
+            });
+        }
+
         // NEW -- launches MyComplaintsActivity (Complaint/Feedback feature).
         View btnMenuComplaints = activity.findViewById(R.id.btnMenuComplaints);
         if (btnMenuComplaints != null) {
@@ -299,12 +316,15 @@ public final class DrawerMenuHelper {
                             return;
                         }
 
-                        String firstName = etFirstName.getText().toString().trim();
-                        String surname = etSurname.getText().toString().trim();
+                        String firstName = InputValidator.cleanLine(etFirstName.getText().toString());
+                        String surname = InputValidator.cleanLine(etSurname.getText().toString());
                         String fullName = surname.isEmpty() ? firstName : firstName + " " + surname;
-                        String phone = etPhone.getText().toString().trim();
-                        if (fullName.isEmpty()) {
-                            Toast.makeText(activity, "Name can't be empty", Toast.LENGTH_SHORT).show();
+                        // The phone number is the customer's verified identity (proved by the SMS code), so it is
+                        // never changed from a plain text box: always send the number already on the account.
+                        String phone = customer.getPhoneNumber() != null ? customer.getPhoneNumber() : "";
+                        String nameError = InputValidator.name(fullName);
+                        if (nameError != null) {
+                            Toast.makeText(activity, nameError, Toast.LENGTH_SHORT).show();
                             return;
                         }
 

@@ -29,8 +29,8 @@
     <View
         android:id="@+id/viewBottomGradient"
         android:layout_width="match_parent"
-        android:layout_height="320dp"
-        android:background="@drawable/gradient_bottom"
+        android:layout_height="340dp"
+        android:background="@drawable/bg_glass_dark_sheet"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -41,6 +41,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="52dp"
         android:src="@drawable/logo_full"
+        android:contentDescription="@string/welcome_logo_description"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -69,7 +70,7 @@
         android:layout_marginBottom="20dp"
         android:text="Stay connected, stay safe"
         android:textAlignment="center"
-        android:textColor="#99FFFFFF"
+        android:textColor="@color/glass_text_secondary"
         android:textSize="14sp"
         app:layout_constraintBottom_toTopOf="@+id/layoutDots"
         app:layout_constraintEnd_toEndOf="parent"
@@ -93,12 +94,12 @@
         android:layout_marginHorizontal="24dp"
         android:layout_marginBottom="16dp"
         android:letterSpacing="0.02"
-        android:text="Get started"
+        android:text="@string/welcome_get_started"
         android:textAllCaps="false"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:backgroundTint="#1877F2"
+        app:backgroundTint="@color/glass_button"
         app:cornerRadius="16dp"
         app:icon="@drawable/ic_arrow_right"
         app:iconGravity="end"
@@ -121,18 +122,22 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Already have an account? "
-            android:textColor="#80FFFFFF"
+            android:text="@string/welcome_have_account"
+            android:textColor="@color/glass_text_secondary"
             android:textSize="13sp" />
 
         <TextView
             android:id="@+id/txtSignIn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Sign in"
-            android:textColor="#1877F2"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:text="@string/welcome_sign_in"
+            android:textColor="@color/glass_focus"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:minHeight="48dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="6dp"
+            android:background="?attr/selectableItemBackground" />
 
     </LinearLayout>
 

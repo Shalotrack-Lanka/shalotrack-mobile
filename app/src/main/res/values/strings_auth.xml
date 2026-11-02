@@ -54,4 +54,72 @@
     <string name="route_try_again">Try again</string>
     <string name="route_sign_out">Sign out</string>
     <string name="processing_message">Setting up your account…</string>
+
+    <!-- Frequent places -->
+    <string name="freq_title">Frequent places</string>
+    <string name="freq_intro">Where your vehicle usually stops. A place counts once it has been visited at least twice.</string>
+    <string name="freq_vehicle_hint">Vehicle</string>
+    <string name="freq_last_30">Last 30 days</string>
+    <string name="freq_last_90">Last 90 days</string>
+    <string name="freq_loading_vehicles">Loading your vehicles…</string>
+    <string name="freq_no_vehicles">You have no vehicles yet.</string>
+    <string name="freq_empty">No place was visited twice or more in the last %1$d days.</string>
+    <string name="freq_failed">We couldn\'t load the trips. Please try again.</string>
+    <string name="freq_network">No connection. Check your internet and try again.</string>
+    <string name="freq_expired">Subscription expired. Renew to see this vehicle.</string>
+    <string name="freq_forbidden">You don\'t have access to this vehicle.</string>
+    <string name="freq_no_maps">No maps app was found on this phone.</string>
+    <string name="freq_meta">%1$d visits · %2$s parked · last %3$s</string>
+    <string name="freq_open_map">%1$s, %2$d visits. Open in maps.</string>
+
+    <!-- Compare vehicles -->
+    <string name="cmp_title">Compare vehicles</string>
+    <string name="cmp_intro">Pick 2 or 3 vehicles to see their numbers side by side.</string>
+    <string name="cmp_pick_vehicles">Vehicles (up to 3)</string>
+    <string name="cmp_period">Period</string>
+    <string name="cmp_today">Today</string>
+    <string name="cmp_week">This week</string>
+    <string name="cmp_month">This month</string>
+    <string name="cmp_need_two">You need at least two vehicles to compare.</string>
+    <string name="cmp_pick_prompt">Select at least 2 vehicles above.</string>
+    <string name="cmp_max">You can compare up to %1$d vehicles at a time.</string>
+    <string name="cmp_failed">We couldn\'t load the stats for all vehicles. Please try again.</string>
+    <string name="cmp_metric">Metric</string>
+    <string name="cmp_distance">Distance</string>
+    <string name="cmp_trips">Trips</string>
+    <string name="cmp_stops">Stops</string>
+    <string name="cmp_driving">Driving time</string>
+    <string name="cmp_idle">Idle time</string>
+    <string name="cmp_avg_speed">Average speed</string>
+    <string name="cmp_max_speed">Top speed</string>
+    <string name="cmp_overspeed">Overspeed alerts</string>
+
+    <!-- Optional password after registration -->
+    <string name="link_title">Add a password</string>
+    <string name="link_subtitle">Optional. Next time you can sign in with your email and password, no SMS code needed.</string>
+    <string name="link_password_hint">New password</string>
+    <string name="link_confirm_hint">Confirm password</string>
+    <string name="link_rules">At least 8 characters, with a letter and a number.</string>
+    <string name="link_save">Save password</string>
+    <string name="link_skip">Skip for now</string>
+    <string name="link_mismatch">The two passwords don\'t match.</string>
+    <string name="link_email_taken">That email already belongs to another account. You can skip this and keep signing in with your phone.</string>
+    <string name="link_failed">We couldn\'t save your password. You can skip and try again later.</string>
+
+    <!-- Email + password sign-in -->
+    <string name="emaillogin_title">Sign in with email</string>
+    <string name="emaillogin_subtitle">Use the email and password you set up. No SMS code needed.</string>
+    <string name="emaillogin_password_hint">Password</string>
+    <string name="emaillogin_sign_in">Sign in</string>
+    <string name="emaillogin_forgot">Forgot password?</string>
+    <string name="emaillogin_use_phone">Sign in with a phone code instead</string>
+    <string name="emaillogin_wrong">Email or password is incorrect.</string>
+    <string name="emaillogin_disabled">This account has been disabled. Contact support.</string>
+    <string name="emaillogin_locked">Too many attempts. Try again in %1$d seconds, or use a phone code.</string>
+    <string name="emaillogin_reset_sent">If an account exists for that email, we\'ve sent a reset link. Check your inbox and spam folder.</string>
+    <string name="emaillogin_enter_email_first">Enter your email above first, then tap Forgot password.</string>
+    <string name="auth_network">No connection. Check your internet and try again.</string>
+    <string name="auth_too_many">Too many attempts. Please wait a few minutes and try again.</string>
+    <string name="menu_compare">Compare Vehicles</string>
+    <string name="menu_frequent_places">Frequent Places</string>
 </resources>

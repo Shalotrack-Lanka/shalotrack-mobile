@@ -1,5 +1,8 @@
 package com.example.letstracklanka.ui.profile;
 
+import com.example.letstracklanka.utils.ClickGuard;
+import com.example.letstracklanka.utils.SecureScreen;
+import com.example.letstracklanka.utils.InputValidator;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -54,6 +57,7 @@ public class ProfileActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_profile);
 
         api = ApiClient.getClient().create(ApiService.class);
@@ -72,7 +76,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         findViewById(R.id.btnBackProfile).setOnClickListener(v -> finish());
         findViewById(R.id.btnProfileRetry).setOnClickListener(v -> loadProfile());
-        btnSave.setOnClickListener(v -> save());
+        btnSave.setOnClickListener(ClickGuard.wrap(v -> save()));
 
         loadProfile();
     }
@@ -134,13 +138,17 @@ public class ProfileActivity extends AppCompatActivity {
     private void save() {
         if (saving || customerId == null) return;
 
-        String name = etFullName.getText() != null ? etFullName.getText().toString().trim() : "";
-        String address = etAddress.getText() != null ? etAddress.getText().toString().trim() : "";
+        String name = InputValidator.cleanLine(etFullName.getText() != null ? etFullName.getText().toString() : "");
+        String address = InputValidator.cleanLine(etAddress.getText() != null ? etAddress.getText().toString() : "");
 
-        layoutFullName.setError(null);
-        if (name.isEmpty()) {
-            layoutFullName.setError("Enter your name");
-            return;
+        layoutFullName.setError(InputValidator.name(name));
+        if (layoutFullName.getError() != null) return;
+        if (!address.isEmpty()) {
+            String addressError = InputValidator.address(address);
+            if (addressError != null) {
+                showMessage(addressError, false);
+                return;
+            }
         }
 
         setSaving(true);

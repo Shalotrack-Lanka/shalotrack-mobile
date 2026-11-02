@@ -1,8 +1,9 @@
 package com.example.letstracklanka.ui.auth;
 
+import com.example.letstracklanka.utils.InputValidator;
+import com.example.letstracklanka.utils.SecureScreen;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Patterns;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AlertDialog;
@@ -38,6 +39,7 @@ public class EmailInputActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SecureScreen.enable(this);
         setContentView(R.layout.activity_email_input);
         AuthUi.edgeToEdge(this, findViewById(R.id.main));
 
@@ -64,35 +66,19 @@ public class EmailInputActivity extends AppCompatActivity {
     }
 
     private void onContinue() {
-        String name = text(etFullName);
-        // One canonical NIC form (no spaces, upper-case V/X) so the uniqueness check cannot be dodged.
-        String nic = text(etNicNumber).replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
-        String address = text(etAddress);
-        String email = text(etEmail);
+        String name = InputValidator.cleanLine(text(etFullName));
+        String nic = InputValidator.canonicalNic(text(etNicNumber));   // one canonical form: uniqueness cannot be dodged
+        String address = InputValidator.cleanLine(text(etAddress));
+        String email = InputValidator.cleanLine(text(etEmail));
 
-        layoutFullName.setError(null);
-        layoutNicNumber.setError(null);
-        layoutAddress.setError(null);
-        layoutEmail.setError(null);
-
-        boolean ok = true;
-        if (name.isEmpty()) {
-            layoutFullName.setError(getString(R.string.details_name_error));
-            ok = false;
+        layoutFullName.setError(InputValidator.name(name));
+        layoutNicNumber.setError(InputValidator.nic(nic));
+        layoutAddress.setError(InputValidator.address(address));
+        layoutEmail.setError(InputValidator.email(email));
+        if (layoutFullName.getError() != null || layoutNicNumber.getError() != null
+                || layoutAddress.getError() != null || layoutEmail.getError() != null) {
+            return;
         }
-        if (!NIC.matcher(nic).matches()) {
-            layoutNicNumber.setError(getString(R.string.details_nic_error));
-            ok = false;
-        }
-        if (address.isEmpty()) {
-            layoutAddress.setError(getString(R.string.details_address_error));
-            ok = false;
-        }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            layoutEmail.setError(getString(R.string.details_email_error));
-            ok = false;
-        }
-        if (!ok) return;
 
         String suggestion = EmailTypoGuard.suggest(email);
         if (suggestion != null) {

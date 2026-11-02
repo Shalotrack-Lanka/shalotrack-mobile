@@ -13,37 +13,45 @@
         <!-- Status & Navigation Bar Branding -->
         <item name="android:statusBarColor">@color/brand_primary</item>
         <item name="android:navigationBarColor">@color/surface_white</item>
+
+        <!-- Glass system (light): soft gradient behind every screen, frosted bottom sheets -->
+        <item name="android:windowBackground">@drawable/bg_app_gradient</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.ShaloTrack.BottomSheetDialog</item>
     </style>
 
     <style name="Theme.LetsTrackLanka" parent="Base.Theme.LetsTrackLanka" />
 
     <!-- ════════════════════════════════════════════════════════════
-         Sign-in flow theme (Welcome, Login, Code, Details, Route)
+         Sign-in flow theme: dark navy glass (same look as the Fleet web portal)
          ════════════════════════════════════════════════════════════
-         Material 3 (light on purpose: the sign-in screens are always light and navy-branded).
-         The old screens used Theme.MaterialComponents (Material 2) plus hard-coded hex colours;
-         everything here comes from theme attributes so colour, shape and size live in ONE place.
-         Applied per activity in AndroidManifest.xml. Not applied app-wide, so no other screen changes. -->
-    <style name="Theme.ShaloTrack.Auth" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/brand_primary</item>
-        <item name="colorOnPrimary">@color/text_on_dark</item>
-        <item name="colorSecondary">@color/brand_accent</item>
-        <item name="colorOnSecondary">@color/text_on_dark</item>
-        <item name="colorSurface">@color/surface_white</item>
-        <item name="colorOnSurface">@color/text_primary</item>
-        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
-        <item name="colorError">@color/status_danger</item>
-        <item name="android:windowBackground">@color/surface_white</item>
+         Welcome, Phone, Code, Details, Route and Processing. Every colour, shape and size comes from theme
+         attributes and the glass_* colour tokens, so changing the look is a one-file edit.
+         Applied per activity in AndroidManifest.xml. The rest of the app keeps its own (light glass) theme. -->
+    <style name="Theme.ShaloTrack.Auth" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/glass_focus</item>
+        <item name="colorOnPrimary">@color/hero_top</item>
+        <item name="colorSecondary">@color/glass_focus</item>
+        <item name="colorSurface">@color/hero_mid</item>
+        <item name="colorOnSurface">@color/glass_text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/glass_text_secondary</item>
+        <item name="colorOutline">@color/glass_outline</item>
+        <item name="colorError">@color/glass_error</item>
+        <item name="android:windowBackground">@drawable/bg_hero_gradient</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
         <item name="materialButtonStyle">@style/Widget.ShaloTrack.Button</item>
         <item name="textInputStyle">@style/Widget.ShaloTrack.TextInputLayout</item>
     </style>
 
-    <!-- Primary button: 56 dp tall (Material 3), rounded, never ALL CAPS. -->
+    <!-- Primary button: 56 dp tall, rounded, solid blue, white text (4.8:1 contrast), never ALL CAPS. -->
     <style name="Widget.ShaloTrack.Button" parent="Widget.Material3.Button">
         <item name="android:minHeight">56dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
         <item name="cornerRadius">16dp</item>
+        <item name="backgroundTint">@color/glass_button</item>
+        <item name="android:textColor">@color/glass_text_primary</item>
         <item name="android:textAppearance">@style/TextAppearance.ShaloTrack.Button</item>
     </style>
 
@@ -52,6 +60,7 @@
         <item name="android:minHeight">48dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
+        <item name="android:textColor">@color/glass_focus</item>
         <item name="android:textAppearance">@style/TextAppearance.ShaloTrack.Button</item>
     </style>
 
@@ -60,20 +69,29 @@
         <item name="android:textStyle">bold</item>
     </style>
 
+    <!-- Glass input: translucent fill, light outline that brightens on focus. -->
     <style name="Widget.ShaloTrack.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">12dp</item>
-        <item name="boxCornerRadiusTopEnd">12dp</item>
-        <item name="boxCornerRadiusBottomStart">12dp</item>
-        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxBackgroundMode">outline</item>
+        <item name="boxStrokeColor">@color/glass_focus</item>
+        <item name="android:textColorHint">@color/glass_text_hint</item>
+        <item name="hintTextColor">@color/glass_focus</item>
+        <item name="helperTextTextColor">@color/glass_text_secondary</item>
+        <item name="prefixTextColor">@color/glass_text_secondary</item>
+        <item name="errorTextColor">@color/glass_error</item>
+        <item name="boxStrokeErrorColor">@color/glass_error</item>
     </style>
 
     <style name="TextAppearance.ShaloTrack.Headline" parent="TextAppearance.Material3.HeadlineMedium">
-        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textColor">@color/glass_text_primary</item>
         <item name="android:textStyle">bold</item>
     </style>
 
     <style name="TextAppearance.ShaloTrack.Body" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textColor">@color/glass_text_secondary</item>
     </style>
 
     <!-- Inline error: always visible text, announced by TalkBack, never a toast. -->
@@ -81,9 +99,27 @@
         <item name="android:background">@drawable/bg_error_banner</item>
         <item name="android:padding">12dp</item>
         <item name="android:textSize">14sp</item>
-        <item name="android:textColor">@color/danger_banner_text</item>
+        <item name="android:textColor">#FFFFFFFF</item>
         <item name="android:accessibilityLiveRegion">polite</item>
         <item name="android:visibility">gone</item>
+    </style>
+
+    <!-- Glass panel that holds a form on the dark backdrop. -->
+    <style name="Widget.ShaloTrack.GlassPanel" parent="">
+        <item name="android:background">@drawable/bg_glass_dark_card</item>
+        <item name="android:padding">20dp</item>
+    </style>
+
+    <!-- ════════════════════════════════════════════════════════════
+         Bottom sheets (every BottomSheetDialog in the app): frosted glass.
+         The v31 variant of this style adds real blur of the screen behind the sheet. -->
+    <style name="ThemeOverlay.ShaloTrack.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.ShaloTrack.BottomSheet</item>
+        <item name="android:backgroundDimAmount">0.32</item>
+    </style>
+
+    <style name="Widget.ShaloTrack.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/glass_sheet_fill</item>
     </style>
 
     <!-- ════════════════════════════════════════════════════════════

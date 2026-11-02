@@ -43,4 +43,27 @@
     <color name="surface_stroke">#E0E0E0</color>
     <color name="surface_muted_blue">#9FB2C9</color>   <!-- NEW - from the design package -->
 
+
+    <!-- ════ Glass design system ════
+         Light glass (whole app): soft blue-white backdrop, frosted white cards.
+         Dark glass (sign-in flow, same look as the Fleet web portal): deep navy gradient, translucent white panels. -->
+    <color name="glass_bg_top">#EAF1FD</color>
+    <color name="glass_bg_bottom">#F8FAFF</color>
+    <color name="glass_card_fill">#EBFFFFFF</color>
+    <color name="glass_card_stroke">#1F0A2463</color>
+    <color name="glass_sheet_fill">#F5FFFFFF</color>
+
+    <color name="hero_top">#06183D</color>
+    <color name="hero_mid">#0A2463</color>
+    <color name="hero_bottom">#0F4AA3</color>
+    <color name="glass_dark_fill">#1FFFFFFF</color>
+    <color name="glass_dark_stroke">#3DFFFFFF</color>
+    <color name="glass_dark_sheet">#CC061A40</color>
+    <color name="glass_text_primary">#FFFFFF</color>
+    <color name="glass_text_secondary">#CFDCF2</color>
+    <color name="glass_text_hint">#B3C4E0</color>
+    <color name="glass_outline">#8FA6CC</color>
+    <color name="glass_focus">#8DC3FF</color>
+    <color name="glass_error">#FF9A92</color>
+    <color name="glass_button">#1A6EE0</color>
 </resources>

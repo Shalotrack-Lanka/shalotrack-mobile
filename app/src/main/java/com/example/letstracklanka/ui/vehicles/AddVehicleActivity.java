@@ -1,5 +1,7 @@
 package com.example.letstracklanka.ui.vehicles;
 
+import com.example.letstracklanka.utils.ClickGuard;
+import com.example.letstracklanka.utils.InputValidator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -202,7 +204,7 @@ public class AddVehicleActivity extends AppCompatActivity {
 
         btnSaveVehicle = findViewById(R.id.btnSaveVehicle);
         progressAddVehicle = findViewById(R.id.progressAddVehicle);
-        if (btnSaveVehicle != null) btnSaveVehicle.setOnClickListener(v -> attemptSaveVehicle());
+        if (btnSaveVehicle != null) btnSaveVehicle.setOnClickListener(ClickGuard.wrap(v -> attemptSaveVehicle()));
     }
 
     private void lookupDevice() {
@@ -264,11 +266,28 @@ public class AddVehicleActivity extends AppCompatActivity {
             return;
         }
 
+        String fieldError = InputValidator.plate(vehicleNumber);
+        if (fieldError == null) fieldError = InputValidator.label(make, 1, 40, "the make");
+        if (fieldError == null) fieldError = InputValidator.label(model, 1, 40, "the model");
+        if (fieldError == null) fieldError = InputValidator.label(textOf(etColor), 0, 30, "the colour");
+        if (fieldError == null) fieldError = InputValidator.label(textOf(etChassisNumber), 0, 40, "the chassis number");
+        if (fieldError == null) fieldError = InputValidator.label(textOf(etEngineNumber), 0, 40, "the engine number");
+        if (fieldError != null) {
+            showError(fieldError);
+            return;
+        }
+        vehicleNumber = vehicleNumber.toUpperCase(java.util.Locale.ROOT);
+
         int year;
         try {
             year = Integer.parseInt(yearText);
         } catch (NumberFormatException e) {
             showError("Year must be a valid number.");
+            return;
+        }
+        int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        if (year < 1950 || year > currentYear + 1) {
+            showError("Year must be between 1950 and " + (currentYear + 1) + ".");
             return;
         }
 
@@ -406,7 +425,7 @@ public class AddVehicleActivity extends AppCompatActivity {
     }
 
     private String textOf(TextInputEditText field) {
-        return field != null && field.getText() != null ? field.getText().toString().trim() : "";
+        return field != null && field.getText() != null ? InputValidator.cleanLine(field.getText().toString()) : "";
     }
 
     private String emptyToNull(String value) {
