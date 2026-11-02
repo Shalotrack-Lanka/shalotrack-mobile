@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Back arrow for the sign-in screens: a real 48 dp touch target with a TalkBack label
+     (the old 32 dp ImageView had neither). The activity wires the click: toolbar.setNavigationOnClickListener. -->
+<com.google.android.material.appbar.MaterialToolbar
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/toolbar"
+    android:layout_width="match_parent"
+    android:layout_height="?attr/actionBarSize"
+    android:background="@android:color/transparent"
+    app:navigationContentDescription="@string/action_back"
+    app:navigationIcon="@drawable/ic_arrow_back"
+    app:navigationIconTint="?attr/colorPrimary" />

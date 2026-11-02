@@ -1,71 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Phone number screen. Layout: toolbar, scrolling content, button pinned at the bottom
+     (thumb zone). The ScrollView means a small screen with the keyboard open never hides the field. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center">
+    android:orientation="vertical">
 
-  <TextView
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:text="Welcome Back"
-      android:textSize="28sp"
-      android:textStyle="bold"
-      android:textColor="#0A2463"
-      android:gravity="center"
-      android:layout_marginBottom="8dp"/>
+    <include layout="@layout/include_auth_toolbar" />
 
-  <TextView
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:text="Enter your phone number to receive a secure login code."
-      android:textSize="15sp"
-      android:textColor="#757575"
-      android:gravity="center"
-      android:layout_marginBottom="32dp"/>
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:clipToPadding="false">
 
-  <com.google.android.material.textfield.TextInputLayout
-      android:id="@+id/phoneInput"
-      style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:hint="@string/hint_phone">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="16dp">
 
-    <com.google.android.material.textfield.TextInputEditText
+            <TextView
+                android:id="@+id/tvTitle"
+                style="@style/TextAppearance.ShaloTrack.Headline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:accessibilityHeading="true"
+                android:text="@string/login_title_sign_up" />
+
+            <TextView
+                style="@style/TextAppearance.ShaloTrack.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/login_subtitle" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/phoneInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:hint="@string/login_phone_hint"
+                app:helperText="@string/login_phone_helper"
+                app:prefixText="+94 ">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:autofillHints="phoneNational"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="yes"
+                    android:inputType="phone"
+                    android:maxLength="12" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:id="@+id/tvLoginError"
+                style="@style/Widget.ShaloTrack.ErrorBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="phone"
-        android:maxLength="10" />
-  </com.google.android.material.textfield.TextInputLayout>
+        android:padding="24dp">
 
-  <!-- Inline error (no Toast / Snackbar / dialog) -->
-  <TextView
-      android:id="@+id/tvLoginError"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="16dp"
-      android:background="@color/danger_banner_bg"
-      android:padding="12dp"
-      android:textSize="14sp"
-      android:textColor="@color/danger_banner_text"
-      android:accessibilityLiveRegion="polite"
-      android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSendCode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/login_send_code" />
 
-  <com.google.android.material.button.MaterialButton
-      android:id="@+id/btnSendCode"
-      android:layout_width="match_parent"
-      android:layout_height="65dp"
-      android:layout_marginTop="24dp"
-      android:text="@string/btn_send_code"
-      android:textSize="18sp"
-      android:textStyle="bold" />
-
-  <ProgressBar
-      android:id="@+id/progressBar"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:visibility="gone"
-      android:layout_marginTop="16dp" />
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorColor="?attr/colorOnPrimary"
+            app:indicatorSize="24dp"
+            app:trackThickness="3dp" />
+    </FrameLayout>
 </LinearLayout>

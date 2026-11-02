@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="action_back">Back</string>
+
+    <!-- Welcome -->
+    <string name="welcome_logo_description">ShaloTrack logo</string>
+    <string name="welcome_get_started">Get started</string>
+    <string name="welcome_have_account">Already have an account?</string>
+    <string name="welcome_sign_in">Sign in</string>
+
+    <!-- Phone number screen (sign in and sign up are the same: the server decides) -->
+    <string name="login_title_sign_up">Let\'s get started</string>
+    <string name="login_subtitle">Enter your mobile number and we\'ll text you a 6-digit code to confirm it\'s you.</string>
+    <string name="login_phone_hint">Mobile number</string>
+    <string name="login_phone_helper">For example 77 123 4567</string>
+    <string name="login_phone_error">Enter a valid mobile number, for example 0771234567</string>
+    <string name="login_send_code">Send code</string>
+    <string name="login_try_again_in">Try again in %1$d:%2$02d</string>
+
+    <!-- Code screen -->
+    <string name="otp_title">Enter the code</string>
+    <string name="otp_subtitle">We sent a 6-digit code to %1$s.</string>
+    <string name="otp_hint">6-digit code</string>
+    <string name="otp_verify">Verify</string>
+    <string name="otp_verifying">Verifying…</string>
+    <string name="otp_resend">Resend code</string>
+    <string name="otp_resend_in">Resend code in %1$d:%2$02d</string>
+    <string name="otp_resent">A new code is on its way.</string>
+    <string name="otp_incomplete">Enter all 6 digits.</string>
+    <string name="otp_signin_failed">We couldn\'t sign you in. Please try again.</string>
+
+    <!-- Details screen -->
+    <string name="details_title">Tell us about you</string>
+    <string name="details_subtitle">A few details to set up your account.</string>
+    <string name="details_name_hint">Full name</string>
+    <string name="details_name_error">Enter your full name</string>
+    <string name="details_nic_hint">NIC number</string>
+    <string name="details_nic_helper">For example 861234567V or 198612345678</string>
+    <string name="details_nic_error">Enter a valid NIC, for example 861234567V or 198612345678</string>
+    <string name="details_address_hint">Home address</string>
+    <string name="details_address_error">Enter your home address</string>
+    <string name="details_email_hint">Email address</string>
+    <string name="details_email_error">Enter a valid email address</string>
+    <string name="details_continue">Continue</string>
+    <string name="details_typo_title">Check your email</string>
+    <string name="details_typo_message">Did you mean %1$s?</string>
+    <string name="details_typo_use">Use %1$s</string>
+    <string name="details_typo_keep">Keep what I typed</string>
+    <string name="details_typo_edit">Edit</string>
+
+    <!-- Route / processing -->
+    <string name="route_signing_in">Signing you in…</string>
+    <string name="route_try_again">Try again</string>
+    <string name="route_sign_out">Sign out</string>
+    <string name="processing_message">Setting up your account…</string>
+</resources>

@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.ui.auth.LoginActivity;
-import com.example.letstracklanka.ui.auth.SignUpActivity;
 import com.google.android.material.button.MaterialButton;
 
 import com.google.firebase.FirebaseApp;
@@ -96,8 +95,8 @@ public class WelcomeActivity extends AppCompatActivity {
         // Action when the user clicks the "Get Started" button
         MaterialButton btnGetStarted = findViewById(R.id.btnGetStarted);
         btnGetStarted.setOnClickListener(v -> {
-            // Go to the Sign Up page
-            Intent intent = new Intent(WelcomeActivity.this, SignUpActivity.class);
+            // One phone screen for new and returning customers: the server decides
+            Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
             startActivity(intent);
         });
 

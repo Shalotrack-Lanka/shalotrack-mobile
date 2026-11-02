@@ -79,6 +79,8 @@
         <activity
             android:name=".ui.auth.EmailInputActivity"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ShaloTrack.Auth"
             android:exported="false" />
 
         <activity
@@ -87,14 +89,10 @@
             android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
 
         <activity
-            android:name=".ui.auth.SignUpActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
-
-        <activity
             android:name=".ui.auth.OtpVerificationActivity"
             android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ShaloTrack.Auth" />
 
         <!-- Decides where a signed-in phone goes: app (existing customer) or registration (new) -->
         <activity
@@ -105,7 +103,8 @@
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ShaloTrack.Auth" />
 
         <!-- Launcher + verified App Link for email verification -->
         <activity
