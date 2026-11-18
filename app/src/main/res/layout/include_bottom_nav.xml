@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one bottom navigation bar: Map, Vehicles, Trips, Alerts, More. Wired by BottomNav.bind(). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bottomNav"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/st_surface"
+    android:orientation="vertical">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/st_line" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/st_nav_height"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/navMap"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/st_nav_map">
+
+            <View
+                android:id="@+id/navMapIndicator"
+                android:layout_width="28dp"
+                android:layout_height="3dp"
+                android:layout_gravity="top|center_horizontal"
+                android:background="@drawable/bg_st_nav_indicator"
+                android:visibility="invisible" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:importantForAccessibility="noHideDescendants"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_st_map"
+                    app:tint="@color/st_nav_item"
+                    tools:ignore="ContentDescription" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/st_nav_map"
+                    android:textAppearance="@style/TextAppearance.ST.Nav"
+                    android:textColor="@color/st_nav_item" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/navVehicles"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/st_nav_vehicles">
+
+            <View
+                android:id="@+id/navVehiclesIndicator"
+                android:layout_width="28dp"
+                android:layout_height="3dp"
+                android:layout_gravity="top|center_horizontal"
+                android:background="@drawable/bg_st_nav_indicator"
+                android:visibility="invisible" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:importantForAccessibility="noHideDescendants"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_st_car"
+                    app:tint="@color/st_nav_item"
+                    tools:ignore="ContentDescription" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/st_nav_vehicles"
+                    android:textAppearance="@style/TextAppearance.ST.Nav"
+                    android:textColor="@color/st_nav_item" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/navTrips"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/st_nav_trips">
+
+            <View
+                android:id="@+id/navTripsIndicator"
+                android:layout_width="28dp"
+                android:layout_height="3dp"
+                android:layout_gravity="top|center_horizontal"
+                android:background="@drawable/bg_st_nav_indicator"
+                android:visibility="invisible" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:importantForAccessibility="noHideDescendants"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_st_route"
+                    app:tint="@color/st_nav_item"
+                    tools:ignore="ContentDescription" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/st_nav_trips"
+                    android:textAppearance="@style/TextAppearance.ST.Nav"
+                    android:textColor="@color/st_nav_item" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/navAlerts"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/st_nav_alerts">
+
+            <View
+                android:id="@+id/navAlertsIndicator"
+                android:layout_width="28dp"
+                android:layout_height="3dp"
+                android:layout_gravity="top|center_horizontal"
+                android:background="@drawable/bg_st_nav_indicator"
+                android:visibility="invisible" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:importantForAccessibility="noHideDescendants"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_st_bell"
+                    app:tint="@color/st_nav_item"
+                    tools:ignore="ContentDescription" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/st_nav_alerts"
+                    android:textAppearance="@style/TextAppearance.ST.Nav"
+                    android:textColor="@color/st_nav_item" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/navAlertsBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="16dp"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="9dp"
+                android:background="@drawable/bg_st_badge"
+                android:fontFamily="@font/inter_bold"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:minWidth="16dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:textColor="@color/st_navy"
+                android:textSize="10sp"
+                android:visibility="gone"
+                tools:text="3"
+                tools:visibility="visible" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/navMore"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/st_nav_more">
+
+            <View
+                android:id="@+id/navMoreIndicator"
+                android:layout_width="28dp"
+                android:layout_height="3dp"
+                android:layout_gravity="top|center_horizontal"
+                android:background="@drawable/bg_st_nav_indicator"
+                android:visibility="invisible" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:importantForAccessibility="noHideDescendants"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_st_more"
+                    app:tint="@color/st_nav_item"
+                    tools:ignore="ContentDescription" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/st_nav_more"
+                    android:textAppearance="@style/TextAppearance.ST.Nav"
+                    android:textColor="@color/st_nav_item" />
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout>
+</LinearLayout>

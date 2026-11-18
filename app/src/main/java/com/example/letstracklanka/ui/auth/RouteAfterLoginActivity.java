@@ -105,9 +105,7 @@ public class RouteAfterLoginActivity extends AppCompatActivity {
     }
 
     private void signOut() {
-        FirebaseAuth.getInstance().signOut();
-        new SessionManager(getApplicationContext()).logoutUser();
-        goTo(LoginActivity.class);
+        com.example.letstracklanka.utils.SignOut.perform(this);
     }
 
     private void goTo(Class<?> target) {

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One group on the More tab: a small heading, then its rows inside one bordered card. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvMoreSectionTitle"
+        style="@style/Widget.ST.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        tools:text="Vehicles" />
+
+    <LinearLayout
+        android:id="@+id/moreSectionCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_st_card"
+        android:divider="@drawable/bg_st_divider_inset"
+        android:orientation="vertical"
+        android:padding="1dp"
+        android:showDividers="middle" />
+</LinearLayout>

@@ -128,9 +128,13 @@ public class VehicleTrailRenderer {
     private String pendingVehicleType = "car";
 
     // Setup the Renderer and prepare the Car icon graphic
+    // Live trail colour: brand signal orange (design system). Was Facebook blue #1877F2.
+    private final int trailColor;
+
     public VehicleTrailRenderer(Context context, GoogleMap map, ShaloTrackApi api) {
         this.map = map;
         this.api = api;
+        this.trailColor = androidx.core.content.ContextCompat.getColor(context, com.example.letstracklanka.R.color.st_signal);
 
         iconsByType.put("car", loadIconFromDrawableName(context, "ic_car_marker"));
         iconsByType.put("suv", loadIconFromDrawableName(context, "ic_car_marker")); // MDI has no SUV-distinct top-down asset; reuses the car marker
@@ -242,6 +246,11 @@ public class VehicleTrailRenderer {
     // NEW -- for the initial marker placement on app load, where there's
     // no existing marker/trail to reset, just the type to set before the
     // very first updatePosition() call creates the marker.
+    /** Where the live marker currently is (mid-animation included), or null before the first fix. */
+    public LatLng getMarkerPosition() {
+        return marker != null ? marker.getPosition() : null;
+    }
+
     public void setVehicleTypeForNextMarker(String vehicleType) {
         pendingVehicleType = vehicleType != null
                 ? vehicleType.trim().toLowerCase(java.util.Locale.US) : "car";
@@ -527,7 +536,7 @@ public class VehicleTrailRenderer {
         polyline = map.addPolyline(new PolylineOptions()
                 .addAll(smoothedSettledPoints)
                 .width(10f)
-                .color(Color.parseColor("#1877F2"))
+                .color(trailColor)
                 .zIndex(1f)
                 .geodesic(true));
     }
@@ -548,7 +557,7 @@ public class VehicleTrailRenderer {
             polyline = map.addPolyline(new PolylineOptions()
                     .addAll(renderPoints)
                     .width(10f)
-                    .color(Color.parseColor("#1877F2"))
+                    .color(trailColor)
                     .zIndex(1f)
                     .geodesic(true));
         } else {

@@ -1,23 +1,5 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.LetsTrackLanka" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- NEW - same fix as the light theme. This app is designed to look
-             consistently navy-branded regardless of system dark/light mode
-             (matching the explicit-light-surface approach used elsewhere
-             tonight, e.g. the trip card background fix), not to have a
-             separate true dark palette. Without this, a phone in system dark
-             mode would show the default Material3 purple here too, even
-             after fixing the light variant. -->
-        <item name="colorPrimary">@color/brand_primary</item>
-        <item name="colorPrimaryDark">@color/brand_primary</item>
-        <item name="colorOnPrimary">@color/text_on_dark</item>
-        <item name="colorSecondary">@color/brand_accent</item>
-        <item name="colorOnSecondary">@color/text_on_dark</item>
-
-        <item name="android:statusBarColor">@color/brand_primary</item>
-        <item name="android:navigationBarColor">@color/surface_white</item>
-
-        <item name="android:windowBackground">@drawable/bg_app_gradient</item>
-        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.ShaloTrack.BottomSheetDialog</item>
-    </style>
-</resources>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Intentionally empty. ShaloTrack v1.0 uses the Daylight theme on every phone, whatever the system
+     dark-mode setting (decided 18 Nov 2026). The previous file redefined the app theme here, which is how
+     dark-mode phones ended up with a different look. A Night theme can be added later from the same st_* tokens. -->
+<resources />

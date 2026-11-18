@@ -1,7 +1,8 @@
 package com.example.letstracklanka.ui.vehicles;
 
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,36 +10,34 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
-
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.DashboardVehicle;
+import com.example.letstracklanka.ui.common.Plates;
+import com.example.letstracklanka.ui.common.TimeText;
+import com.example.letstracklanka.ui.common.VehicleStatus;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Vehicle rows for the Vehicles tab and for "Other vehicles" on the map (layout item_vehicle_list.xml).
+ * Status comes from VehicleStatus, so the colours and words match the map and every other screen.
+ *
+ * Public API kept from the previous version (constructor, updateVehicles, filter, getAllVehicles) so
+ * VehiclesActivity still compiles unchanged; new: setStatusFilter, setOnLinkTrackerListener, setExcludedVehicleId.
+ */
 public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.VehicleViewHolder> {
 
-    // Same threshold as Home/Vehicles -- GPS drift/multipath can report a
-    // small non-zero speed even when genuinely stationary.
-    private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 7.0;
     private static final int SWIPE_REVEAL_WIDTH_DP = 84;
 
-    private static final int COLOR_MOVING = 0xFF16A34A;
-    private static final int COLOR_IDLE_PARKED = 0xFF0A2463;
-    private static final int COLOR_NO_DEVICE = 0xFFE53935;   // red -- nothing assigned at all
-    private static final int COLOR_OFFLINE = 0xFFF59E0B;     // amber -- device assigned but not currently reporting
-
-    // FIX: real dead end found during audit -- the favorite star was
-    // findViewById'd but never given a click listener or connected to
-    // any data, always showed empty, did nothing on tap. No backend
-    // concept of "favorite vehicle" exists (would need a new DB column/
-    // migration/endpoint -- a real new feature, not a bug fix), so this
-    // is local, per-device persistence, matching the exact same pattern
-    // already proven for SettingsActivity's notification toggles.
-    private static final String FAVORITES_PREFS_NAME = "ShaloTrackVehicleFavorites";
+    /** Which statuses the Vehicles tab filter chips show. null = all. */
+    public enum StatusFilter { MOVING, STOPPED, OFFLINE, NO_DEVICE }
 
     public interface OnVehicleClickListener {
         void onVehicleClick(DashboardVehicle vehicle);
@@ -48,60 +47,93 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         void onRemoveClick(DashboardVehicle vehicle);
     }
 
-    // "vehicles" is what's currently DISPLAYED (may be search-filtered).
-    // "allVehicles" is the full, unfiltered set -- needed so filter() can
-    // re-derive the displayed list without a fresh network fetch each
-    // keystroke.
-    private List<DashboardVehicle> vehicles;
-    private List<DashboardVehicle> allVehicles;
+    public interface OnLinkTrackerListener {
+        void onLinkTracker(DashboardVehicle vehicle);
+    }
+
+    private List<DashboardVehicle> allVehicles = new ArrayList<>();
+    private List<DashboardVehicle> vehicles = new ArrayList<>();
     private final OnVehicleClickListener clickListener;
     private final OnRemoveClickListener removeListener;
+    @Nullable private OnLinkTrackerListener linkListener;
 
-    // Only one row's swipe reveal stays open at a time (standard swipe-
-    // action UX). Tracked here at the adapter level since ViewHolders don't
-    // know about each other directly.
+    private String query = "";
+    @Nullable private StatusFilter statusFilter;
+    @Nullable private String excludedVehicleId;
+
+    // Only one row's swipe reveal stays open at a time.
     private VehicleRowSwipeController currentlyOpenController = null;
 
-    public VehicleListAdapter(List<DashboardVehicle> vehicles, OnVehicleClickListener clickListener, OnRemoveClickListener removeListener) {
-        this.vehicles = vehicles;
-        this.allVehicles = vehicles;
+    public VehicleListAdapter(List<DashboardVehicle> vehicles, OnVehicleClickListener clickListener,
+                              OnRemoveClickListener removeListener) {
         this.clickListener = clickListener;
         this.removeListener = removeListener;
+        updateVehicles(vehicles);
+    }
+
+    public void setOnLinkTrackerListener(@Nullable OnLinkTrackerListener listener) {
+        this.linkListener = listener;
     }
 
     public void updateVehicles(List<DashboardVehicle> newVehicles) {
-        this.allVehicles = newVehicles;
-        this.vehicles = newVehicles;
-        notifyDataSetChanged();
+        this.allVehicles = newVehicles != null ? new ArrayList<>(newVehicles) : new ArrayList<>();
+        applyFilters();
     }
 
-    /** Client-side filter by make, model, or plate number -- cheap, no
-     * network call, matches the search bar shown in the Vehicles tab. */
+    /** Client-side search by plate, make or model. No network call per keystroke. */
     public void filter(String query) {
-        if (query == null || query.trim().isEmpty()) {
-            this.vehicles = allVehicles;
-        } else {
-            String q = query.trim().toLowerCase(Locale.getDefault());
-            List<DashboardVehicle> filtered = new ArrayList<>();
-            if (allVehicles != null) {
-                for (DashboardVehicle v : allVehicles) {
-                    String make = v.getMake() != null ? v.getMake() : "";
-                    String model = v.getModel() != null ? v.getModel() : "";
-                    String plate = v.getVehicleNumber() != null ? v.getVehicleNumber() : "";
-                    String haystack = (make + " " + model + " " + plate).toLowerCase(Locale.getDefault());
-                    if (haystack.contains(q)) filtered.add(v);
-                }
-            }
-            this.vehicles = filtered;
-        }
-        notifyDataSetChanged();
+        this.query = query == null ? "" : query.trim().toLowerCase(Locale.getDefault());
+        applyFilters();
     }
 
-    /** Current, unfiltered vehicle list -- used by VehiclesActivity to
-     * compute the Moving/Idle/Parked/Offline summary counts, which must
-     * reflect ALL vehicles regardless of any active search filter. */
+    public void setStatusFilter(@Nullable StatusFilter filter) {
+        this.statusFilter = filter;
+        applyFilters();
+    }
+
+    /** The map's "Other vehicles" list leaves out the vehicle already shown in the sheet above it. */
+    public void setExcludedVehicleId(@Nullable String vehicleId) {
+        this.excludedVehicleId = vehicleId;
+        applyFilters();
+    }
+
+    /** The full, unfiltered list (used for the summary counts, which must ignore the search box). */
     public List<DashboardVehicle> getAllVehicles() {
         return allVehicles;
+    }
+
+    public static boolean matches(DashboardVehicle v, @Nullable StatusFilter f) {
+        if (f == null) return true;
+        VehicleStatus s = VehicleStatus.of(v);
+        switch (f) {
+            case MOVING: return s == VehicleStatus.MOVING;
+            case STOPPED: return s == VehicleStatus.IDLING || s == VehicleStatus.PARKED;
+            case OFFLINE: return s == VehicleStatus.OFFLINE;
+            case NO_DEVICE: return s == VehicleStatus.NO_DEVICE;
+            default: return true;
+        }
+    }
+
+    private void applyFilters() {
+        List<DashboardVehicle> out = new ArrayList<>();
+        for (DashboardVehicle v : allVehicles) {
+            if (v == null) continue;
+            if (excludedVehicleId != null && excludedVehicleId.equalsIgnoreCase(v.getVehicleId())) continue;
+            if (!matches(v, statusFilter)) continue;
+            if (!query.isEmpty()) {
+                String hay = ((v.getMake() != null ? v.getMake() : "") + " "
+                        + (v.getModel() != null ? v.getModel() : "") + " "
+                        + (v.getVehicleNumber() != null ? v.getVehicleNumber() : ""))
+                        .toLowerCase(Locale.getDefault());
+                String compactHay = hay.replaceAll("[\\s\\-]", "");
+                String compactQuery = query.replaceAll("[\\s\\-]", "");
+                if (!hay.contains(query) && !compactHay.contains(compactQuery)) continue;
+            }
+            out.add(v);
+        }
+        this.vehicles = out;
+        if (currentlyOpenController != null) currentlyOpenController = null;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -109,11 +141,6 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
     public VehicleViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_vehicle_list, parent, false);
         VehicleViewHolder holder = new VehicleViewHolder(view);
-
-        // Wired here (not in the ViewHolder constructor) because the
-        // single-open-at-a-time tracker needs access to this adapter
-        // instance's currentlyOpenController field, and VehicleViewHolder
-        // is a static nested class with no implicit outer-instance access.
         holder.swipeController = new VehicleRowSwipeController(
                 holder.foregroundRow,
                 SWIPE_REVEAL_WIDTH_DP,
@@ -123,112 +150,88 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
                     }
                     currentlyOpenController = opening;
                 });
-        holder.foregroundRow.setOnTouchListener(holder.swipeController);
-
         return holder;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull VehicleViewHolder holder, int position) {
-        DashboardVehicle vehicle = vehicles.get(position);
+    public void onBindViewHolder(@NonNull VehicleViewHolder h, int position) {
+        DashboardVehicle v = vehicles.get(position);
+        Context c = h.itemView.getContext();
+        VehicleStatus status = VehicleStatus.of(v);
+        boolean ownedByMe = !v.isShared() && !v.isDemo();
 
-        // FIX: RecyclerView recycles ViewHolders -- an instant, non-animated
-        // reset here (not close(), which animates) is correct on rebind:
-        // this row now represents a different vehicle, so there's no user
-        // action being "closed", just a clean slate.
-        if (currentlyOpenController == holder.swipeController) {
-            currentlyOpenController = null;
-        }
-        holder.swipeController.resetImmediate();
+        if (currentlyOpenController == h.swipeController) currentlyOpenController = null;
+        h.swipeController.resetImmediate();
 
-        holder.tvName.setText((vehicle.getMake() + " " + vehicle.getModel()).trim());
-
-        // NEW -- real dead-end-adjacent gap found: every vehicle showed
-        // the exact same generic car icon regardless of type. Defaults to
-        // the regular car icon for null/unrecognized types (vehicles
-        // created before this field existed, or left blank).
-        if (holder.imgIcon != null) {
-            holder.imgIcon.setImageResource(getIconForVehicleType(vehicle.getVehicleType()));
-        }
-
-        String statusText;
-        int statusColor;
-        String gpsLinkText;
-
-        if (!vehicle.hasDevice()) {
-            statusText = "No Device";
-            statusColor = COLOR_NO_DEVICE;
-            gpsLinkText = "GPS Device Not Linked";
-        } else if (!vehicle.isOnline()) {
-            statusText = "Offline";
-            statusColor = COLOR_OFFLINE;
-            gpsLinkText = "GPS Device Linked (Offline)";
-        } else if (vehicle.getSpeed() > MOVEMENT_SPEED_THRESHOLD_KMH) {
-            statusText = "Moving " + (int) vehicle.getSpeed() + " km/h";
-            statusColor = COLOR_MOVING;
-            gpsLinkText = "GPS Device Linked";
+        // Icon in a ring of the status colour. Moving gets a solid navy disc so it stands out in a list.
+        h.icon.setImageResource(iconForType(v.getVehicleType()));
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        int stroke = Math.round(2.5f * c.getResources().getDisplayMetrics().density);
+        if (status == VehicleStatus.NO_DEVICE) {
+            float dash = 4 * c.getResources().getDisplayMetrics().density;
+            ring.setStroke(stroke, status.dotColor(c), dash, dash);
         } else {
-            statusText = vehicle.isIgnitionOn() ? "Idle" : "Parked";
-            statusColor = COLOR_IDLE_PARKED;
-            gpsLinkText = "GPS Device Linked";
+            ring.setStroke(stroke, status.dotColor(c));
         }
-
-        holder.tvStatus.setText(statusText);
-        holder.tvStatus.setTextColor(statusColor);
-
-        // NOT a "last seen" timestamp -- DashboardVehicle carries no
-        // timestamp field (checked the actual model, not guessed). Using
-        // plate + GPS-link status instead, which we do have real data for.
-        String plate = vehicle.getVehicleNumber() != null ? vehicle.getVehicleNumber() : "";
-
-        // NEW -- Vehicle Sharing. A shared entry shows who it's shared by
-        // instead of the GPS-link status, and can't be swiped-to-remove --
-        // that's an owner-only action, and offering it here would just
-        // fail against the backend's own ownership check anyway (better
-        // to not offer it at all than show a button that errors).
-        // FIX: extended to also cover the one, shared demo vehicle every
-        // customer can see -- same reasoning, staff-managed only.
-        if (vehicle.isDemo()) {
-            holder.tvCaption.setText(plate + " \u2022 Shalotrack Demo Vehicle");
-            holder.btnSwipeRemove.setVisibility(View.GONE);
-            holder.foregroundRow.setOnTouchListener(null);
-        } else if (vehicle.isShared()) {
-            String ownerName = vehicle.getOwnerName() != null ? vehicle.getOwnerName() : "someone";
-            holder.tvCaption.setText(plate + " \u2022 Shared by " + ownerName);
-            holder.btnSwipeRemove.setVisibility(View.GONE);
-            holder.foregroundRow.setOnTouchListener(null);
+        if (status == VehicleStatus.MOVING) {
+            ring.setColor(ContextCompat.getColor(c, R.color.st_navy));
+            h.icon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(c, R.color.st_surface)));
         } else {
-            holder.tvCaption.setText(plate + " \u2022 " + gpsLinkText);
-            holder.btnSwipeRemove.setVisibility(View.VISIBLE);
-            holder.foregroundRow.setOnTouchListener(holder.swipeController);
+            ring.setColor(ContextCompat.getColor(c, R.color.st_surface));
+            int tint = status.isReporting() ? R.color.st_navy : R.color.st_text_4;
+            h.icon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(c, tint)));
+        }
+        h.iconRing.setBackground(ring);
+
+        h.plate.setText(Plates.format(c, v.getVehicleNumber()));
+        h.caption.setText(caption(c, v, status));
+
+        // Right side: a "Link tracker" button for owned vehicles with no tracker, otherwise status + time.
+        boolean showLink = status == VehicleStatus.NO_DEVICE && ownedByMe && linkListener != null;
+        h.linkButton.setVisibility(showLink ? View.VISIBLE : View.GONE);
+        h.endColumn.setVisibility(showLink ? View.GONE : View.VISIBLE);
+        if (showLink) {
+            h.linkButton.setOnClickListener(x -> linkListener.onLinkTracker(v));
+        } else {
+            status.applyToPill(h.status);
+            if (status == VehicleStatus.NO_DEVICE || v.getLastUpdate() == null) {
+                h.time.setVisibility(View.GONE);
+            } else {
+                h.time.setVisibility(View.VISIBLE);
+                h.time.setText(TimeText.ago(c, v.getLastUpdate()));
+            }
         }
 
-        holder.foregroundRow.setOnClickListener(v -> {
-            if (clickListener != null) clickListener.onVehicleClick(vehicle);
+        // Note line: power cut (a real warning) or the demo vehicle explanation.
+        if (v.isPowerCut() && status != VehicleStatus.NO_DEVICE) {
+            showNote(h, c.getString(R.string.st_vehicle_power_cut), R.drawable.ic_st_plug_16,
+                    R.color.st_danger_text, R.color.st_danger_bg);
+        } else if (v.isDemo()) {
+            showNote(h, c.getString(R.string.st_vehicle_demo_note), 0,
+                    R.color.st_signal_text, R.color.st_signal_50);
+        } else {
+            h.note.setVisibility(View.GONE);
+        }
+
+        h.divider.setVisibility(position == getItemCount() - 1 ? View.GONE : View.VISIBLE);
+
+        // Swipe-to-remove only for vehicles this customer owns (the API refuses the others anyway).
+        h.swipeRemove.setVisibility(ownedByMe ? View.VISIBLE : View.GONE);
+        h.foregroundRow.setOnTouchListener(ownedByMe && removeListener != null ? h.swipeController : null);
+        h.swipeRemove.setOnClickListener(x -> {
+            h.swipeController.close();
+            if (removeListener != null) removeListener.onRemoveClick(v);
         });
 
-        holder.btnSwipeRemove.setOnClickListener(v -> {
-            holder.swipeController.close();
-            if (removeListener != null) removeListener.onRemoveClick(vehicle);
+        // The click sits on the foreground row itself (not a child), otherwise the child would swallow the
+        // touch and the swipe-to-remove gesture on the row would never start. The inner row mirrors the
+        // pressed state for its ripple (duplicateParentState in the layout).
+        h.foregroundRow.setOnClickListener(x -> {
+            if (clickListener != null) clickListener.onVehicleClick(v);
         });
-
-        // NEW: real favorite toggle, was previously unwired.
-        String vehicleId = vehicle.getVehicleId();
-        SharedPreferences favPrefs = holder.itemView.getContext()
-                .getSharedPreferences(FAVORITES_PREFS_NAME, Context.MODE_PRIVATE);
-        boolean isFavorite = vehicleId != null && favPrefs.getBoolean(vehicleId, false);
-        holder.imgFavorite.setImageResource(isFavorite
-                ? android.R.drawable.btn_star_big_on
-                : android.R.drawable.btn_star_big_off);
-
-        holder.imgFavorite.setOnClickListener(v -> {
-            if (vehicleId == null) return;
-            boolean newState = !favPrefs.getBoolean(vehicleId, false);
-            favPrefs.edit().putBoolean(vehicleId, newState).apply();
-            holder.imgFavorite.setImageResource(newState
-                    ? android.R.drawable.btn_star_big_on
-                    : android.R.drawable.btn_star_big_off);
-        });
+        h.foregroundRow.setContentDescription(c.getString(R.string.st_vehicle_row_description,
+                Plates.plain(v.getVehicleNumber()), c.getString(status.label)));
     }
 
     @Override
@@ -236,45 +239,74 @@ public class VehicleListAdapter extends RecyclerView.Adapter<VehicleListAdapter.
         return vehicles == null ? 0 : vehicles.size();
     }
 
-    // Matches the real spinner options in AddVehicleActivity exactly
-    // ("Car", "SUV", "Van", "Truck", "Bike", "Tuk"), case-insensitive for
-    // safety. MDI has no dedicated SUV silhouette (reuses the car shape
-    // with a distinct tint) or tuk-tuk/rickshaw icon at all (hand-built,
-    // not from a verified icon library) -- both confirmed and decided
-    // directly rather than guessed at.
-    private static int getIconForVehicleType(String vehicleType) {
-        if (vehicleType == null) return R.drawable.ic_car;
-        switch (vehicleType.trim().toLowerCase(java.util.Locale.US)) {
-            case "suv": return R.drawable.ic_car_suv;
-            case "van": return R.drawable.ic_type_van;
-            case "truck": return R.drawable.ic_type_truck;
-            case "bike": return R.drawable.ic_type_bike;
-            case "tuk": return R.drawable.ic_type_tuk;
-            default: return R.drawable.ic_car;
+    private static void showNote(VehicleViewHolder h, String text, int iconRes, int textColor, int bgColor) {
+        Context c = h.itemView.getContext();
+        h.note.setText(text);
+        h.note.setTextColor(ContextCompat.getColor(c, textColor));
+        h.note.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(c, bgColor)));
+        if (iconRes != 0) {
+            h.note.setCompoundDrawablesRelativeWithIntrinsicBounds(iconRes, 0, 0, 0);
+            h.note.setCompoundDrawableTintList(ColorStateList.valueOf(ContextCompat.getColor(c, textColor)));
+        } else {
+            h.note.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0);
+        }
+        h.note.setVisibility(View.VISIBLE);
+    }
+
+    private static String caption(Context c, DashboardVehicle v, VehicleStatus status) {
+        String makeModel = ((v.getMake() != null ? v.getMake() : "") + " "
+                + (v.getModel() != null ? v.getModel() : "")).trim();
+        if (makeModel.isEmpty()) makeModel = c.getString(R.string.st_vehicle_unnamed);
+        if (v.isDemo()) return c.getString(R.string.st_vehicle_caption_demo, makeModel);
+        if (v.isShared()) {
+            String owner = v.getOwnerName() != null && !v.getOwnerName().trim().isEmpty()
+                    ? v.getOwnerName().trim() : c.getString(R.string.st_vehicle_someone);
+            return c.getString(R.string.st_vehicle_caption_shared, owner);
+        }
+        if (status == VehicleStatus.NO_DEVICE) return c.getString(R.string.st_vehicle_caption_no_tracker, makeModel);
+        if (status == VehicleStatus.MOVING) {
+            return c.getString(R.string.st_vehicle_caption_speed, makeModel, Math.round(v.getSpeed()));
+        }
+        return makeModel;
+    }
+
+    /** Vehicle type (AddVehicleActivity: Car, SUV, Van, Truck, Bike, Tuk) to its design-system icon. */
+    public static int iconForType(@Nullable String vehicleType) {
+        if (vehicleType == null) return R.drawable.ic_st_car;
+        switch (vehicleType.trim().toLowerCase(Locale.US)) {
+            case "van": return R.drawable.ic_st_van;
+            case "truck":
+            case "lorry": return R.drawable.ic_st_truck;
+            case "bike":
+            case "motorbike": return R.drawable.ic_st_bike;
+            case "tuk":
+            case "tuk-tuk": return R.drawable.ic_st_tuk;
+            default: return R.drawable.ic_st_car;
         }
     }
 
     static class VehicleViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName, tvStatus, tvCaption;
-        ImageView imgFavorite, imgIcon;
-
-        // Package-visible (not private): the adapter needs direct access
-        // both to attach the touch listener at creation time and to close
-        // an open row from the Remove click handler.
-        View foregroundRow;
-        View btnSwipeRemove;
+        final View foregroundRow, clickable, iconRing, endColumn, divider, swipeRemove;
+        final ImageView icon;
+        final TextView plate, caption, status, time, note;
+        final MaterialButton linkButton;
         VehicleRowSwipeController swipeController;
 
         VehicleViewHolder(@NonNull View itemView) {
             super(itemView);
             foregroundRow = itemView.findViewById(R.id.layoutVehicleListForeground);
-            btnSwipeRemove = itemView.findViewById(R.id.btnVehicleListSwipeRemove);
-
-            tvName = itemView.findViewById(R.id.tvVehicleListName);
-            tvStatus = itemView.findViewById(R.id.tvVehicleListStatus);
-            tvCaption = itemView.findViewById(R.id.tvVehicleListCaption);
-            imgFavorite = itemView.findViewById(R.id.imgVehicleListFavorite);
-            imgIcon = itemView.findViewById(R.id.imgVehicleListIcon);
+            clickable = itemView.findViewById(R.id.vehicleRowClickable);
+            iconRing = itemView.findViewById(R.id.vehicleIconRing);
+            icon = itemView.findViewById(R.id.imgVehicleListIcon);
+            plate = itemView.findViewById(R.id.tvVehicleListPlate);
+            caption = itemView.findViewById(R.id.tvVehicleListCaption);
+            status = itemView.findViewById(R.id.tvVehicleListStatus);
+            time = itemView.findViewById(R.id.tvVehicleListTime);
+            endColumn = itemView.findViewById(R.id.vehicleRowEnd);
+            linkButton = itemView.findViewById(R.id.btnVehicleListLink);
+            note = itemView.findViewById(R.id.tvVehicleListNote);
+            divider = itemView.findViewById(R.id.vehicleRowDivider);
+            swipeRemove = itemView.findViewById(R.id.btnVehicleListSwipeRemove);
         }
     }
 }

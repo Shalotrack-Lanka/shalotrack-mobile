@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Geofences: the map with every area drawn on it, the list in a bottom sheet. Adding one: the sheet
+     slides away, a fixed pin marks the map centre, the user moves the map and taps "Set centre".
+     Opened from More (all vehicles) or from a vehicle's page (that vehicle). Not a tab. -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/geofencesRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/st_canvas">
+
+    <FrameLayout
+        android:id="@+id/geofenceMapContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/mapGeofences"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Placement pin: its tip sits exactly on the map centre (the image is lifted by half its height). -->
+        <ImageView
+            android:id="@+id/imgCenterPin"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_st_pin"
+            android:translationY="-20dp"
+            android:visibility="gone"
+            app:tint="@color/st_signal"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <!-- Top bar. Pushed below the status bar by EdgeToEdge.marginTop(). -->
+    <LinearLayout
+        android:id="@+id/geofenceTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginStart="@dimen/st_gutter"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="@dimen/st_gutter"
+        android:orientation="vertical">
+
+        <ImageButton
+            android:id="@+id/btnBackGeofences"
+            style="@style/Widget.ST.IconButton"
+            android:contentDescription="@string/st_action_back"
+            android:src="@drawable/ic_st_back" />
+
+        <TextView
+            android:id="@+id/tvPlacementHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:accessibilityLiveRegion="polite"
+            android:background="@drawable/bg_st_card"
+            android:elevation="2dp"
+            android:lineSpacingExtra="2dp"
+            android:padding="12dp"
+            android:text="@string/st_geofence_place_hint"
+            android:textAppearance="@style/TextAppearance.ST.Body"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!-- The list -->
+    <LinearLayout
+        android:id="@+id/geofenceSheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_st_sheet"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        app:behavior_expandedOffset="96dp"
+        app:behavior_fitToContents="false"
+        app:behavior_halfExpandedRatio="0.5"
+        app:behavior_hideable="true"
+        app:behavior_peekHeight="168dp"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+        <View
+            android:layout_width="36dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_st_handle"
+            android:importantForAccessibility="no" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/st_gutter"
+            android:paddingEnd="@dimen/st_gutter">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvGeofencesTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:accessibilityHeading="true"
+                    android:text="@string/st_geofences_title"
+                    android:textAppearance="@style/TextAppearance.ST.Title" />
+
+                <TextView
+                    android:id="@+id/tvGeofencesSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="@style/TextAppearance.ST.BodySmall"
+                    tools:text="3 areas · all vehicles" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddGeofence"
+                style="@style/Widget.ST.Button.Primary.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/st_action_add"
+                app:icon="@drawable/ic_st_plus"
+                app:iconPadding="6dp"
+                app:iconSize="18dp" />
+        </LinearLayout>
+
+        <include
+            layout="@layout/include_inline_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/st_gutter"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="@dimen/st_gutter" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="12dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerGeofences"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/st_gutter"
+                android:layout_marginEnd="@dimen/st_gutter"
+                android:background="@drawable/bg_st_card"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="true"
+                android:overScrollMode="never"
+                android:padding="1dp"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/progressGeofences"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="20dp"
+                android:indeterminateTint="@color/st_navy" />
+
+            <include
+                layout="@layout/include_empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/st_gutter"
+                android:layout_marginEnd="@dimen/st_gutter" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Placement actions -->
+    <LinearLayout
+        android:id="@+id/placementBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_st_sheet"
+        android:elevation="8dp"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/st_gutter"
+        android:paddingTop="16dp"
+        android:paddingEnd="@dimen/st_gutter"
+        android:paddingBottom="16dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelPlacement"
+            style="@style/Widget.ST.Button.Secondary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/st_action_cancel" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSetCentre"
+            style="@style/Widget.ST.Button.Primary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/st_geofence_set_centre" />
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

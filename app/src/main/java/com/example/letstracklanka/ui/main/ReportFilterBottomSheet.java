@@ -40,12 +40,9 @@ import retrofit2.Response;
 
 /**
  * Report generation feature -- the single reusable "pick a vehicle + date
- * range, then go" filter step launched by the 4 real report cards in
- * bottom_sheet_reports_menu (KM/Trip/Alert/Stop Alert). Fuel/Fuel
- * Graph/Temperature stay on their existing "Coming soon" stub in
- * DrawerMenuHelper -- there is no sensor data behind them anywhere in this
- * system yet, so wiring a filter sheet to them would just be a prettier
- * dead end.
+ * range, then go" filter step launched by the four report rows on the More
+ * tab (Distance/Trips/Alerts/Stops). Fuel and temperature reports are not
+ * offered: no tracker in this system reports fuel or temperature.
  *
  * Deliberately reuses bottom_sheet_report_filter.xml, which existed
  * already but was never inflated by anything (dead layout) -- see that
@@ -209,11 +206,8 @@ public class ReportFilterBottomSheet {
     // the signed-in Firebase user via GET api/Customers/me (see
     // HomeActivity.loadUserData()/extractCustomer()) and keeps it in a
     // local field -- not SessionManager. This method now does the same
-    // resolution itself, since ReportFilterBottomSheet.show() is called
-    // from five different activities' drawers (DrawerMenuHelper.wireDrawer:
-    // HomeActivity, VehiclesActivity, TagsActivity, AlertsActivity,
-    // CirclesActivity) and not all of them already hold a resolved
-    // customerId in memory to hand down as a parameter.
+    // resolution itself, so the caller (the More tab) does not have to hand
+    // down a customerId.
     private static void loadVehicles(
             AppCompatActivity activity, List<DashboardVehicle> outVehicles, ArrayAdapter<String> adapter) {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;

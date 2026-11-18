@@ -1,29 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Day heading in the alert list -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingHorizontal="4dp"
-    android:paddingTop="18dp"
-    android:paddingBottom="6dp">
+    android:orientation="horizontal"
+    android:paddingTop="16dp"
+    android:paddingBottom="8dp">
 
     <TextView
         android:id="@+id/tvAlertDayTitle"
         android:layout_width="0dp"
-        android:layout_weight="1"
         android:layout_height="wrap_content"
-        android:text="Thu, 8 Aug"
-        android:textColor="#0A2463"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.02" />
+        android:layout_weight="1"
+        android:accessibilityHeading="true"
+        android:textAppearance="@style/TextAppearance.ST.Overline"
+        tools:text="Today" />
 
     <TextView
         android:id="@+id/tvAlertDayCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="3 alerts"
-        android:textColor="#9E9E9E"
-        android:textSize="11sp" />
+        android:textAppearance="@style/TextAppearance.ST.Caption"
+        tools:text="3 alerts" />
 </LinearLayout>

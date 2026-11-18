@@ -73,7 +73,10 @@ public class ShaloTrackFirebaseMessagingService extends FirebaseMessagingService
         // intent MUST carry FLAG_ACTIVITY_NEW_TASK or Android will silently do
         // nothing when tapped.
         Intent intent = new Intent(this, AlertsActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra(AlertsActivity.EXTRA_FROM_NOTIFICATION, true);
+        // SINGLE_TOP: an Alerts screen already on top gets onNewIntent (reloads) instead of a second copy.
+        // AlertsActivity itself sends a signed-out phone to Splash, so this is never a way round sign-in.
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -88,7 +91,8 @@ public class ShaloTrackFirebaseMessagingService extends FirebaseMessagingService
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)   // TODO: replace with the app's real notification icon
+                .setSmallIcon(com.example.letstracklanka.R.drawable.ic_notification)
+                .setColor(androidx.core.content.ContextCompat.getColor(this, com.example.letstracklanka.R.color.st_navy))
                 .setContentTitle(title)
                 .setContentText(body)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -119,6 +123,10 @@ public class ShaloTrackFirebaseMessagingService extends FirebaseMessagingService
     }
 
     private void registerToken(String token) {
+        // Signed out (or mid sign-out): never register. A new token appears right after SignOut deletes
+        // the old one, and it must not be attached to the account that just signed out. The next sign-in
+        // registers it from HomeActivity.
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() == null) return;
         ApiService apiService = ApiClient.getClient().create(ApiService.class);
         apiService.registerFcmToken(new RegisterFcmTokenRequest(token, "android"))
                 .enqueue(new Callback<ResponseBody>() {

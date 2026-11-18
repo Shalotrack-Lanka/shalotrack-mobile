@@ -170,7 +170,7 @@ public class AlertReportActivity extends AppCompatActivity {
 
         if (rvAlerts != null) rvAlerts.setVisibility(View.VISIBLE);
         if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
-        adapter.updateAlerts(alerts);
+        adapter.updateAlerts(this, alerts);
 
         if (tvSummary != null) tvSummary.setText(buildSummaryLine(report));
     }

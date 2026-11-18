@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Choose a vehicle (Trips, Alerts filter). Same rows as the Vehicles tab. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="12dp"
+    android:paddingBottom="@dimen/st_space_5">
+
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_st_handle"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/tvPickerTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/st_space_5"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="@dimen/st_space_5"
+        android:accessibilityHeading="true"
+        android:text="@string/st_picker_title"
+        android:textAppearance="@style/TextAppearance.ST.Title" />
+
+    <TextView
+        android:id="@+id/btnPickerAll"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginStart="@dimen/st_gutter"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="@dimen/st_gutter"
+        android:background="@drawable/bg_st_outline_tile"
+        android:foreground="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="@string/st_picker_all_vehicles"
+        android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <ProgressBar
+        android:id="@+id/progressPicker"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="24dp"
+        android:indeterminateTint="@color/st_navy" />
+
+    <TextView
+        android:id="@+id/tvPickerError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/st_gutter"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="@dimen/st_gutter"
+        android:background="@drawable/bg_st_banner_error"
+        android:padding="12dp"
+        android:textAppearance="@style/TextAppearance.ST.BodySmall"
+        android:textColor="@color/st_danger_text"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerPicker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/st_gutter"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="@dimen/st_gutter"
+        android:background="@drawable/bg_st_card"
+        android:overScrollMode="never"
+        android:padding="1dp"
+        android:visibility="gone" />
+</LinearLayout>

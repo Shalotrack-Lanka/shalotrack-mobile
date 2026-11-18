@@ -20,9 +20,17 @@
 -dontwarn okio.**
 -dontwarn javax.annotation.**
 
-# ---- Strip debug logging from release ----
+# ---- Strip ALL logging from release ----
+# Release builds ship no crash-reporting service that reads logcat, so a log line in release only helps
+# someone with the phone on a cable. Some lines included server error bodies and vehicle ids; none of that
+# may leave a release build. Debug builds keep every log.
 -assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
     public static int d(...);
     public static int i(...);
+    public static int w(...);
+    public static int e(...);
+    public static int wtf(...);
+    public static java.lang.String getStackTraceString(java.lang.Throwable);
 }

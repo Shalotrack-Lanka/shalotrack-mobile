@@ -128,12 +128,34 @@ public class RealtimeLocationClient {
         });
     }
 
+    /**
+     * Follow a different vehicle on the SAME connection: leave the old vehicle's group, join the new one.
+     * Before this, the Map kept listening to whichever vehicle loaded first, so after switching vehicles
+     * every live update was for the wrong vehicle and silently ignored (the map only moved on the 5 s poll).
+     */
+    public void switchVehicle(String vehicleId) {
+        if (vehicleId == null || vehicleId.equalsIgnoreCase(pendingVehicleId)) return;
+        String previous = pendingVehicleId;
+        pendingVehicleId = vehicleId;   // a reconnect after this joins the new group
+        if (hubConnection != null && hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
+            if (previous != null) hubConnection.send("LeaveVehicleGroup", previous);
+            hubConnection.send("JoinVehicleGroup", vehicleId);
+        }
+    }
+
+    public String getVehicleId() {
+        return pendingVehicleId;
+    }
+
+    /** Stops without blocking the main thread (the old version waited up to 3 s for the server). */
     public void stop() {
         intentionalStop = true;
         reconnectHandler.removeCallbacksAndMessages(null); // cancel any pending reconnect attempt
         if (hubConnection != null) {
             try {
-                hubConnection.stop().timeout(3, TimeUnit.SECONDS).blockingAwait();
+                hubConnection.stop()
+                        .timeout(3, TimeUnit.SECONDS)
+                        .subscribe(() -> { }, e -> Log.w(TAG, "Error stopping hub connection", e));
             } catch (Exception e) {
                 Log.w(TAG, "Error stopping hub connection", e);
             }

@@ -1,392 +1,508 @@
 package com.example.letstracklanka.ui.main;
 
-
-import android.content.Context;
 import android.content.Intent;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
-import androidx.core.content.ContextCompat;
-import android.net.ConnectivityManager;
-import android.net.Network;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.SystemClock;
 import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.AlertResponse;
+import com.example.letstracklanka.data.model.DashboardVehicle;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
-import com.example.letstracklanka.ui.vehicles.VehiclesActivity;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.material.button.MaterialButton;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import com.example.letstracklanka.ui.common.BottomNav;
+import com.example.letstracklanka.ui.common.EdgeToEdge;
+import com.example.letstracklanka.ui.common.EmptyState;
+import com.example.letstracklanka.ui.common.InlineBanner;
+import com.example.letstracklanka.ui.common.NetworkWatcher;
+import com.example.letstracklanka.ui.common.Plates;
+import com.example.letstracklanka.ui.common.VehiclePickerSheet;
+import com.example.letstracklanka.utils.ApiJson;
+import com.example.letstracklanka.utils.AuthGate;
+import com.example.letstracklanka.utils.SecureScreen;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Alerts tab, and the same screen for one vehicle when opened from that vehicle's page
+ * (EXTRA_VEHICLE_ID / EXTRA_VEHICLE_NAME: back arrow, no bottom bar).
+ *
+ * Data: GET api/alerts, 50 per page, newer pages loaded as the list nears its end. The kind chips
+ * filter what is already loaded; if a filter leaves too little to scroll, older pages are fetched
+ * automatically (at most three in a row) so a rare kind still shows something.
+ * Refresh: on open, on pull, when a notification is tapped and when the tab comes back after more
+ * than a minute away. No polling: push notifications already tell the user about new alerts.
+ */
 public class AlertsActivity extends AppCompatActivity {
 
     public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
     public static final String EXTRA_VEHICLE_NAME = "extra_vehicle_name";
+    /** Set by the push notification tap: show every vehicle's alerts, newest first, read fresh. */
+    public static final String EXTRA_FROM_NOTIFICATION = "extra_from_notification";
 
-    // API Service for making network calls
-    private ApiService mainApiService;
+    private static final int PAGE_SIZE = 50;
+    private static final int MAX_AUTO_FILL_PAGES = 3;
+    private static final long STALE_AFTER_MS = 60_000;
 
-    // NEW: null means "all my vehicles" -- the existing bottom-nav Alerts
-    // tab behavior, unchanged. A real value means this screen was opened
-    // for one specific vehicle (e.g. from its detail panel) and only that
-    // vehicle's alerts should show.
-    private String filterVehicleId;
-    private String filterVehicleName;
+    /** Kind chips. A chip covers related kinds so every alert type is reachable from one of them. */
+    private enum KindFilter {
+        ALL(R.id.chipAlertsAll, R.string.st_alerts_filter_all),
+        SPEED(R.id.chipAlertsSpeed, R.string.st_alerts_filter_speed, AlertAdapter.Kind.OVERSPEED),
+        POWER(R.id.chipAlertsPower, R.string.st_alerts_filter_power,
+                AlertAdapter.Kind.POWER_CUT, AlertAdapter.Kind.LOW_BATTERY, AlertAdapter.Kind.DEVICE_OFFLINE),
+        GEOFENCE(R.id.chipAlertsGeofence, R.string.st_alerts_filter_geofence,
+                AlertAdapter.Kind.GEOFENCE_ENTER, AlertAdapter.Kind.GEOFENCE_EXIT),
+        IGNITION(R.id.chipAlertsIgnition, R.string.st_alerts_filter_ignition,
+                AlertAdapter.Kind.IGNITION_ON, AlertAdapter.Kind.IGNITION_OFF, AlertAdapter.Kind.IDLE),
+        SOS(R.id.chipAlertsSos, R.string.st_alerts_filter_sos, AlertAdapter.Kind.SOS);
 
-    // UI Components for the Alerts list
-    private RecyclerView recyclerAlerts;
+        final int chipId;
+        final int label;
+        final Set<AlertAdapter.Kind> kinds;
+
+        KindFilter(int chipId, int label, AlertAdapter.Kind... kinds) {
+            this.chipId = chipId;
+            this.label = label;
+            this.kinds = kinds.length == 0 ? EnumSet.noneOf(AlertAdapter.Kind.class) : EnumSet.copyOf(Arrays.asList(kinds));
+        }
+
+        boolean matches(AlertResponse a) {
+            return this == ALL || kinds.contains(AlertAdapter.Kind.of(a.getAlertType()));
+        }
+    }
+
+    private ApiService api;
+
+    @Nullable private String vehicleId;
+    @Nullable private String vehicleName;
+    private boolean openedForOneVehicle;
+    private boolean navBound;
+    private KindFilter kindFilter = KindFilter.ALL;
+
+    private final List<AlertResponse> loaded = new ArrayList<>();
+    private final Set<Long> loadedIds = new HashSet<>();
+    private int nextPage = 1;
+    private boolean hasMore = true;
+    private boolean loading;
+    private int autoFillPages;
+    /** Bumped on every reload so replies for an older vehicle or filter are dropped. */
+    private int generation;
+    private long lastLoadedAt;
+
+    private View header;
+    private View btnBack;
+    private TextView btnVehicle;
+    private com.google.android.material.button.MaterialButton btnMarkAll;
+    private boolean markingAll;
+    private SwipeRefreshLayout swipeRefresh;
+    private RecyclerView recycler;
+    private LinearLayoutManager layoutManager;
+    private ProgressBar progress;
     private AlertAdapter adapter;
-    private ProgressBar progressAlerts;
-    private TextView tvEmptyAlerts;
-
-    // UI Components for displaying network errors
-    private View errorBanner;
-    private TextView tvErrorBannerMessage, tvErrorBannerRetry;
-    private ConnectivityManager.NetworkCallback networkCallback;
-    private DrawerLayout drawerLayout;
-
-    // Variable to track which tab is currently active (Alerts or Promotions)
-    // "Promotions" has no backend or data model behind it anywhere in this app --
-    // it's left as an honest placeholder (Toast), not wired to fake data.
-    private boolean showingAlertsTab = true;
+    private InlineBanner banner;
+    private EmptyState empty;
+    private final List<TextView> chips = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Link this activity to its XML layout file
+        // Notifications open this screen directly; nobody signed in means nothing to show.
+        if (!AuthGate.requireSignedIn(this)) return;
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_alerts);
+        SecureScreen.guardTouches(this);
 
-        drawerLayout = findViewById(R.id.drawerLayout);
-        DrawerMenuHelper.wireDrawer(this, drawerLayout,
-                findViewById(R.id.tvDrawerName), findViewById(R.id.tvDrawerPhone), findViewById(R.id.tvDrawerEmail));
+        api = ApiClient.getClient().create(ApiService.class);
+        bindViews();
+        readIntent(getIntent());
+        applyMode();
 
-        // NEW: optional -- if this screen was opened for a specific
-        // vehicle, only that vehicle's alerts should load. If absent,
-        // behaves exactly as before (all vehicles).
-        filterVehicleId = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
-        filterVehicleName = getIntent().getStringExtra(EXTRA_VEHICLE_NAME);
+        NetworkWatcher.watch(this, new NetworkWatcher.Listener() {
+            @Override
+            public void onLost() {
+                banner.showOffline(R.string.st_banner_offline_list, null);
+            }
 
-        // Initialize the API client
-        mainApiService = ApiClient.getClient().create(ApiService.class);
-
-        // Connect error banner UI elements
-        errorBanner = findViewById(R.id.errorBanner);
-        tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
-        tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
-
-        // Start checking for internet connection
-        registerNetworkMonitor();
-
-        // Load the Google Map in the background
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapAlerts);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(googleMap -> { });
-        }
-
-        // Setup the list that will display the alerts
-        initAlertsList();
-
-        // --- Handle switching between 'Alerts' and 'Promotions' tabs ---
-        MaterialButton btnTabAlerts = findViewById(R.id.btnTabAlerts);
-        MaterialButton btnTabPromotions = findViewById(R.id.btnTabPromotions);
-
-        // FIX: Search isn't a real feature yet -- removed the Toast entirely
-        // rather than replace it with another popup. A "coming soon" message
-        // doesn't fit the error-banner styling (which is deliberately red/
-        // danger-colored), so the honest choice is a genuinely inert icon,
-        // not a fake interaction.
-
-        // When the user clicks the "Alerts" tab
-        btnTabAlerts.setOnClickListener(v -> {
-            // Highlight the Alerts tab with the primary brand color
-            btnTabAlerts.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary)));
-            btnTabAlerts.setTextColor(Color.WHITE);
-            // Remove highlight from the Promotions tab
-            btnTabPromotions.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
-            btnTabPromotions.setTextColor(Color.BLACK);
-
-            // Show the alerts list and fetch data from server
-            showingAlertsTab = true;
-            recyclerAlerts.setVisibility(View.VISIBLE);
-            fetchAlerts();
+            @Override
+            public void onRestored() {
+                banner.hide();
+                if (loaded.isEmpty() || lastLoadedAt == 0) reload(true);
+            }
         });
 
-        // When the user clicks the "Promotions" tab
-        btnTabPromotions.setOnClickListener(v -> {
-            // Highlight the Promotions tab with the primary brand color
-            btnTabPromotions.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, com.example.letstracklanka.R.color.brand_primary)));
-            btnTabPromotions.setTextColor(Color.WHITE);
-            // Remove highlight from the Alerts tab
-            btnTabAlerts.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
-            btnTabAlerts.setTextColor(Color.BLACK);
+        reload(true);
+    }
 
-            // Hide the alerts list and show a "coming soon" message
-            // Deliberately not wired to real data -- there is no Promotions feature
-            // or data model anywhere in this app yet.
-            showingAlertsTab = false;
-            recyclerAlerts.setVisibility(View.GONE);
-            progressAlerts.setVisibility(View.GONE);
-            tvEmptyAlerts.setVisibility(View.VISIBLE);
-            tvEmptyAlerts.setText("Promotions coming soon.");
+    /**
+     * Delivered when this screen already exists: a notification tap (singleTop), or the Alerts tab being
+     * tapped again (the bar reorders the existing screen to the front, which also lands here). Only a
+     * notification or a different vehicle reloads; a plain tab switch keeps the list and its scroll
+     * position (onStart refreshes it if it is more than a minute old).
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        boolean fromPush = intent.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false);
+        String requested = trimToNull(intent.getStringExtra(EXTRA_VEHICLE_ID));
+        boolean otherVehicle = requested != null && !requested.equals(vehicleId);
+        if (!fromPush && !otherVehicle) return;
+        setIntent(intent);
+        if (!AuthGate.requireSignedIn(this)) return;
+        readIntent(intent);
+        applyMode();
+        reload(true);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (lastLoadedAt != 0 && SystemClock.elapsedRealtime() - lastLoadedAt > STALE_AFTER_MS) reload(false);
+    }
+
+    // ---- Setup ----
+
+    private void bindViews() {
+        header = findViewById(R.id.alertsHeader);
+        EdgeToEdge.padTop(header);
+        btnBack = findViewById(R.id.btnBackAlerts);
+        btnVehicle = findViewById(R.id.btnAlertsVehicle);
+        btnMarkAll = findViewById(R.id.btnMarkAllRead);
+        btnMarkAll.setOnClickListener(v -> markAllRead());
+        swipeRefresh = findViewById(R.id.swipeRefreshAlerts);
+        recycler = findViewById(R.id.recyclerAlerts);
+        progress = findViewById(R.id.progressAlerts);
+        banner = InlineBanner.in(this);
+        empty = new EmptyState(findViewById(R.id.emptyState));
+
+        layoutManager = new LinearLayoutManager(this);
+        recycler.setLayoutManager(layoutManager);
+        adapter = new AlertAdapter(new ArrayList<>(), this::onAlertTapped);
+        recycler.setAdapter(adapter);
+        recycler.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                if (dy <= 0 || loading || !hasMore) return;
+                int last = layoutManager.findLastVisibleItemPosition();
+                if (last >= adapter.getItemCount() - 8) loadNextPage(false);
+            }
         });
 
-        // --- Bottom Navigation Setup (Clicking on bottom menu icons) ---
+        swipeRefresh.setColorSchemeResources(R.color.st_navy);
+        swipeRefresh.setOnRefreshListener(() -> reload(false));
 
-        // Go to Home screen
-        LinearLayout navHome = findViewById(R.id.nav_home);
-        if (navHome != null) {
-            navHome.setOnClickListener(v -> {
-                Intent intent = new Intent(AlertsActivity.this, HomeActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
+        btnBack.setOnClickListener(v -> finish());
+        btnVehicle.setOnClickListener(v -> VehiclePickerSheet.show(this, true, this::onVehiclePicked));
+
+        for (KindFilter f : KindFilter.values()) {
+            TextView chip = findViewById(f.chipId);
+            chips.add(chip);
+            chip.setOnClickListener(v -> selectKind(f));
         }
+        selectKindChip(KindFilter.ALL);
+    }
 
-        // Go to Vehicles screen
-        LinearLayout navVehicles = findViewById(R.id.nav_vehicles);
-        if (navVehicles != null) {
-            navVehicles.setOnClickListener(v -> {
-                Intent intent = new Intent(AlertsActivity.this, VehiclesActivity.class);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
+    private void readIntent(Intent intent) {
+        vehicleId = trimToNull(intent.getStringExtra(EXTRA_VEHICLE_ID));
+        vehicleName = trimToNull(intent.getStringExtra(EXTRA_VEHICLE_NAME));
+        openedForOneVehicle = vehicleId != null;
+        kindFilter = KindFilter.ALL;
+        selectKindChip(KindFilter.ALL);
+    }
+
+    private void applyMode() {
+        if (openedForOneVehicle) {
+            btnBack.setVisibility(View.VISIBLE);
+            BottomNav.hide(this);
+        } else {
+            btnBack.setVisibility(View.GONE);
+            View bar = findViewById(R.id.bottomNav);
+            if (bar != null) bar.setVisibility(View.VISIBLE);
+            if (!navBound) {
+                BottomNav.bind(this, BottomNav.Tab.ALERTS);
+                navBound = true;
+            }
         }
+        showVehicleLabel();
+    }
 
-        // Go to Tags screen
-        LinearLayout navTags = findViewById(R.id.nav_tags);
-        if (navTags != null) {
-            navTags.setOnClickListener(v -> {
-                Intent intent = new Intent(AlertsActivity.this, TagsActivity.class);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
-        }
-
-        // Go to Circles screen
-        LinearLayout navCircles = findViewById(R.id.nav_circles);
-        if (navCircles != null) {
-            navCircles.setOnClickListener(v -> {
-                Intent intent = new Intent(AlertsActivity.this, CirclesActivity.class);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
-        }
-
-        // FIX: Menu wasn't wired to anything at all before -- found during
-        // a systematic dead-end audit of "Menu doesn't work from every
-        // tab". Opens this screen's own real drawer directly.
-        View navMenu = findViewById(R.id.nav_menu);
-        if (navMenu != null) {
-            navMenu.setOnClickListener(v -> {
-                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
-            });
+    private void showVehicleLabel() {
+        if (vehicleId == null) {
+            btnVehicle.setText(R.string.st_picker_all_vehicles);
+            btnVehicle.setSelected(false);
+            btnVehicle.setContentDescription(getString(R.string.st_alerts_vehicle_all_a11y));
+        } else {
+            // Plain text on the chip: the plate's two-tone span would fight the chip's selected colours.
+            String name = vehicleName != null ? Plates.plain(vehicleName) : getString(R.string.st_alerts_one_vehicle);
+            btnVehicle.setText(name);
+            btnVehicle.setSelected(true);
+            btnVehicle.setContentDescription(getString(R.string.st_alerts_vehicle_one_a11y, name));
         }
     }
 
-    // Set up the RecyclerView (List) to show alerts
-    private void initAlertsList() {
-        recyclerAlerts = findViewById(R.id.recyclerAlerts);
-        progressAlerts = findViewById(R.id.progressAlerts);
-        tvEmptyAlerts = findViewById(R.id.tvEmptyAlerts);
-
-        // Prepare the list view layout
-        recyclerAlerts.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new AlertAdapter(new ArrayList<>(), this::onAlertClicked);
-        recyclerAlerts.setAdapter(adapter);
-
-        // Call the server to get alerts
-        fetchAlerts();
+    private void onVehiclePicked(@Nullable DashboardVehicle v) {
+        String newId = v != null ? v.getVehicleId() : null;
+        if (newId == null ? vehicleId == null : newId.equals(vehicleId)) return;
+        vehicleId = newId;
+        vehicleName = v != null ? v.getVehicleNumber() : null;
+        showVehicleLabel();
+        reload(true);
     }
 
-    // Get the latest alerts from the server API
-    private void fetchAlerts() {
-        // Show loading spinner while waiting for data
-        progressAlerts.setVisibility(View.VISIBLE);
-        recyclerAlerts.setVisibility(View.GONE);
-        tvEmptyAlerts.setVisibility(View.GONE);
+    private void selectKind(KindFilter f) {
+        if (f == kindFilter) return;
+        kindFilter = f;
+        selectKindChip(f);
+        autoFillPages = 0;
+        render();
+        recycler.scrollToPosition(0);
+        maybeAutoFill();
+    }
 
-        // Send network request to get page 1, max 20 alerts, optionally
-        // filtered to one vehicle. Retrofit omits the vehicleId query
-        // parameter entirely when it's null, so this is safe for both the
-        // "all vehicles" and "one vehicle" cases with the same call.
-        mainApiService.getMyAlerts(1, 20, filterVehicleId).enqueue(new Callback<ResponseBody>() {
+    private void selectKindChip(KindFilter f) {
+        KindFilter[] all = KindFilter.values();
+        for (int i = 0; i < chips.size() && i < all.length; i++) chips.get(i).setSelected(all[i] == f);
+    }
+
+    // ---- Data ----
+
+    /** Starts again from page 1. showSpinner: centred spinner (first load, new vehicle) rather than the pull indicator. */
+    private void reload(boolean showSpinner) {
+        generation++;
+        nextPage = 1;
+        hasMore = true;
+        loading = false;
+        autoFillPages = 0;
+        if (showSpinner) {
+            loaded.clear();
+            loadedIds.clear();
+            adapter.updateAlerts(this, Collections.emptyList());
+            empty.hide();
+            progress.setVisibility(View.VISIBLE);
+        }
+        loadNextPage(true);
+    }
+
+    private void loadNextPage(boolean replace) {
+        if (loading || !hasMore) return;
+        loading = true;
+        final int gen = generation;
+        final int page = nextPage;
+        api.getMyAlerts(page, PAGE_SIZE, vehicleId).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                progressAlerts.setVisibility(View.GONE); // Hide loading spinner
+                if (gen != generation || isDestroyed()) return;
+                List<AlertResponse> pageItems = null;
                 try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        // If successful, read JSON data and display alerts
-                        List<AlertResponse> alerts = parseList(body.string(), AlertResponse.class);
-                        renderAlerts(alerts);
-                    } else {
-                        // Show error message if API fails
-                        showEmpty("Could not load alerts (code " + response.code() + ")");
-                        showRetryDialog("Couldn't load alerts", AlertsActivity.this::fetchAlerts);
-                    }
-                } catch (Exception e) {
-                    // Show error if data format is wrong
-                    Log.e("AlertsActivity", "fetchAlerts parse error", e);
-                    showEmpty("Something went wrong loading alerts.");
-                    showRetryDialog("Something went wrong loading alerts", AlertsActivity.this::fetchAlerts);
+                    if (response.isSuccessful() && body != null) pageItems = ApiJson.list(body.string(), AlertResponse.class);
+                } catch (Exception ignored) {
+                    pageItems = null;
                 }
+                finishLoad();
+                if (pageItems == null) {
+                    onLoadFailed(page, response.code(), replace);
+                    return;
+                }
+                onPageLoaded(pageItems, replace);
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                // Show error if there is no internet or server is down
-                progressAlerts.setVisibility(View.GONE);
-                showEmpty("Network error -- check your connection.");
-                showRetryDialog("Network error — couldn't load alerts", AlertsActivity.this::fetchAlerts);
+                if (gen != generation || isDestroyed()) return;
+                finishLoad();
+                onLoadFailed(page, 0, replace);
             }
         });
     }
 
-    // Display the received alerts in the list UI
-    private void renderAlerts(List<AlertResponse> alerts) {
-        if (!showingAlertsTab) return;   // Stop if the user switched tabs before data arrived
+    private void finishLoad() {
+        loading = false;
+        progress.setVisibility(View.GONE);
+        swipeRefresh.setRefreshing(false);
+    }
 
-        if (alerts == null || alerts.isEmpty()) {
-            // NEW: specific message when filtered to one vehicle, since
-            // the vehicle name is already available here.
-            String emptyMessage = (filterVehicleName != null && !filterVehicleName.trim().isEmpty())
-                    ? "No alerts yet for " + filterVehicleName + "."
-                    : "No alerts yet.";
-            showEmpty(emptyMessage);
+    private void onPageLoaded(List<AlertResponse> items, boolean replace) {
+        if (replace) {
+            loaded.clear();
+            loadedIds.clear();
+        }
+        for (AlertResponse a : items) {
+            // A new alert arriving between page reads shifts the pages by one; skip what is already shown.
+            if (a != null && loadedIds.add(a.getAlertId())) loaded.add(a);
+        }
+        hasMore = items.size() >= PAGE_SIZE;
+        nextPage++;
+        lastLoadedAt = SystemClock.elapsedRealtime();
+        if (!NetworkWatcher.isOnline(this)) banner.showOffline(R.string.st_banner_offline_list, null);
+        else banner.hide();
+        render();
+        maybeAutoFill();
+    }
+
+    private void onLoadFailed(int page, int httpCode, boolean replace) {
+        Runnable retry = page == 1 ? () -> reload(loaded.isEmpty()) : () -> loadNextPage(false);
+        int message = httpCode == 0 ? R.string.st_error_network
+                : page == 1 ? R.string.st_alerts_load_failed : R.string.st_alerts_load_more_failed;
+        if (replace && loaded.isEmpty()) {
+            banner.hide();
+            empty.show(getString(R.string.st_alerts_load_failed_title), getString(message),
+                    getString(R.string.st_action_retry), retry);
+        } else {
+            // Keep what is on screen; say what failed above it.
+            banner.showError(message, retry);
+        }
+    }
+
+    /** If the chosen kind leaves the screen without enough to scroll, read a few older pages for it. */
+    private void maybeAutoFill() {
+        if (!hasMore || loading || kindFilter == KindFilter.ALL) return;
+        if (autoFillPages >= MAX_AUTO_FILL_PAGES) return;
+        recycler.post(() -> {
+            if (isDestroyed() || loading || !hasMore) return;
+            if (!recycler.canScrollVertically(1)) {
+                autoFillPages++;
+                loadNextPage(false);
+            }
+        });
+    }
+
+    private void render() {
+        List<AlertResponse> shown = new ArrayList<>();
+        boolean anyUnread = false;
+        for (AlertResponse a : loaded) {
+            if (!a.isRead()) anyUnread = true;
+            if (kindFilter.matches(a)) shown.add(a);
+        }
+        adapter.updateAlerts(this, shown);
+        btnMarkAll.setVisibility(anyUnread && !markingAll ? View.VISIBLE : View.GONE);
+
+        if (!shown.isEmpty()) {
+            empty.hide();
             return;
         }
-
-        // Show list and hide empty message
-        recyclerAlerts.setVisibility(View.VISIBLE);
-        tvEmptyAlerts.setVisibility(View.GONE);
-        adapter.updateAlerts(alerts);
+        if (loading) return;
+        if (!loaded.isEmpty()) {
+            // Alerts exist, none of this kind in what has been read so far.
+            String kind = getString(kindFilter.label);
+            empty.show(getString(R.string.st_alerts_empty_kind_title, kind),
+                    getString(hasMore ? R.string.st_alerts_empty_kind_body_more : R.string.st_alerts_empty_kind_body),
+                    hasMore ? getString(R.string.st_alerts_action_older) : getString(R.string.st_alerts_action_show_all),
+                    hasMore ? () -> { autoFillPages = 0; loadNextPage(false); } : () -> selectKind(KindFilter.ALL));
+        } else if (vehicleId != null) {
+            String name = vehicleName != null ? Plates.plain(vehicleName) : getString(R.string.st_alerts_one_vehicle);
+            empty.show(getString(R.string.st_alerts_empty_vehicle_title, name), getString(R.string.st_alerts_empty_body), null, null);
+        } else {
+            empty.show(getString(R.string.st_alerts_empty_title), getString(R.string.st_alerts_empty_body), null, null);
+        }
     }
 
-    // Helper method to show messages when there are no alerts or an error happens
-    private void showEmpty(String message) {
-        recyclerAlerts.setVisibility(View.GONE);
-        tvEmptyAlerts.setVisibility(View.VISIBLE);
-        tvEmptyAlerts.setText(message);
-    }
+    // ---- Tap: mark read ----
 
-    // When the user clicks an alert in the list
-    private void onAlertClicked(AlertResponse alert) {
-        if (alert.isRead()) return;   // If it's already read, do nothing
-
-        // Tell the server to mark this alert as 'read'
-        mainApiService.markAlertAsRead(alert.getAlertId()).enqueue(new Callback<ResponseBody>() {
+    private void onAlertTapped(AlertResponse alert) {
+        if (alert.isRead()) return;
+        // Optimistic: the dot goes at once; it comes back if the server says no.
+        alert.setRead(true);
+        render();
+        BottomNav.markOneRead(this);
+        api.markAlertAsRead(alert.getAlertId()).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    fetchAlerts();   // Reload the list so the read/unread dot updates
-                }
+                ResponseBody body = response.body();
+                if (body != null) body.close();
+                if (!response.isSuccessful()) revert(alert, false);
             }
+
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("AlertsActivity", "markAlertAsRead failed", t);
-                // Show a small retry popup if it failed to mark as read
-                // FIX: was completely silent before -- small, non-blocking
-                // indicator now, matching the requested "small in-line
-                // indicator" for this minor, recoverable action.
-                showRetryDialog("Couldn't mark alert as read", () -> onAlertClicked(alert));
+                revert(alert, true);
             }
         });
     }
 
     /**
-     * Show a red error banner at the top to let user try again.
-     * Same reusable in-line banner pattern as Home/Vehicles/TripHistory.
+     * Every unread alert (this vehicle's, or all vehicles') becomes read on the server in one request.
+     * Optimistic on screen; put back exactly as it was if the server says no.
      */
-    private void showRetryDialog(String message, Runnable retryAction) {
-        if (errorBanner == null) return;
-        tvErrorBannerMessage.setText(message);
-        tvErrorBannerRetry.setOnClickListener(v -> {
-            hideErrorBanner();
-            retryAction.run();
-        });
-        errorBanner.setVisibility(View.VISIBLE);
-    }
-
-    // Hide the red error banner
-    private void hideErrorBanner() {
-        if (errorBanner != null) errorBanner.setVisibility(View.GONE);
-    }
-
-    /**
-     * Monitor internet connection changes (Wi-Fi or Mobile Data).
-     * Same real-time connectivity monitoring pattern as Home/Vehicles.
-     */
-    private void registerNetworkMonitor() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return;
-
-        networkCallback = new ConnectivityManager.NetworkCallback() {
+    private void markAllRead() {
+        if (markingAll) return;
+        final List<AlertResponse> changed = new ArrayList<>();
+        for (AlertResponse a : loaded) {
+            if (!a.isRead()) {
+                a.setRead(true);
+                changed.add(a);
+            }
+        }
+        markingAll = true;
+        render();
+        final String scope = vehicleId;
+        api.markAllAlertsRead(scope).enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onLost(@NonNull Network network) {
-                // Internet connection dropped
-                runOnUiThread(() -> showRetryDialog("No internet connection", AlertsActivity.this::fetchAlerts));
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (response.body() != null) response.body().close();
+                markingAll = false;
+                if (isDestroyed()) return;
+                if (response.isSuccessful()) {
+                    // All vehicles: nothing is unread now. One vehicle: others may still be, so ask.
+                    if (scope == null) BottomNav.setUnread(AlertsActivity.this, 0);
+                    else BottomNav.refreshAlertsBadge(AlertsActivity.this, true);
+                    render();
+                    return;
+                }
+                undoMarkAll(changed, false);
             }
 
             @Override
-            public void onAvailable(@NonNull Network network) {
-                // Internet connection restored
-                runOnUiThread(() -> {
-                    hideErrorBanner();
-                    fetchAlerts();
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                markingAll = false;
+                if (!isDestroyed()) undoMarkAll(changed, true);
+            }
+        });
+    }
+
+    private void undoMarkAll(List<AlertResponse> changed, boolean network) {
+        for (AlertResponse a : changed) a.setRead(false);
+        render();
+        banner.showError(network ? R.string.st_error_network : R.string.st_alerts_mark_all_failed, () -> {
+            banner.hide();
+            markAllRead();
+        });
+    }
+
+    private void revert(AlertResponse alert, boolean network) {
+        if (isDestroyed()) return;
+        alert.setRead(false);
+        BottomNav.markOneUnread(this);
+        render();
+        banner.showError(network ? R.string.st_error_network : R.string.st_alerts_mark_read_failed,
+                () -> {
+                    banner.hide();
+                    onAlertTapped(alert);
                 });
-            }
-        };
-        cm.registerDefaultNetworkCallback(networkCallback);
     }
 
-    // Clean up background tasks to prevent memory leaks when screen is closed
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (networkCallback != null) {
-            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
-        }
-    }
-
-    // Helper method to convert JSON string into a Java List of objects safely
-    private <T> List<T> parseList(String json, Class<T> clazz) {
-        List<T> list = new ArrayList<>();
-        if (json == null || json.trim().isEmpty()) return list;
-        Gson gson = new Gson();
-        try {
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root != null && root.has("data") && root.get("data").isJsonArray()) {
-                // Convert JSON array to Java List
-                list = gson.fromJson(root.getAsJsonArray("data"), TypeToken.getParameterized(List.class, clazz).getType());
-            }
-        } catch (Exception e) {
-            Log.e("AlertsActivity", "parseList error", e);
-        }
-        return list;
+    @Nullable
+    private static String trimToNull(@Nullable String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

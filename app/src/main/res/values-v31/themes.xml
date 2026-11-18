@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Android 12+: real blur of whatever is behind the bottom sheet (the glass effect). Phones that turn
-         cross-window blur off (battery saver, some low-end devices) automatically fall back to the plain dim. -->
-    <style name="ThemeOverlay.ShaloTrack.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
-        <item name="bottomSheetStyle">@style/Widget.ShaloTrack.BottomSheet</item>
-        <item name="android:backgroundDimAmount">0.22</item>
-        <item name="android:windowBlurBehindEnabled">true</item>
-        <item name="android:windowBlurBehindRadius">18dp</item>
-    </style>
-</resources>
+<!-- Intentionally empty. Bottom sheets used to blur the screen behind them on Android 12+ (the "glass" look).
+     The design system uses a plain white sheet over a navy-tinted dim on every Android version, so there is
+     nothing version-specific to override any more. -->
+<resources />

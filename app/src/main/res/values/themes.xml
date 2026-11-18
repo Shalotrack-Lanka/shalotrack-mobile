@@ -1,36 +1,105 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- ════════════════════════════════════════════════════════════
-         Base application theme
+         App theme (Daylight). ONE theme for every in-app screen.
+         Material 3 Light, fixed: the app does not switch to dark with the phone setting (agreed for v1.0).
+         Every colour comes from the st_* tokens in colors.xml, every text style and widget style from
+         design_system.xml. Screens must not override android:theme in the manifest any more: mixing
+         MaterialComponents and Material3 themes is what made buttons and cards look different per screen.
          ════════════════════════════════════════════════════════════ -->
-    <style name="Base.Theme.LetsTrackLanka" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/brand_primary</item>
-        <item name="colorPrimaryDark">@color/brand_primary</item>
-        <item name="colorOnPrimary">@color/text_on_dark</item>
-        <item name="colorSecondary">@color/brand_accent</item>
-        <item name="colorOnSecondary">@color/text_on_dark</item>
+    <style name="Base.Theme.LetsTrackLanka" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Colour roles -->
+        <item name="colorPrimary">@color/st_navy</item>
+        <item name="colorOnPrimary">@color/st_text_on_navy</item>
+        <item name="colorPrimaryContainer">@color/st_navy_100</item>
+        <item name="colorOnPrimaryContainer">@color/st_navy</item>
+        <item name="colorPrimaryDark">@color/st_navy</item>
+        <item name="colorSecondary">@color/st_signal</item>
+        <item name="colorOnSecondary">@color/st_navy</item>
+        <item name="colorSecondaryContainer">@color/st_signal_50</item>
+        <item name="colorOnSecondaryContainer">@color/st_signal_text</item>
+        <item name="colorTertiary">@color/st_navy_700</item>
+        <item name="colorOnTertiary">@color/st_text_on_navy</item>
+        <item name="colorError">@color/st_danger</item>
+        <item name="colorOnError">@color/st_surface</item>
+        <item name="colorErrorContainer">@color/st_danger_bg</item>
+        <item name="colorOnErrorContainer">@color/st_danger_text</item>
+        <item name="android:colorBackground">@color/st_canvas</item>
+        <item name="colorOnBackground">@color/st_text_1</item>
+        <item name="colorSurface">@color/st_surface</item>
+        <item name="colorOnSurface">@color/st_text_1</item>
+        <item name="colorSurfaceVariant">@color/st_canvas</item>
+        <item name="colorOnSurfaceVariant">@color/st_text_2</item>
+        <item name="colorOutline">#D0D5DD</item>
+        <item name="colorOutlineVariant">@color/st_line</item>
+        <!-- No tonal (purple-ish) tint on raised surfaces: surfaces stay pure white / canvas grey. -->
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="colorSurfaceBright">@color/st_surface</item>
+        <item name="colorSurfaceDim">@color/st_surface_sunken</item>
+        <item name="colorSurfaceContainerLowest">@color/st_surface</item>
+        <item name="colorSurfaceContainerLow">@color/st_surface</item>
+        <item name="colorSurfaceContainer">@color/st_canvas</item>
+        <item name="colorSurfaceContainerHigh">@color/st_line_soft</item>
+        <item name="colorSurfaceContainerHighest">@color/st_surface_sunken</item>
+        <item name="android:textColorPrimary">@color/st_text_1</item>
+        <item name="android:textColorSecondary">@color/st_text_2</item>
+        <item name="android:textColorHint">@color/st_text_3</item>
+        <item name="android:textColorLink">@color/st_navy_700</item>
 
-        <!-- Status & Navigation Bar Branding -->
-        <item name="android:statusBarColor">@color/brand_primary</item>
-        <item name="android:navigationBarColor">@color/surface_white</item>
+        <!-- Window: flat canvas, dark system-bar icons on the light app -->
+        <item name="android:windowBackground">@color/st_canvas</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/st_surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
 
-        <!-- Glass system (light): soft gradient behind every screen, frosted bottom sheets -->
-        <item name="android:windowBackground">@drawable/bg_app_gradient</item>
-        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.ShaloTrack.BottomSheetDialog</item>
+        <!-- Type: Inter everywhere unless a text appearance says Archivo -->
+        <item name="android:fontFamily">@font/inter_regular</item>
+        <item name="fontFamily">@font/inter_regular</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.ST.Display</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.ST.Display</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.ST.Display</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.ST.Title</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.ST.Title</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.ST.Headline</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.ST.BodyStrong</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.ST.Body</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.ST.BodySmall</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.ST.Caption</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.ST.Button</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.ST.Label</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.ST.Caption</item>
+
+        <!-- Shapes -->
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.ST.Small</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.ST.Medium</item>
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.ST.Large</item>
+
+        <!-- Default widget styles: any MaterialButton / card / input / sheet in any layout gets the system look -->
+        <item name="materialButtonStyle">@style/Widget.ST.Button.Primary</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.ST.Button.Secondary</item>
+        <item name="borderlessButtonStyle">@style/Widget.ST.Button.Text</item>
+        <item name="materialCardViewStyle">@style/Widget.ST.Card</item>
+        <item name="textInputStyle">@style/Widget.ST.TextInputLayout</item>
+        <item name="floatingActionButtonStyle">@style/Widget.ST.Fab</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.ST.BottomSheetDialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.ST.Dialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.ST.Dialog</item>
+        <item name="materialSwitchStyle">@style/Widget.ST.Switch</item>
     </style>
 
     <style name="Theme.LetsTrackLanka" parent="Base.Theme.LetsTrackLanka" />
 
     <!-- ════════════════════════════════════════════════════════════
-         Sign-in flow theme: dark navy glass (same look as the Fleet web portal)
-         ════════════════════════════════════════════════════════════
-         Welcome, Phone, Code, Details, Route and Processing. Every colour, shape and size comes from theme
-         attributes and the glass_* colour tokens, so changing the look is a one-file edit.
-         Applied per activity in AndroidManifest.xml. The rest of the app keeps its own (light glass) theme. -->
+         Sign-in flow theme: dark navy (same family as the Fleet portal).
+         Welcome, Phone, Code, Details, Route and Processing. Applied per activity in AndroidManifest.xml.
+         The primary button is the same orange-with-navy-label button as the rest of the app.
+         ════════════════════════════════════════════════════════════ -->
     <style name="Theme.ShaloTrack.Auth" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/glass_focus</item>
         <item name="colorOnPrimary">@color/hero_top</item>
-        <item name="colorSecondary">@color/glass_focus</item>
+        <item name="colorSecondary">@color/st_signal</item>
+        <item name="colorOnSecondary">@color/st_navy</item>
         <item name="colorSurface">@color/hero_mid</item>
         <item name="colorOnSurface">@color/glass_text_primary</item>
         <item name="colorOnSurfaceVariant">@color/glass_text_secondary</item>
@@ -40,19 +109,16 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:fontFamily">@font/inter_regular</item>
+        <item name="fontFamily">@font/inter_regular</item>
         <item name="materialButtonStyle">@style/Widget.ShaloTrack.Button</item>
         <item name="textInputStyle">@style/Widget.ShaloTrack.TextInputLayout</item>
     </style>
 
-    <!-- Primary button: 56 dp tall, rounded, solid blue, white text (4.8:1 contrast), never ALL CAPS. -->
-    <style name="Widget.ShaloTrack.Button" parent="Widget.Material3.Button">
+    <!-- Sign-in primary button: same as Widget.ST.Button.Primary, a little taller for the hero screens. -->
+    <style name="Widget.ShaloTrack.Button" parent="Widget.ST.Button.Primary">
         <item name="android:minHeight">56dp</item>
-        <item name="android:insetTop">0dp</item>
-        <item name="android:insetBottom">0dp</item>
-        <item name="cornerRadius">16dp</item>
-        <item name="backgroundTint">@color/glass_button</item>
-        <item name="android:textColor">@color/glass_text_primary</item>
-        <item name="android:textAppearance">@style/TextAppearance.ShaloTrack.Button</item>
+        <item name="cornerRadius">14dp</item>
     </style>
 
     <!-- Quiet button (Resend, Sign out): still a full 48 dp touch target. -->
@@ -61,20 +127,17 @@
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
         <item name="android:textColor">@color/glass_focus</item>
-        <item name="android:textAppearance">@style/TextAppearance.ShaloTrack.Button</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Button</item>
     </style>
 
-    <style name="TextAppearance.ShaloTrack.Button" parent="TextAppearance.Material3.LabelLarge">
-        <item name="android:textSize">16sp</item>
-        <item name="android:textStyle">bold</item>
-    </style>
+    <style name="TextAppearance.ShaloTrack.Button" parent="TextAppearance.ST.Button" />
 
-    <!-- Glass input: translucent fill, light outline that brightens on focus. -->
+    <!-- Input on the dark sign-in screens: translucent fill, light outline that turns orange on focus. -->
     <style name="Widget.ShaloTrack.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">14dp</item>
-        <item name="boxCornerRadiusTopEnd">14dp</item>
-        <item name="boxCornerRadiusBottomStart">14dp</item>
-        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
         <item name="boxBackgroundMode">outline</item>
         <item name="boxStrokeColor">@color/glass_focus</item>
         <item name="android:textColorHint">@color/glass_text_hint</item>
@@ -85,16 +148,15 @@
         <item name="boxStrokeErrorColor">@color/glass_error</item>
     </style>
 
-    <style name="TextAppearance.ShaloTrack.Headline" parent="TextAppearance.Material3.HeadlineMedium">
+    <style name="TextAppearance.ShaloTrack.Headline" parent="TextAppearance.ST.Display">
         <item name="android:textColor">@color/glass_text_primary</item>
-        <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.ShaloTrack.Body" parent="TextAppearance.Material3.BodyLarge">
+    <style name="TextAppearance.ShaloTrack.Body" parent="TextAppearance.ST.Body">
         <item name="android:textColor">@color/glass_text_secondary</item>
     </style>
 
-    <!-- Inline error: always visible text, announced by TalkBack, never a toast. -->
+    <!-- In-line error on the dark sign-in screens: always visible text, announced by TalkBack, never a toast. -->
     <style name="Widget.ShaloTrack.ErrorBanner" parent="">
         <item name="android:background">@drawable/bg_error_banner</item>
         <item name="android:padding">12dp</item>
@@ -104,54 +166,27 @@
         <item name="android:visibility">gone</item>
     </style>
 
-    <!-- Glass panel that holds a form on the dark backdrop. -->
+    <!-- Panel that holds a form on the dark backdrop. -->
     <style name="Widget.ShaloTrack.GlassPanel" parent="">
         <item name="android:background">@drawable/bg_glass_dark_card</item>
         <item name="android:padding">20dp</item>
     </style>
 
-    <!-- ════════════════════════════════════════════════════════════
-         Bottom sheets (every BottomSheetDialog in the app): frosted glass.
-         The v31 variant of this style adds real blur of the screen behind the sheet. -->
-    <style name="ThemeOverlay.ShaloTrack.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
-        <item name="bottomSheetStyle">@style/Widget.ShaloTrack.BottomSheet</item>
-        <item name="android:backgroundDimAmount">0.32</item>
-    </style>
-
-    <style name="Widget.ShaloTrack.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
-        <item name="backgroundTint">@color/glass_sheet_fill</item>
-    </style>
+    <!-- Older name for the bottom-sheet overlay, kept so nothing that references it breaks. -->
+    <style name="ThemeOverlay.ShaloTrack.BottomSheetDialog" parent="ThemeOverlay.ST.BottomSheetDialog" />
+    <style name="Widget.ShaloTrack.BottomSheet" parent="Widget.ST.BottomSheet" />
 
     <!-- ════════════════════════════════════════════════════════════
          Splash Screen Theme
-         ════════════════════════════════════════════════════════════
-         Applied to SplashActivity via android:theme in AndroidManifest.xml.
-
-         This theme's sole job is to paint the navy background (#081427)
-         the instant the window opens — BEFORE setContentView is called.
-         This eliminates the white flash that would otherwise appear on
-         cold start while the layout inflates.
-
-         SplashActivity drives the full animation from code (ObjectAnimator)
-         using activity_splash.xml with the real ic_logo_simple.png logo.
-         We do NOT use installSplashScreen() because the SplashScreen compat
-         API constrains icons to ~110 dp — too small for the ShaloTrack logo.
-
-         windowSplashScreenAnimatedIcon is kept pointing at the static logo
-         PNG so Android's recents thumbnail looks correct (not a blank square)
-         on devices that pull the splash icon for the task switcher preview.
+         Paints the navy background the instant the window opens, before setContentView,
+         so there is no white flash on cold start. SplashActivity drives its own animation.
          ════════════════════════════════════════════════════════════ -->
     <style name="Theme.ShaloTrack.Starting" parent="Theme.MaterialComponents.Light.NoActionBar">
-
-        <!-- Fires immediately on window open — prevents white flash -->
         <item name="android:windowBackground">@color/splash_background</item>
         <item name="android:statusBarColor">@color/splash_background</item>
         <item name="android:navigationBarColor">@color/splash_background</item>
-
-        <!-- Full-screen: hide status bar decor during splash -->
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowTranslucentStatus">false</item>
-
     </style>
 
 </resources>

@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ShaloTrack app copy (Daylight design system). One voice everywhere: short, plain, specific.
+     Apostrophes are typographic (’) so nothing needs escaping. Numbers are always format arguments,
+     never concatenated. Plate numbers come from the server and are never translated. -->
+<resources>
+
+    <!-- Actions -->
+    <string name="st_action_add">Add</string>
+    <string name="st_action_back">Back</string>
+    <string name="st_action_cancel">Cancel</string>
+    <string name="st_action_close">Close</string>
+    <string name="st_action_done">Done</string>
+    <string name="st_action_edit">Edit</string>
+    <string name="st_action_remove">Remove</string>
+    <string name="st_action_removing">Removing…</string>
+    <string name="st_action_retry">Retry</string>
+    <string name="st_action_try_again">Try again</string>
+    <string name="st_action_save">Save</string>
+    <string name="st_action_saving">Saving…</string>
+    <string name="st_action_sending">Sending…</string>
+
+    <!-- Bottom navigation -->
+    <string name="st_nav_map">Map</string>
+    <string name="st_nav_vehicles">Vehicles</string>
+    <string name="st_nav_trips">Trips</string>
+    <string name="st_nav_alerts">Alerts</string>
+    <string name="st_nav_more">More</string>
+    <plurals name="st_nav_alerts_unread">
+        <item quantity="one">Alerts, %d unread</item>
+        <item quantity="other">Alerts, %d unread</item>
+    </plurals>
+
+    <!-- Errors and banners -->
+    <string name="st_error_network">No connection. Check your internet and try again.</string>
+    <string name="st_error_offline_short">You’re offline</string>
+    <string name="st_error_no_app">No app on this phone can open that.</string>
+    <string name="st_error_no_browser">No browser on this phone can open the link.</string>
+    <string name="st_error_no_dialer">This phone can’t make calls.</string>
+    <string name="st_error_no_email_app">No email app on this phone.</string>
+    <string name="st_error_no_share_app">No app on this phone can share this.</string>
+    <string name="st_banner_offline_generic">You’re offline. Changes need a connection.</string>
+    <string name="st_banner_offline_list">You’re offline. Showing what was loaded last.</string>
+    <string name="st_banner_offline_map">You’re offline. Positions will update when you’re back.</string>
+    <string name="st_load_failed_body">Something went wrong on our side. Try again in a moment.</string>
+    <string name="st_profile_still_loading">Still loading your account. Try again in a moment.</string>
+
+    <!-- Time -->
+    <string name="st_time_never">Never</string>
+    <string name="st_time_seconds_ago">%1$d s ago</string>
+    <string name="st_time_minutes_ago">%1$d min ago</string>
+    <string name="st_time_hours_ago">%1$d h ago</string>
+    <string name="st_time_today">Today</string>
+    <string name="st_time_yesterday">Yesterday</string>
+    <string name="st_time_today_at">Today, %1$s</string>
+    <string name="st_time_yesterday_at">Yesterday, %1$s</string>
+    <string name="st_time_day_at">%1$s, %2$s</string>
+    <string name="st_duration_minutes">%1$d min</string>
+
+    <!-- Units -->
+    <string name="st_unit_km">km</string>
+    <string name="st_unit_kmh">km/h</string>
+
+    <!-- Vehicle status (the five states, same words on every screen) -->
+    <string name="st_status_moving">Moving</string>
+    <string name="st_status_idling">Idling</string>
+    <string name="st_status_parked">Parked</string>
+    <string name="st_status_offline">Offline</string>
+    <string name="st_status_no_device">No tracker</string>
+
+    <!-- Vehicle rows -->
+    <string name="st_vehicle_unnamed">Vehicle</string>
+    <string name="st_vehicle_someone">someone</string>
+    <string name="st_vehicle_caption_speed">%1$s · %2$d km/h</string>
+    <string name="st_vehicle_caption_shared">Shared by %1$s</string>
+    <string name="st_vehicle_caption_demo">%1$s · Demo</string>
+    <string name="st_vehicle_caption_no_tracker">%1$s · No tracker linked</string>
+    <string name="st_vehicle_demo_note">Demo vehicle. Everyone sees it; it shows how tracking looks.</string>
+    <string name="st_vehicle_power_cut">Tracker power cut. Check the wiring.</string>
+    <string name="st_vehicle_link_tracker">Link tracker</string>
+    <string name="st_vehicle_row_description">%1$s, %2$s</string>
+    <string name="st_vehicle_statistics">Statistics</string>
+
+    <!-- Vehicles tab -->
+    <string name="st_vehicles_search_hint">Search plate, make or model</string>
+    <string name="st_vehicles_swipe_hint">Swipe a vehicle left to remove it.</string>
+    <string name="st_filter_all">All %1$d</string>
+    <string name="st_filter_moving">Moving %1$d</string>
+    <string name="st_filter_stopped">Stopped %1$d</string>
+    <string name="st_filter_offline">Offline %1$d</string>
+    <string name="st_filter_no_tracker">No tracker %1$d</string>
+    <string name="st_vehicles_empty_title">No vehicles yet</string>
+    <string name="st_vehicles_empty_body">Add your vehicle and link its tracker to see it on the map.</string>
+    <string name="st_vehicles_add_first">Add a vehicle</string>
+    <string name="st_vehicles_no_match_title">No vehicles match</string>
+    <string name="st_vehicles_no_match_body">Try another plate or clear the filter.</string>
+    <string name="st_vehicles_show_all">Show all</string>
+    <string name="st_vehicles_load_failed_title">Couldn’t load your vehicles</string>
+    <string name="st_vehicles_refresh_failed">Couldn’t refresh. Showing what was loaded last.</string>
+    <string name="st_remove_vehicle_title">Remove %1$s?</string>
+    <string name="st_remove_vehicle_body">The vehicle leaves your account and its tracker is freed so it can be linked to another vehicle. Trips and alerts are kept.</string>
+    <string name="st_remove_vehicle_confirm">Remove vehicle</string>
+    <string name="st_remove_vehicle_failed">Couldn’t remove the vehicle. Check your connection and try again.</string>
+
+    <!-- Map tab -->
+    <plurals name="st_fleet_count">
+        <item quantity="one">%d vehicle</item>
+        <item quantity="other">%d vehicles</item>
+    </plurals>
+    <string name="st_home_summary_description">%1$d vehicles: %2$d moving, %3$d stopped, %4$d offline. Tap to show all on the map.</string>
+    <string name="st_home_empty_title">Nothing on the map yet</string>
+    <string name="st_home_empty_body">Add a vehicle and link its tracker. It appears here as soon as the tracker reports.</string>
+    <string name="st_home_load_failed">Couldn’t load your vehicles.</string>
+    <string name="st_home_refresh_failed">Couldn’t refresh positions. Showing the last ones.</string>
+    <string name="st_home_finding_place">Finding the place…</string>
+    <string name="st_home_no_position">No position reported yet</string>
+    <string name="st_home_no_position_yet">This vehicle hasn’t reported a position yet.</string>
+    <string name="st_home_no_tracker">No tracker linked</string>
+    <string name="st_home_no_tracker_hint">Link a tracker on the Vehicles tab to see this vehicle live.</string>
+    <string name="st_home_last_seen">Last seen %1$s</string>
+    <string name="st_home_updated">Updated %1$s</string>
+    <string name="st_home_other_vehicles">Other vehicles</string>
+    <string name="st_home_vehicle_details">Vehicle page</string>
+    <string name="st_home_share_location">Share location</string>
+    <string name="st_home_share_text">%1$s is here: %2$s</string>
+    <string name="st_home_sos">SOS</string>
+    <string name="st_home_sos_description">SOS. Opens the emergency alert.</string>
+    <string name="st_map_layers">Map type</string>
+    <string name="st_map_recenter">Centre on the vehicle</string>
+    <string name="st_map_type_default">Default</string>
+    <string name="st_map_type_satellite">Satellite</string>
+    <string name="st_map_type_terrain">Terrain</string>
+    <string name="st_map_type_hybrid">Hybrid</string>
+    <string name="st_fact_battery">%1$d%%</string>
+    <string name="st_fact_ignition_on">On</string>
+    <string name="st_fact_ignition_off">Off</string>
+    <string name="st_fact_power_cut">Cut</string>
+    <string name="st_fact_signal_good">Good</string>
+    <string name="st_fact_signal_weak">Weak</string>
+    <string name="st_fact_signal_none">None</string>
+
+    <!-- SOS -->
+    <string name="st_sos_title">Emergency alert</string>
+    <string name="st_sos_body">Hold the button for 3 seconds. Your other phones and everyone this vehicle is shared with get an SOS alert with the vehicle. Then you can call for help from here. ShaloTrack does not call the police for you.</string>
+    <string name="st_sos_hold">Hold for SOS</string>
+    <string name="st_sos_hold_description">Hold for 3 seconds to send an SOS alert</string>
+    <string name="st_sos_sending">Sending SOS…</string>
+    <string name="st_sos_failed">SOS wasn’t sent. Hold again, or call 119.</string>
+    <string name="st_sos_failed_network">No connection, SOS wasn’t sent. Call 119.</string>
+    <string name="st_sos_sent_title">SOS sent</string>
+    <string name="st_sos_sent_body">Call for help if you need it. One tap calls.</string>
+    <string name="st_sos_national">Emergency services</string>
+    <string name="st_sos_your_contacts">Your emergency contacts</string>
+    <string name="st_sos_no_contacts">You haven’t added emergency contacts yet.</string>
+    <string name="st_sos_manage_contacts">Emergency contacts</string>
+    <string name="st_sos_police">Police emergency</string>
+    <string name="st_sos_ambulance">Ambulance (Suwa Seriya)</string>
+    <string name="st_sos_call_description">Call %1$s, %2$s</string>
+
+    <!-- Vehicle picker -->
+    <string name="st_picker_title">Choose a vehicle</string>
+    <string name="st_picker_all_vehicles">All vehicles</string>
+    <string name="st_picker_empty">No vehicles on your account yet.</string>
+    <string name="st_picker_failed">Couldn’t load your vehicles. Try again.</string>
+
+    <!-- Trips tab -->
+    <string name="st_trips_7_days">7 days</string>
+    <string name="st_trips_pick_date">Pick a date</string>
+    <string name="st_trips_driving">driving</string>
+    <string name="st_trips_trips">trips</string>
+    <string name="st_trips_top_speed">top km/h</string>
+    <string name="st_trips_range_last_7">the last 7 days</string>
+    <string name="st_trips_day_summary">%1$s km · %2$s</string>
+    <string name="st_trips_time_range">%1$s – %2$s</string>
+    <string name="st_trips_now">now</string>
+    <string name="st_trips_km_value">%1$s km</string>
+    <string name="st_trips_meta">%1$s · top %2$d km/h</string>
+    <string name="st_trips_finding_place">Finding the place…</string>
+    <string name="st_trips_card_description">Trip from %1$s to %2$s, %3$s kilometres. Tap to replay.</string>
+    <string name="st_trips_empty_title">No trips %1$s</string>
+    <string name="st_trips_empty_body">Trips appear here after the vehicle drives with its tracker on.</string>
+    <string name="st_trips_pick_another_day">Pick another day</string>
+    <string name="st_trips_load_failed">Couldn’t load trips.</string>
+    <string name="st_trips_no_vehicle_title">No vehicle to show</string>
+    <string name="st_trips_no_vehicle_body">Add a vehicle with a tracker to see its trips.</string>
+
+    <!-- Alerts tab -->
+    <string name="st_alerts_filter_all">All</string>
+    <string name="st_alerts_filter_speed">Speed</string>
+    <string name="st_alerts_filter_power">Power</string>
+    <string name="st_alerts_filter_geofence">Geofence</string>
+    <string name="st_alerts_filter_ignition">Ignition</string>
+    <string name="st_alerts_filter_sos">SOS</string>
+    <string name="st_alert_overspeed">Over speed</string>
+    <string name="st_alert_power_cut">Power cut</string>
+    <string name="st_alert_sos">SOS</string>
+    <string name="st_alert_low_battery">Low battery</string>
+    <string name="st_alert_device_offline">Tracker offline</string>
+    <string name="st_alert_idle">Idling too long</string>
+    <string name="st_alert_ignition_on">Ignition on</string>
+    <string name="st_alert_ignition_off">Ignition off</string>
+    <string name="st_alert_geofence_enter">Arrived in a geofence</string>
+    <string name="st_alert_geofence_exit">Left a geofence</string>
+    <string name="st_alert_other">Alert</string>
+    <string name="st_alert_row_unread">Unread. %1$s, %2$s, %3$s. %4$s</string>
+    <string name="st_alert_row_read">%1$s, %2$s, %3$s. %4$s</string>
+    <plurals name="st_alerts_count">
+        <item quantity="one">%d alert</item>
+        <item quantity="other">%d alerts</item>
+    </plurals>
+    <string name="st_alerts_one_vehicle">this vehicle</string>
+    <string name="st_alerts_vehicle_all_a11y">Showing all vehicles. Change vehicle</string>
+    <string name="st_alerts_vehicle_one_a11y">Showing %1$s. Change vehicle</string>
+    <string name="st_alerts_empty_title">No alerts</string>
+    <string name="st_alerts_empty_vehicle_title">No alerts for %1$s</string>
+    <string name="st_alerts_empty_body">Over speed, power cuts, geofence arrivals and departures, and SOS show up here and as notifications.</string>
+    <string name="st_alerts_empty_kind_title">No %1$s alerts</string>
+    <string name="st_alerts_empty_kind_body">None of your alerts are of this kind.</string>
+    <string name="st_alerts_empty_kind_body_more">None in your latest alerts. Older ones may have some.</string>
+    <string name="st_alerts_action_older">Look further back</string>
+    <string name="st_alerts_action_show_all">Show all alerts</string>
+    <string name="st_alerts_load_failed_title">Couldn’t load alerts</string>
+    <string name="st_alerts_load_failed">Something went wrong loading alerts.</string>
+    <string name="st_alerts_load_more_failed">Couldn’t load older alerts.</string>
+    <string name="st_alerts_mark_read_failed">Couldn’t mark the alert as read.</string>
+    <string name="st_alerts_mark_all_read">Mark all read</string>
+    <string name="st_alerts_mark_all_failed">Couldn’t mark the alerts as read.</string>
+
+    <!-- More tab -->
+    <string name="st_more_version">ShaloTrack %1$s</string>
+    <string name="st_more_loading_profile">Loading your account…</string>
+    <string name="st_more_profile_unavailable">Your account</string>
+    <string name="st_more_profile_failed">Couldn’t load your account details.</string>
+    <string name="st_more_no_name">Add your name</string>
+    <string name="st_more_profile_a11y">%1$s, %2$s</string>
+    <string name="st_more_section_vehicles">Vehicles</string>
+    <string name="st_more_section_reports">Reports</string>
+    <string name="st_more_section_safety">Safety and alerts</string>
+    <string name="st_more_section_billing">Billing</string>
+    <string name="st_more_section_help">Help</string>
+    <string name="st_more_section_account">Account</string>
+    <string name="st_more_add_vehicle">Add a vehicle</string>
+    <string name="st_more_add_vehicle_detail">Register a vehicle and link its tracker</string>
+    <string name="st_more_trackers">Trackers</string>
+    <string name="st_more_trackers_detail">Link a tracker to a vehicle, or unlink it</string>
+    <string name="st_more_sharing">Sharing</string>
+    <string name="st_more_sharing_detail">Who can see your vehicles, and what’s shared with you</string>
+    <string name="st_more_geofences">Geofences</string>
+    <string name="st_more_geofences_detail">Get an alert when a vehicle arrives or leaves an area</string>
+    <string name="st_more_places">Saved places</string>
+    <string name="st_more_places_detail">Home, work and other places you name</string>
+    <string name="st_more_frequent_places">Frequent places</string>
+    <string name="st_more_frequent_places_detail">Where your vehicles stop most often</string>
+    <string name="st_more_compare">Compare vehicles</string>
+    <string name="st_more_compare_detail">Distance, trips and speed side by side</string>
+    <string name="st_more_report_distance">Distance report</string>
+    <string name="st_more_report_distance_detail">Kilometres per day for any range up to 90 days</string>
+    <string name="st_more_report_trips">Trip report</string>
+    <string name="st_more_report_trips_detail">Every trip with start, end and duration</string>
+    <string name="st_more_report_alerts">Alert report</string>
+    <string name="st_more_report_alerts_detail">All alerts for a vehicle and period</string>
+    <string name="st_more_report_stops">Stop report</string>
+    <string name="st_more_report_stops_detail">Where and how long the vehicle stopped</string>
+    <string name="st_more_emergency_contacts">Emergency contacts</string>
+    <string name="st_more_emergency_contacts_detail">People to call after an SOS</string>
+    <string name="st_more_notifications">Notifications</string>
+    <string name="st_more_notifications_detail">Which alerts reach this phone</string>
+    <string name="st_more_renewals">Tracker renewals</string>
+    <string name="st_more_renewals_detail">Keep each tracker’s service active</string>
+    <string name="st_more_app_plan">App plan</string>
+    <string name="st_more_app_plan_detail">Your plan and how to change it</string>
+    <string name="st_more_support">Contact ShaloTrack</string>
+    <string name="st_more_support_detail">Call, WhatsApp or email us</string>
+    <string name="st_more_complaints">Complaints</string>
+    <string name="st_more_complaints_detail">Report a problem and follow it to the end</string>
+    <string name="st_more_privacy">Privacy policy</string>
+    <string name="st_more_sign_out">Sign out</string>
+    <string name="st_more_delete_account">Delete account</string>
+    <string name="st_more_delete_account_detail">Removes your account and your data</string>
+    <string name="st_sign_out_title">Sign out of ShaloTrack?</string>
+    <string name="st_sign_out_body">This phone stops getting alerts for your vehicles until you sign in again.</string>
+    <string name="st_sign_out_progress">Signing out…</string>
+
+    <!-- Edit profile -->
+    <string name="st_profile_edit_title">Your name</string>
+    <string name="st_profile_first_name">First name</string>
+    <string name="st_profile_surname">Surname</string>
+    <string name="st_profile_phone_locked">Your sign-in number. It can’t be changed here.</string>
+    <string name="st_profile_save_failed">Couldn’t save your name. Try again.</string>
+
+    <!-- App plan -->
+    <string name="st_plan_title">App plan</string>
+    <string name="st_plan_body">Live tracking for each vehicle also needs its tracker’s service to be active (Tracker renewals).</string>
+    <string name="st_plan_free">Free</string>
+    <string name="st_plan_1_year">1 year</string>
+    <string name="st_plan_2_years">2 years</string>
+    <string name="st_plan_3_years">3 years</string>
+    <string name="st_plan_free_detail">No charge</string>
+    <plurals name="st_plan_months">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
+    </plurals>
+    <string name="st_plan_detail_warranty">%1$s · %2$s warranty</string>
+    <string name="st_plan_unavailable">Not offered at the moment</string>
+    <string name="st_plan_option_a11y">%1$s, %2$s, %3$s</string>
+    <string name="st_plan_current_active">Your plan: %1$s</string>
+    <string name="st_plan_current_active_until">Your plan: %1$s, until %2$s</string>
+    <string name="st_plan_current_pending">%1$s requested, waiting for payment. It switches on when payment is confirmed. A new request can be made after that.</string>
+    <string name="st_plan_request">Request plan</string>
+    <string name="st_plan_request_named">Request %1$s</string>
+    <string name="st_plan_request_failed">Couldn’t send your request. Try again.</string>
+    <string name="st_plan_done_title">Request sent</string>
+    <string name="st_plan_done_body">We’ve got your request. We’ll contact you about payment.</string>
+
+    <!-- Support. Numbers and address as published on shalotrack.com; not translatable. -->
+    <string name="st_support_title">Contact ShaloTrack</string>
+    <string name="st_support_body">Have the vehicle’s plate number ready.</string>
+    <string name="st_support_call">Call us</string>
+    <string name="st_support_phone" translatable="false">+94716553852</string>
+    <string name="st_support_phone_display" translatable="false">+94 71 655 3852</string>
+    <string name="st_support_whatsapp">WhatsApp</string>
+    <string name="st_support_whatsapp_detail">Message us on WhatsApp</string>
+    <string name="st_support_whatsapp_number" translatable="false">94716553852</string>
+    <string name="st_support_email_title">Email</string>
+    <string name="st_support_email" translatable="false">aloka@shalotrack.com</string>
+    <string name="st_support_email_subject">ShaloTrack app support</string>
+    <string name="st_support_email_body">\n\n\nApp version %1$s</string>
+
+    <!-- Geofences -->
+    <string name="st_geofences_title">Geofences</string>
+    <string name="st_geofences_subtitle">%1$s · %2$s</string>
+    <plurals name="st_geofences_count">
+        <item quantity="one">%d area</item>
+        <item quantity="other">%d areas</item>
+    </plurals>
+    <string name="st_geofences_empty_title">No geofences yet</string>
+    <string name="st_geofences_empty_body">Tap Add, move the map so the pin is in the middle of the area, and set its size. You get an alert when a vehicle arrives or leaves.</string>
+    <string name="st_geofences_load_failed_title">Couldn’t load geofences</string>
+    <string name="st_geofences_load_failed">Something went wrong loading your geofences.</string>
+    <string name="st_geofence_place_hint">Move the map so the pin is in the middle of the area, then tap Set centre.</string>
+    <string name="st_geofence_set_centre">Set centre</string>
+    <string name="st_geofence_new_title">New geofence</string>
+    <string name="st_geofence_edit_title">Edit geofence</string>
+    <string name="st_geofence_name_hint">Name, for example Home or Office</string>
+    <string name="st_geofence_name_field">a name for this geofence</string>
+    <string name="st_geofence_size">Size</string>
+    <string name="st_geofence_applies_to">Applies to</string>
+    <string name="st_geofence_scope_all">All my vehicles</string>
+    <string name="st_geofence_scope_one">One vehicle</string>
+    <string name="st_geofence_alert_enter">Alert when a vehicle arrives</string>
+    <string name="st_geofence_alert_exit">Alert when a vehicle leaves</string>
+    <string name="st_geofence_alerts_both">Arrive and leave</string>
+    <string name="st_geofence_alerts_enter">Arrive only</string>
+    <string name="st_geofence_alerts_exit">Leave only</string>
+    <string name="st_geofence_alerts_none">No alerts</string>
+    <string name="st_geofence_set_by_owner">Set by the owner</string>
+    <string name="st_geofence_off">Off</string>
+    <string name="st_geofence_toggle_a11y">%1$s on or off</string>
+    <string name="st_geofence_toggle_failed">Couldn’t switch the geofence. It’s back as it was.</string>
+    <string name="st_geofence_save_failed">Couldn’t save the geofence. Try again.</string>
+    <string name="st_geofence_remove">Remove geofence</string>
+    <string name="st_geofence_remove_title">Remove %1$s?</string>
+    <string name="st_geofence_remove_body">Alerts for this area stop at once. Alerts it already sent are kept.</string>
+    <string name="st_geofence_remove_failed">Couldn’t remove the geofence. Try again.</string>
+    <string name="st_geofence_keep">Keep it</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bottom navigation icon and label: navy when the tab is selected, grey otherwise. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/st_navy" android:state_selected="true" />
+    <item android:color="@color/st_text_3" />
+</selector>

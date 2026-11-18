@@ -261,9 +261,10 @@ public class AccountDeletionActivity extends AppCompatActivity {
 
                 if (response.isSuccessful()) {
                     JsonObject data = readData(response);
-                    // The server has revoked this device's sign-in already; clear it locally too.
+                    // The server has revoked this device's sign-in and deleted its push tokens already;
+                    // clear everything about the customer on the phone too.
                     FirebaseAuth.getInstance().signOut();
-                    new SessionManager(getApplicationContext()).logoutUser();
+                    com.example.letstracklanka.utils.SignOut.clearLocalData(getApplicationContext());
                     showDone(data != null ? getString(data, "scheduledFor") : "");
                     return;
                 }
@@ -338,9 +339,8 @@ public class AccountDeletionActivity extends AppCompatActivity {
     }
 
     private void signOutToLogin() {
-        FirebaseAuth.getInstance().signOut();
-        new SessionManager(getApplicationContext()).logoutUser();
-        goToLogin();
+        // Full sign-out: drops this phone's push token and every customer file, then opens sign-in.
+        com.example.letstracklanka.utils.SignOut.perform(this);
     }
 
     private void goToLogin() {

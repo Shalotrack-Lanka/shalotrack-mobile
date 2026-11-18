@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Report generation feature: the single reusable filter step (vehicle +
-     date range) launched by every "real" card in bottom_sheet_reports_menu
-     (KM/Trip/Alert/Stop Alert: see ReportFilterBottomSheet.java). This
+     date range) launched by the report rows on the More tab
+     (Distance/Trips/Alerts/Stops: see ReportFilterBottomSheet.java). This
      layout previously existed but was never inflated anywhere (dead XML),
      and had two issues fixed while bringing it to life:
        1. A stray trailing character after the root </LinearLayout> close
