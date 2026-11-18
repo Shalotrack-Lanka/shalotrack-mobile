@@ -27,7 +27,7 @@
             android:layout_height="match_parent"
             android:clickable="false"
             map:liteMode="true"
-            map:mapType="none" />
+            map:mapType="normal" />
     </FrameLayout>
 
     <LinearLayout

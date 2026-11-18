@@ -76,6 +76,8 @@ public final class AppPlanSheet {
 
     @Nullable private Plan selected;
     private boolean blockedByExisting;
+    /** The customer is on an active Free plan: paid plans can be requested, Free is shown as current. */
+    private boolean onFreePlan;
     private int pending = 2;
     @Nullable private List<RenewalPackage> priceList;
     private boolean priceListFailed;
@@ -166,6 +168,7 @@ public final class AppPlanSheet {
         if (current == null) {
             tvCurrent.setVisibility(View.GONE);
             blockedByExisting = false;
+            onFreePlan = false;
             return;
         }
         Plan p = Plan.of(current.getPlan());
@@ -179,7 +182,11 @@ public final class AppPlanSheet {
             tvCurrent.setText(activity.getString(R.string.st_plan_current_pending, planName));
         }
         tvCurrent.setVisibility(View.VISIBLE);
-        blockedByExisting = true;
+        // Same rule as the server: an active Free plan can be upgraded (it ends when the paid plan's
+        // payment is confirmed); a paid plan, or any plan waiting for payment, blocks a new request.
+        onFreePlan = current.isActive() && p == Plan.FREE;
+        blockedByExisting = !onFreePlan;
+        if (onFreePlan) tvCurrent.setText(R.string.st_plan_current_free);
     }
 
     private void buildOptions() {
@@ -225,13 +232,21 @@ public final class AppPlanSheet {
             price.setVisibility(priceText.isEmpty() ? View.GONE : View.VISIBLE);
             detail.setText(detailText);
 
-            row.setEnabled(available && !blockedByExisting);
+            boolean isCurrent = onFreePlan && p == Plan.FREE;
+            if (isCurrent) {
+                tag.setText(R.string.st_plan_current_tag);
+                tag.setVisibility(View.VISIBLE);
+            }
+            boolean selectable = available && !blockedByExisting && !isCurrent;
+            row.setEnabled(selectable);
             row.setAlpha(available ? 1f : 0.45f);
             row.setContentDescription(activity.getString(R.string.st_plan_option_a11y,
                     activity.getString(p.name), priceText, detailText));
-            if (available && !blockedByExisting) {
+            if (selectable) {
                 row.setOnClickListener(v -> select(p));
-                if (firstAvailable == null || p == Plan.ONE_YEAR) firstAvailable = p;
+                if (firstAvailable == null || firstAvailable == Plan.FREE || p == Plan.ONE_YEAR) {
+                    if (firstAvailable != Plan.ONE_YEAR) firstAvailable = p;
+                }
             }
             row.setTag(p);
             options.addView(row);

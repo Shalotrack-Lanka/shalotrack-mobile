@@ -29,7 +29,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -328,41 +327,71 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             drawRoute();
         }
 
+        /**
+         * Camera first, overlays second: a lite map renders one bitmap per camera change, so the camera
+         * must be placed even if adding a line or marker fails. The zoom is computed here (fit the
+         * route into the 76 x 96 dp tile) instead of newLatLngBounds, which lite mode applied before
+         * the tile was laid out and left the map on the default world view.
+         */
         void drawRoute() {
             GoogleMap m = map;
             TripSummary t = trip;
             if (m == null || t == null) return;
             Context c = itemView.getContext();
-            m.clear();
-            m.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
             LatLng a = new LatLng(t.getStartLatitude(), t.getStartLongitude());
             LatLng b = new LatLng(t.getEndLatitude(), t.getEndLongitude());
             List<LatLng> route = ROUTES.get(routeKey(vehicleId, t));
-            List<LatLng> line = route != null ? route : java.util.Arrays.asList(a, b);
-
-            m.addPolyline(new PolylineOptions().addAll(line)
-                    .width(3f * c.getResources().getDisplayMetrics().density)
-                    .color(ContextCompat.getColor(c, R.color.st_navy)));
-            m.addMarker(new MarkerOptions().position(a).anchor(0.5f, 0.5f).icon(markerDot(c, R.color.st_status_moving)));
-            m.addMarker(new MarkerOptions().position(b).anchor(0.5f, 0.5f).icon(markerDot(c, R.color.st_signal)));
-
-            LatLngBounds.Builder bounds = new LatLngBounds.Builder();
-            for (LatLng p : line) bounds.include(p);
-            float d = c.getResources().getDisplayMetrics().density;
-            int w = Math.round(76 * d), h = Math.round(96 * d), pad = Math.round(12 * d);
-            try {
-                LatLngBounds bb = bounds.build();
-                double span = Math.max(Math.abs(bb.northeast.latitude - bb.southwest.latitude),
-                        Math.abs(bb.northeast.longitude - bb.southwest.longitude));
-                if (span < 0.002) {
-                    m.moveCamera(CameraUpdateFactory.newLatLngZoom(bb.getCenter(), 15f));
-                } else {
-                    m.moveCamera(CameraUpdateFactory.newLatLngBounds(bb, w, h, pad));
-                }
-            } catch (Exception e) {
-                m.moveCamera(CameraUpdateFactory.newLatLngZoom(a, 14f));
+            List<LatLng> line = new ArrayList<>();
+            if (route != null) line.addAll(route);
+            else {
+                if (!isZero(a)) line.add(a);
+                if (!isZero(b)) line.add(b);
             }
+            if (line.isEmpty()) return;   // no coordinates at all: leave the tile blank rather than show the world
+
+            double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+            for (LatLng p : line) {
+                minLat = Math.min(minLat, p.latitude);
+                maxLat = Math.max(maxLat, p.latitude);
+                minLng = Math.min(minLng, p.longitude);
+                maxLng = Math.max(maxLng, p.longitude);
+            }
+            LatLng centre = new LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
+            m.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+            m.moveCamera(CameraUpdateFactory.newLatLngZoom(centre, fitZoom(minLat, maxLat, minLng, maxLng)));
+
+            try {
+                m.clear();
+                if (line.size() >= 2) {
+                    m.addPolyline(new PolylineOptions().addAll(line)
+                            .width(3f * c.getResources().getDisplayMetrics().density)
+                            .color(ContextCompat.getColor(c, R.color.st_navy)));
+                }
+                if (!isZero(a)) m.addMarker(new MarkerOptions().position(a).anchor(0.5f, 0.5f).icon(markerDot(c, R.color.st_status_moving)));
+                if (!isZero(b)) m.addMarker(new MarkerOptions().position(b).anchor(0.5f, 0.5f).icon(markerDot(c, R.color.st_signal)));
+            } catch (RuntimeException ignored) {
+                // the camera is already on the trip; a missing line is better than a world map
+            }
+        }
+
+        /** Largest zoom (max 16) at which the box fits a 76 x 96 dp tile with 10 dp of margin. */
+        private float fitZoom(double minLat, double maxLat, double minLng, double maxLng) {
+            final double tileW = 76 - 20, tileH = 96 - 20;   // dp, Google world = 256 dp wide at zoom 0
+            double lngSpan = Math.max(maxLng - minLng, 0.0005);
+            double latSpan = Math.max(mercY(maxLat) - mercY(minLat), 0.0005 * Math.PI / 180);
+            double zLng = Math.log(tileW * 360 / (256 * lngSpan)) / Math.log(2);
+            double zLat = Math.log(tileH * 2 * Math.PI / (256 * latSpan)) / Math.log(2);
+            return (float) Math.max(3, Math.min(16, Math.min(zLng, zLat)));
+        }
+
+        private double mercY(double lat) {
+            double r = Math.toRadians(Math.max(-85, Math.min(85, lat)));
+            return Math.log(Math.tan(Math.PI / 4 + r / 2));
+        }
+
+        private boolean isZero(LatLng p) {
+            return p.latitude == 0 && p.longitude == 0;
         }
 
         void clearMap() {
