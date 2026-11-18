@@ -108,6 +108,16 @@
                     android:text="@string/st_profile_phone_locked"
                     android:textAppearance="@style/TextAppearance.ST.BodySmall" />
             </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChangePhone"
+                style="@style/Widget.ST.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="40dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="@string/st_phone_change_action" />
         </LinearLayout>
 
         <TextView

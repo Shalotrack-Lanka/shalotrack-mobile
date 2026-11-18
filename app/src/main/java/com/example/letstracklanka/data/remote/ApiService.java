@@ -13,11 +13,12 @@ import com.example.letstracklanka.data.model.RespondToVehicleShareRequest;
 import com.example.letstracklanka.data.model.UpdateCustomerRequest;
 import com.example.letstracklanka.data.model.UpdateGeofenceRequest;
 import com.example.letstracklanka.data.model.UpdateVehicleRequest;
-import com.example.letstracklanka.data.model.VehicleResponse;
 import com.example.letstracklanka.data.model.CreateComplaintReplyRequest;
 import com.example.letstracklanka.data.model.CreateComplaintRequest;
 
 import com.example.letstracklanka.data.model.CreateRenewalRequest;
+
+import com.google.gson.JsonObject;
 
 import okhttp3.MultipartBody;
 import okhttp3.ResponseBody;
@@ -46,21 +47,19 @@ public interface ApiService {
     @GET("api/Vehicles/customer/{customerId}")
     Call<ResponseBody> getVehiclesByCustomer(@Path("customerId") String customerId);
 
+    // The vehicle endpoints answer in the ApiResponse envelope ({ success, message, data: { ...vehicle } }), so
+    // they are read as raw bodies and the "data" object is parsed with VehicleResponse.from(...). Typing them as
+    // Call<VehicleResponse> parsed the envelope itself: every field came back null (no vehicle ID after create,
+    // so the tracker was never linked; an empty details card and a broken Edit on the vehicle page).
     @POST("api/Vehicles")
-    Call<VehicleResponse> createVehicle(@Body CreateVehicleRequest request);
+    Call<ResponseBody> createVehicle(@Body CreateVehicleRequest request);
 
-    // NEW -- real, existing backend endpoint (PUT /api/Vehicles/{id}),
-    // was never called from anywhere in the Android app until now.
     @PUT("api/Vehicles/{vehicleId}")
-    Call<VehicleResponse> updateVehicle(@Path("vehicleId") String vehicleId, @Body UpdateVehicleRequest request);
+    Call<ResponseBody> updateVehicle(@Path("vehicleId") String vehicleId, @Body UpdateVehicleRequest request);
 
-    // NEW -- real, existing backend endpoint, was never called from
-    // anywhere in the Android app. Needed specifically because
-    // getVehiclesByCustomer only ever returns owned vehicles by design --
-    // a shared vehicle needs this separate, genuinely different path to
-    // the same rich VehicleResponse shape.
+    // Works for owned and shared vehicles (the server checks access); the list endpoint only returns owned ones.
     @GET("api/Vehicles/{vehicleId}")
-    Call<VehicleResponse> getVehicleById(@Path("vehicleId") String vehicleId);
+    Call<ResponseBody> getVehicleById(@Path("vehicleId") String vehicleId);
 
     // NEW -- Geofencing.
     @GET("api/Geofences")
@@ -240,4 +239,53 @@ public interface ApiService {
 
     @PATCH("api/Renewals/{renewalRequestId}/cancel")
     Call<ResponseBody> cancelRenewal(@Path("renewalRequestId") String renewalRequestId);
+
+    // ── Vehicle page (Drop 2). Owner-only on the server; anyone else gets 404. ──
+
+    // Live location link: body {"durationHours": 1..24}. The token is in this reply only.
+    @POST("api/LiveShare/vehicle/{vehicleId}")
+    Call<ResponseBody> createLiveShare(@Path("vehicleId") String vehicleId, @Body JsonObject body);
+
+    @GET("api/LiveShare/vehicle/{vehicleId}")
+    Call<ResponseBody> getLiveShares(@Path("vehicleId") String vehicleId);
+
+    @DELETE("api/LiveShare/{linkId}")
+    Call<ResponseBody> revokeLiveShare(@Path("linkId") String linkId);
+
+    @GET("api/VehicleAlertSettings/vehicle/{vehicleId}")
+    Call<ResponseBody> getVehicleAlertSettings(@Path("vehicleId") String vehicleId);
+
+    // body {"speedLimitKmh", "idleAlertEnabled", "idleAlertMinutes"}
+    @PUT("api/VehicleAlertSettings/vehicle/{vehicleId}")
+    Call<ResponseBody> updateVehicleAlertSettings(@Path("vehicleId") String vehicleId, @Body JsonObject body);
+
+    @GET("api/VehicleReminders/vehicle/{vehicleId}")
+    Call<ResponseBody> getVehicleReminders(@Path("vehicleId") String vehicleId);
+
+    // body {"type": 0 licence | 1 insurance | 2 service, "dueDate": "yyyy-MM-dd", "notes"}
+    @PUT("api/VehicleReminders/vehicle/{vehicleId}")
+    Call<ResponseBody> upsertVehicleReminder(@Path("vehicleId") String vehicleId, @Body JsonObject body);
+
+    @DELETE("api/VehicleReminders/{reminderId}")
+    Call<ResponseBody> deleteVehicleReminder(@Path("reminderId") String reminderId);
+
+    // ── Account (Drop 2) ──
+
+    @GET("api/WeeklySummary/settings")
+    Call<ResponseBody> getWeeklySummarySettings();
+
+    // body {"enabled": true|false}
+    @PUT("api/WeeklySummary/settings")
+    Call<ResponseBody> updateWeeklySummarySettings(@Body JsonObject body);
+
+    // Download my data: the envelope's "data" is the whole export. Rate limited on the server.
+    @GET("api/Account/export")
+    Call<ResponseBody> exportMyData();
+
+    // Change the sign-in number. Needs a sign-in in the last 10 minutes (403 REAUTH_REQUIRED otherwise).
+    @POST("api/Customers/me/phone-change/request")
+    Call<ResponseBody> requestPhoneChange(@Body JsonObject body);
+
+    @POST("api/Customers/me/phone-change/verify")
+    Call<ResponseBody> verifyPhoneChange(@Body JsonObject body);
 }

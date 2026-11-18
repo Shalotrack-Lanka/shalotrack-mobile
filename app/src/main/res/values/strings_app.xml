@@ -285,7 +285,7 @@
     <string name="st_profile_edit_title">Your name</string>
     <string name="st_profile_first_name">First name</string>
     <string name="st_profile_surname">Surname</string>
-    <string name="st_profile_phone_locked">Your sign-in number. It can’t be changed here.</string>
+    <string name="st_profile_phone_locked">Your sign-in number</string>
     <string name="st_profile_save_failed">Couldn’t save your name. Try again.</string>
 
     <!-- App plan -->

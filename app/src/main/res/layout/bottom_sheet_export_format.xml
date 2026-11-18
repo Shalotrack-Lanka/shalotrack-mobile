@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Download my data: pick the format first (Fleet parity: a readable PDF by default, or JSON for other apps).
+     The rows are added by ExportFormatSheet with MoreRows, so they look like every other list in More. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/st_space_5"
+    android:paddingTop="12dp"
+    android:paddingEnd="@dimen/st_space_5"
+    android:paddingBottom="@dimen/st_space_6">
+
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_st_handle"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:accessibilityHeading="true"
+        android:text="@string/st_more_export"
+        android:textAppearance="@style/TextAppearance.ST.Title" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/st_export_body"
+        android:textAppearance="@style/TextAppearance.ST.BodySmall" />
+
+    <LinearLayout
+        android:id="@+id/exportOptions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_st_card"
+        android:divider="@drawable/bg_st_divider_inset"
+        android:orientation="vertical"
+        android:padding="1dp"
+        android:showDividers="middle" />
+</LinearLayout>

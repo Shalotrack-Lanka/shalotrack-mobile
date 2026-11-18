@@ -38,6 +38,7 @@ public final class EditProfileSheet {
 
     private EditProfileSheet() {}
 
+    @android.annotation.SuppressLint("InflateParams") // dialog content has no parent to measure against
     public static void show(@NonNull Activity activity, @NonNull CustomerResponse customer, @NonNull Listener listener) {
         BottomSheetDialog sheet = new BottomSheetDialog(activity);
         View view = activity.getLayoutInflater().inflate(R.layout.bottom_sheet_edit_profile, null);
@@ -59,6 +60,10 @@ public final class EditProfileSheet {
         tvPhone.setText(ProfileText.phone(customer.getPhoneNumber()));
 
         btnCancel.setOnClickListener(v -> sheet.dismiss());
+        view.findViewById(R.id.btnChangePhone).setOnClickListener(v -> {
+            sheet.dismiss();
+            PhoneChangeSheet.show(activity, customer.getPhoneNumber());
+        });
         etSurname.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 btnSave.performClick();
