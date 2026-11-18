@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- In-screen empty / failed state: title, one line of help, at most one button. Driven by EmptyState. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/emptyState"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_st_card_dashed"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="28dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="24dp"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <TextView
+        android:id="@+id/emptyStateTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.ST.TitleSmall"
+        tools:text="No trips on this day" />
+
+    <TextView
+        android:id="@+id/emptyStateBody"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:maxWidth="300dp"
+        android:textAppearance="@style/TextAppearance.ST.BodySmall"
+        tools:text="Trips appear here once the vehicle has moved." />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/emptyStateAction"
+        style="@style/Widget.ST.Button.Secondary.Small"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        tools:text="Pick another day"
+        tools:visibility="visible" />
+</LinearLayout>

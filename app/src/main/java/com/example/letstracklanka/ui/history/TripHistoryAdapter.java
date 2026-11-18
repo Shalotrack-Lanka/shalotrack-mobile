@@ -1,43 +1,48 @@
 package com.example.letstracklanka.ui.history;
 
-import android.content.Intent;
-import android.util.Log;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.TrackingPoint;
 import com.example.letstracklanka.data.model.TripSummary;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
+import com.example.letstracklanka.ui.common.TimeText;
 import com.example.letstracklanka.ui.main.AddressResolver;
-import com.google.android.material.button.MaterialButton;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import com.example.letstracklanka.utils.ApiJson;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.lang.reflect.Type;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -45,412 +50,104 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Groups a flat List<TripSummary> into day-header + trip-card rows for
- * rvTripHistory. TripsReportResponse itself is a flat list (confirmed by
- * reading the actual model) -- day grouping is computed here from each
- * trip's real startTime, not sourced from any backend grouping.
+ * Trip list: day headings and trip cards (item_trip_history_day_header / item_trip_history_card).
  *
- * "Post" and "Save Place" are intentionally NOT wired here -- both hidden
- * (visibility="gone") in the layouts per explicit decision to defer them
- * past this deployment. Nothing in this adapter references them.
+ * Route thumbnails use Google Maps SDK LITE MODE (a bitmap of a real map, drawn by the Maps SDK):
+ *   - no per-image charge, and it uses the app's Android-restricted Maps key;
+ *   - replaces the Static Maps API, whose key had to be left without an app restriction and sat in a
+ *     public repository where anyone could run up the bill.
+ * Following Google's lite-mode list pattern: one MapView per view holder, cleared when recycled.
+ *
+ * Each route is fetched once (max 500 points, the API's cap), simplified to at most 120 points and
+ * cached, so scrolling back never refetches. Until it arrives the card shows a straight start-to-end line.
  */
 public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private static final int VIEW_TYPE_DAY_HEADER = 0;
-    private static final int VIEW_TYPE_TRIP_CARD = 1;
+    private static final int VIEW_TYPE_DAY = 0;
+    private static final int VIEW_TYPE_TRIP = 1;
+    private static final int ROUTE_PAGE_SIZE = 500;
+    private static final int MAX_THUMBNAIL_POINTS = 120;
 
-    // Real fix for a confirmed bug: the backend orders GPS points most-
-    // recent-first and truncates at whatever limit is requested, so a
-    // long trip with more raw points than this would silently drop its
-    // earliest points -- the true start gets cut off, and whatever point
-    // lands first in the truncated set becomes the wrong "start" marker.
-    // Not a hard backend cap (GpsTrackingFilter.PageSize has no upper
-    // bound); this is a request-side value.
-    private static final int MAX_TRIP_HISTORY_POINTS = 10000;
+    /** Routes for this app session, keyed by vehicle + start + end. */
+    private static final LruCache<String, List<LatLng>> ROUTES = new LruCache<>(80);
 
     public interface OnTripClickListener {
         void onTripClick(TripSummary trip);
     }
 
-    private static class Row {
-        final boolean isHeader;
-        final String dayKey;
+    private static final class Row {
+        final boolean isDay;
         final String dayTitle;
         final String daySummary;
         final TripSummary trip;
-        final String tripKey;
 
-        static Row header(String dayKey, String dayTitle, String daySummary) {
-            return new Row(true, dayKey, dayTitle, daySummary, null, null);
-        }
-
-        static Row card(String dayKey, TripSummary trip, String tripKey) {
-            return new Row(false, dayKey, null, null, trip, tripKey);
-        }
-
-        private Row(boolean isHeader, String dayKey, String dayTitle, String daySummary, TripSummary trip, String tripKey) {
-            this.isHeader = isHeader;
-            this.dayKey = dayKey;
+        Row(String dayTitle, String daySummary) {
+            this.isDay = true;
             this.dayTitle = dayTitle;
             this.daySummary = daySummary;
+            this.trip = null;
+        }
+
+        Row(TripSummary trip) {
+            this.isDay = false;
+            this.dayTitle = null;
+            this.daySummary = null;
             this.trip = trip;
-            this.tripKey = tripKey;
         }
     }
 
     private final OnTripClickListener clickListener;
     private final ShaloTrackApi trackingApi;
+    private final Set<String> inFlight = new HashSet<>();
     private String vehicleId;
-    private final Map<String, List<TripSummary>> tripsByDay = new LinkedHashMap<>();
-    private final Map<String, String> dayTitles = new HashMap<>();
-    private final Map<String, String> daySummaries = new HashMap<>();
-    private final Set<String> collapsedDays = new HashSet<>();
     private List<Row> rows = new ArrayList<>();
-
-    // Same fix as VehicleListAdapter: AddressResolver keeps a single
-    // lastLat/lastLng/lastAddress per INSTANCE, not per trip -- one shared
-    // resolver across every row would let one trip's cached address bleed
-    // into another's. Keyed by a synthetic trip identity (TripSummary has
-    // no id field of its own), with cleanup on every updateTrips() so a
-    // long history session doesn't accumulate one Geocoder/executor per
-    // trip ever seen -- more important here than for the vehicle list,
-    // since a trip history can realistically have far more rows.
-    private final Map<String, AddressResolver> addressResolvers = new HashMap<>();
-
-    private final SimpleDateFormat isoParser;
-    private final SimpleDateFormat dayKeyFormat;
-    private final SimpleDateFormat dayTitleFormat;
-    private final SimpleDateFormat timeFormat;
 
     public TripHistoryAdapter(OnTripClickListener clickListener, ShaloTrackApi trackingApi) {
         this.clickListener = clickListener;
         this.trackingApi = trackingApi;
-        isoParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        isoParser.setTimeZone(TimeZone.getTimeZone("UTC"));
-        dayKeyFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        dayTitleFormat = new SimpleDateFormat("EEE, d MMM", Locale.getDefault());
-        timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
     }
 
-    /** Needed because TripSummary itself carries no vehicle ID -- every
-     * trip in this screen belongs to whichever vehicle the whole screen is
-     * showing, held at the Activity level. Must be set before any row with
-     * a real route fetch gets bound. */
     public void setVehicleId(String vehicleId) {
         this.vehicleId = vehicleId;
     }
 
-    public void updateTrips(List<TripSummary> trips) {
-        tripsByDay.clear();
-        dayTitles.clear();
-        daySummaries.clear();
+    /** Groups the trips by local (Sri Lanka) day, newest first. */
+    public void updateTrips(Context context, List<TripSummary> trips) {
+        List<TripSummary> sorted = new ArrayList<>();
+        if (trips != null) for (TripSummary t : trips) if (t != null && TimeText.parse(t.getStartTime()) != null) sorted.add(t);
+        Collections.sort(sorted, (a, b) -> TimeText.parse(b.getStartTime()).compareTo(TimeText.parse(a.getStartTime())));
 
-        Set<String> currentTripKeys = new HashSet<>();
-
-        if (trips != null) {
-            // "Latest first" -- sort newest-to-oldest by real start time
-            // before grouping. tripsByDay is a LinkedHashMap (preserves
-            // insertion order), so grouping from an already-descending list
-            // naturally puts both the day sections AND the trips within
-            // each day in latest-first order, in one pass.
-            List<TripSummary> sorted = new ArrayList<>(trips);
-            Collections.sort(sorted, (a, b) -> {
-                Date da = parseIso(a.getStartTime());
-                Date db = parseIso(b.getStartTime());
-                if (da == null || db == null) return 0;
-                return db.compareTo(da); // descending: b before a
-            });
-
-            for (TripSummary trip : sorted) {
-                Date start = parseIso(trip.getStartTime());
-                if (start == null) continue; // can't group a trip whose start time doesn't parse
-
-                String dayKey = dayKeyFormat.format(start);
-                tripsByDay.computeIfAbsent(dayKey, k -> new ArrayList<>()).add(trip);
-                currentTripKeys.add(tripKeyFor(trip));
+        Map<LocalDate, List<TripSummary>> byDay = new LinkedHashMap<>();
+        for (TripSummary t : sorted) {
+            LocalDate day = TimeText.localDay(t.getStartTime());
+            if (day == null) continue;
+            List<TripSummary> list = byDay.get(day);
+            if (list == null) {
+                list = new ArrayList<>();
+                byDay.put(day, list);
             }
+            list.add(t);
         }
 
-        // Cheap cleanup: drop resolvers for trips no longer in the current
-        // report window.
-        addressResolvers.keySet().retainAll(currentTripKeys);
-
-        for (Map.Entry<String, List<TripSummary>> entry : tripsByDay.entrySet()) {
-            String dayKey = entry.getKey();
-            List<TripSummary> dayTrips = entry.getValue();
-
-            double totalKm = 0;
-            double totalMinutes = 0;
-            for (TripSummary t : dayTrips) {
-                totalKm += t.getDistanceKm();
-                totalMinutes += t.getDurationMinutes();
+        List<Row> out = new ArrayList<>();
+        for (Map.Entry<LocalDate, List<TripSummary>> e : byDay.entrySet()) {
+            double km = 0, minutes = 0;
+            for (TripSummary t : e.getValue()) {
+                km += t.getDistanceKm();
+                minutes += t.getDurationMinutes();
             }
-
-            Date dayDate;
-            try {
-                dayDate = dayKeyFormat.parse(dayKey);
-            } catch (ParseException e) {
-                dayDate = new Date();
-            }
-            String dayOfWeek = dayTitleFormat.format(dayDate);
-
-            dayTitles.put(dayKey, dayOfWeek + " - " + dayTrips.size() + (dayTrips.size() == 1 ? " Trip" : " Trips"));
-            daySummaries.put(dayKey, "Total - " + String.format(Locale.getDefault(), "%.0f km in %s", totalKm, formatDuration(totalMinutes)));
+            String summary = context.getString(R.string.st_trips_day_summary,
+                    String.format(Locale.getDefault(), "%.1f", km), TimeText.duration(context, minutes));
+            out.add(new Row(TimeText.dayHeader(context, e.getKey()), summary));
+            for (TripSummary t : e.getValue()) out.add(new Row(t));
         }
-
-        rebuildRows();
-    }
-
-    private void rebuildRows() {
-        List<Row> newRows = new ArrayList<>();
-        for (String dayKey : tripsByDay.keySet()) {
-            newRows.add(Row.header(dayKey, dayTitles.get(dayKey), daySummaries.get(dayKey)));
-            if (!collapsedDays.contains(dayKey)) {
-                for (TripSummary trip : tripsByDay.get(dayKey)) {
-                    newRows.add(Row.card(dayKey, trip, tripKeyFor(trip)));
-                }
-            }
-        }
-        rows = newRows;
+        rows = out;
         notifyDataSetChanged();
-    }
-
-    private String tripKeyFor(TripSummary trip) {
-        return trip.getStartTime() + "_" + trip.getEndTime();
-    }
-
-    private Date parseIso(String iso) {
-        if (iso == null) return null;
-        try {
-            return isoParser.parse(iso);
-        } catch (ParseException e) {
-            return null;
-        }
-    }
-
-    private String formatDuration(double totalMinutes) {
-        int hours = (int) (totalMinutes / 60);
-        int minutes = (int) (totalMinutes % 60);
-        if (hours > 0) return hours + "h " + minutes + "m";
-        return minutes + "m";
     }
 
     @Override
     public int getItemViewType(int position) {
-        return rows.get(position).isHeader ? VIEW_TYPE_DAY_HEADER : VIEW_TYPE_TRIP_CARD;
-    }
-
-    @NonNull
-    @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        if (viewType == VIEW_TYPE_DAY_HEADER) {
-            return new DayHeaderViewHolder(inflater.inflate(R.layout.item_trip_history_day_header, parent, false));
-        }
-        return new TripCardViewHolder(inflater.inflate(R.layout.item_trip_history_card, parent, false));
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        Row row = rows.get(position);
-
-        if (holder instanceof DayHeaderViewHolder) {
-            DayHeaderViewHolder h = (DayHeaderViewHolder) holder;
-            h.tvDayTitle.setText(row.dayTitle);
-            h.tvDaySummary.setText(row.daySummary);
-
-            // "▶ Day" is being used here as an expand/collapse toggle for
-            // that day's trip cards -- a deliberate, deliberately-simple
-            // interpretation, NOT a full multi-trip combined-playback
-            // feature (which would need stitching multiple trips' GPS
-            // point sets into one continuous session -- a much bigger,
-            // separate feature on its own).
-            boolean collapsed = collapsedDays.contains(row.dayKey);
-            h.tvToggleDayLabel.setText(collapsed ? "▶ Day" : "▼ Day");
-            h.btnToggleDay.setOnClickListener(v -> {
-                if (collapsedDays.contains(row.dayKey)) collapsedDays.remove(row.dayKey);
-                else collapsedDays.add(row.dayKey);
-                rebuildRows();
-            });
-            return;
-        }
-
-        TripCardViewHolder h = (TripCardViewHolder) holder;
-        TripSummary trip = row.trip;
-        String tripKey = row.tripKey;
-
-        h.itemView.setTag(tripKey); // guards the async address callback below against recycling
-
-        h.tvTripDistance.setText(String.format(Locale.getDefault(), "%.0f km Trip", trip.getDistanceKm()));
-        h.tvTripTime.setText(formatTime(trip.getStartTime()) + " - " + formatTime(trip.getEndTime())
-                + " (" + formatDuration(trip.getDurationMinutes()) + ")");
-        h.tvTopSpeed.setText("Top Speed: " + (int) trip.getMaxSpeed() + " kph");
-
-        h.tvTripAddresses.setText("Resolving location...");
-        h.tvStartPlaceName.setText("Resolving...");
-        h.tvEndPlaceName.setText("Resolving...");
-
-        AddressResolver resolver = addressResolvers.get(tripKey);
-        if (resolver == null) {
-            resolver = new AddressResolver(h.itemView.getContext());
-            addressResolvers.put(tripKey, resolver);
-        }
-
-        resolver.resolveAddress(trip.getStartLatitude(), trip.getStartLongitude(), startAddress -> {
-            if (tripKey.equals(h.itemView.getTag())) {
-                h.tvStartPlaceName.setText(startAddress);
-                updateCombinedAddress(h, startAddress, null);
-            }
-        });
-        resolver.resolveAddress(trip.getEndLatitude(), trip.getEndLongitude(), endAddress -> {
-            if (tripKey.equals(h.itemView.getTag())) {
-                h.tvEndPlaceName.setText(endAddress);
-                updateCombinedAddress(h, null, endAddress);
-            }
-        });
-
-        h.layoutTripIconClick.setOnClickListener(v -> {
-            if (clickListener != null) clickListener.onTripClick(trip);
-        });
-
-        // Map thumbnail: sized to roughly match the ImageView's actual
-        // layout dimensions (140dp tall, full card width) converted to
-        // px, so we're not requesting/paying for a bigger image than
-        // will ever be displayed.
-        if (h.ivTripMap != null) {
-            float density = h.itemView.getResources().getDisplayMetrics().density;
-            int widthPx = h.itemView.getResources().getDisplayMetrics().widthPixels;
-            int heightPx = (int) (140 * density);
-            loadRealRouteMap(h, trip, tripKey, widthPx, heightPx);
-        }
-
-        if (h.btnPostTrip != null) {
-            h.btnPostTrip.setOnClickListener(v -> shareTrip(h.itemView.getContext(), trip, h));
-        }
-    }
-
-    // Fetches this trip's actual GPS point history (same endpoint
-    // TripDetailActivity's playback screen uses) so the thumbnail shows
-    // the real driven route, not a straight line between start/end. Real
-    // cost tradeoff, stated plainly: this is one extra network call PER
-    // VISIBLE trip row, on top of everything else already fetched for it.
-    // RecyclerView only binds rows on/near screen, so it's bounded by what
-    // the user actually scrolls through, not the whole date range at once
-    // -- but it is a genuine per-row cost increase, not free.
-    private void loadRealRouteMap(TripCardViewHolder h, TripSummary trip, String tripKey, int widthPx, int heightPx) {
-        if (vehicleId == null || trackingApi == null) {
-            // Fall back to the cheap straight-line version rather than
-            // silently showing nothing, if this adapter wasn't given what
-            // it needs to fetch real points.
-            StaticMapLoader.load(h.ivTripMap, trip.getStartLatitude(), trip.getStartLongitude(),
-                    trip.getEndLatitude(), trip.getEndLongitude(), widthPx, heightPx);
-            return;
-        }
-
-        // See MAX_TRIP_HISTORY_POINTS above for why this isn't just 500.
-        trackingApi.getTrackingHistory(vehicleId, trip.getStartTime(), trip.getEndTime(), MAX_TRIP_HISTORY_POINTS)
-                .enqueue(new Callback<ResponseBody>() {
-                    @Override
-                    public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                        try (ResponseBody body = response.body()) {
-                            if (response.isSuccessful() && body != null) {
-                                List<TrackingPoint> points = parseList(body.string());
-                                // FIX: the GpsTracking API returns points
-                                // newest-first (same documented behavior
-                                // already handled in VehicleTrailRenderer),
-                                // but this method never sorted them --
-                                // meaning StaticMapLoader.loadRoute() was
-                                // using the NEWEST point as "first" (green
-                                // S marker) and the OLDEST as "last" (red E
-                                // marker), backwards from the real
-                                // chronological start/end of the trip.
-                                if (points != null) {
-                                    Collections.sort(points, Comparator.comparing(TrackingPoint::getEventTime));
-                                }
-                                // Guards against a slow response landing on
-                                // a row that's since been recycled to a
-                                // different trip.
-                                if (!tripKey.equals(h.itemView.getTag())) return;
-                                if (points != null && points.size() >= 2) {
-                                    StaticMapLoader.loadRoute(h.ivTripMap, points, widthPx, heightPx);
-                                    return;
-                                }
-                            }
-                        } catch (Exception e) {
-                            Log.e("TripHistoryAdapter", "loadRealRouteMap parse error", e);
-                        }
-                        // Fall back to the straight-line version if the
-                        // fetch failed or came back with too few points to
-                        // draw a meaningful route.
-                        if (tripKey.equals(h.itemView.getTag())) {
-                            StaticMapLoader.load(h.ivTripMap, trip.getStartLatitude(), trip.getStartLongitude(),
-                                    trip.getEndLatitude(), trip.getEndLongitude(), widthPx, heightPx);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                        Log.e("TripHistoryAdapter", "loadRealRouteMap network error", t);
-                        if (tripKey.equals(h.itemView.getTag())) {
-                            StaticMapLoader.load(h.ivTripMap, trip.getStartLatitude(), trip.getStartLongitude(),
-                                    trip.getEndLatitude(), trip.getEndLongitude(), widthPx, heightPx);
-                        }
-                    }
-                });
-    }
-
-    private List<TrackingPoint> parseList(String json) {
-        if (json == null || json.trim().isEmpty()) return new ArrayList<>();
-        Gson gson = new Gson();
-        try {
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            JsonArray data = root != null && root.has("data") ? root.getAsJsonArray("data") : null;
-            if (data == null) return new ArrayList<>();
-            Type listType = new TypeToken<List<TrackingPoint>>() {}.getType();
-            List<TrackingPoint> list = gson.fromJson(data, listType);
-            return list != null ? list : new ArrayList<>();
-        } catch (Exception e) {
-            Log.e("TripHistoryAdapter", "parseList error", e);
-            return new ArrayList<>();
-        }
-    }
-
-    // Native Android share sheet -- real trip data, no proprietary "post to
-    // a feed" backend (doesn't exist), no fake caption text, no competitor
-    // branding/URL like the original mock had.
-    private void shareTrip(android.content.Context context, TripSummary trip, TripCardViewHolder h) {
-        String start = h.tvStartPlaceName != null ? h.tvStartPlaceName.getText().toString() : "start";
-        String end = h.tvEndPlaceName != null ? h.tvEndPlaceName.getText().toString() : "end";
-        // Addresses resolve asynchronously; if the user taps Share before
-        // they've finished, this can still say "Resolving..." -- a known,
-        // minor edge case, not worth blocking/disabling the button for.
-
-        String shareText = String.format(Locale.getDefault(),
-                "Trip: %.0f km\n%s - %s (%s)\nFrom %s\nTo %s",
-                trip.getDistanceKm(),
-                formatTime(trip.getStartTime()), formatTime(trip.getEndTime()),
-                formatDuration(trip.getDurationMinutes()),
-                start, end);
-
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
-        context.startActivity(Intent.createChooser(shareIntent, "Share trip"));
-    }
-
-    // tvTripAddresses shows "start - end" combined; since the two halves
-    // resolve independently and asynchronously, this rebuilds it from
-    // whatever's currently in the two separate labels rather than needing
-    // to track resolution state separately.
-    private void updateCombinedAddress(TripCardViewHolder h, String startOverride, String endOverride) {
-        String start = startOverride != null ? startOverride : h.tvStartPlaceName.getText().toString();
-        String end = endOverride != null ? endOverride : h.tvEndPlaceName.getText().toString();
-        h.tvTripAddresses.setText(start + " - " + end);
-    }
-
-    private String formatTime(String iso) {
-        Date d = parseIso(iso);
-        return d != null ? timeFormat.format(d) : "--:--";
+        return rows.get(position).isDay ? VIEW_TYPE_DAY : VIEW_TYPE_TRIP;
     }
 
     @Override
@@ -458,36 +155,251 @@ public class TripHistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         return rows.size();
     }
 
-    static class DayHeaderViewHolder extends RecyclerView.ViewHolder {
-        TextView tvDayTitle, tvDaySummary, tvToggleDayLabel;
-        View btnToggleDay;
+    @NonNull
+    @Override
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inf = LayoutInflater.from(parent.getContext());
+        if (viewType == VIEW_TYPE_DAY) {
+            return new DayHolder(inf.inflate(R.layout.item_trip_history_day_header, parent, false));
+        }
+        return new TripHolder(inf.inflate(R.layout.item_trip_history_card, parent, false));
+    }
 
-        DayHeaderViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvDayTitle = itemView.findViewById(R.id.tvDayTitle);
-            tvDaySummary = itemView.findViewById(R.id.tvDaySummary);
-            tvToggleDayLabel = itemView.findViewById(R.id.tvToggleDayLabel);
-            btnToggleDay = itemView.findViewById(R.id.btnToggleDay);
+    @Override
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        Row row = rows.get(position);
+        if (holder instanceof DayHolder) {
+            ((DayHolder) holder).title.setText(row.dayTitle);
+            ((DayHolder) holder).summary.setText(row.daySummary);
+            return;
+        }
+        ((TripHolder) holder).bind(row.trip);
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
+        super.onViewRecycled(holder);
+        if (holder instanceof TripHolder) ((TripHolder) holder).clearMap();
+    }
+
+    // ── Routes ─────────────────────────────────────────────
+
+    private static String routeKey(String vehicleId, TripSummary t) {
+        return vehicleId + "|" + t.getStartTime() + "|" + t.getEndTime();
+    }
+
+    private void loadRoute(TripSummary trip, String key) {
+        if (vehicleId == null || trackingApi == null || inFlight.contains(key)) return;
+        inFlight.add(key);
+        trackingApi.getTrackingHistory(vehicleId, trip.getStartTime(), trip.getEndTime(), ROUTE_PAGE_SIZE)
+                .enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                        inFlight.remove(key);
+                        try (ResponseBody body = response.body()) {
+                            if (!response.isSuccessful() || body == null) return;
+                            List<TrackingPoint> points = ApiJson.list(body.string(), TrackingPoint.class);
+                            if (points == null || points.size() < 2) return;
+                            Collections.sort(points, (a, b) -> {
+                                String ea = a.getEventTime() != null ? a.getEventTime() : "";
+                                String eb = b.getEventTime() != null ? b.getEventTime() : "";
+                                return ea.compareTo(eb);
+                            });
+                            List<LatLng> line = new ArrayList<>();
+                            for (TrackingPoint p : points) {
+                                if (p.getLatitude() != 0 || p.getLongitude() != 0) line.add(new LatLng(p.getLatitude(), p.getLongitude()));
+                            }
+                            // The API returns at most 500 points; a longer trip still ends where it ended.
+                            if (points.size() >= ROUTE_PAGE_SIZE) line.add(new LatLng(trip.getEndLatitude(), trip.getEndLongitude()));
+                            ROUTES.put(key, simplify(line, MAX_THUMBNAIL_POINTS));
+                            notifyRouteReady(key);
+                        } catch (Exception ignored) {
+                            // keep the straight-line preview
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                        inFlight.remove(key);
+                    }
+                });
+    }
+
+    private void notifyRouteReady(String key) {
+        for (int i = 0; i < rows.size(); i++) {
+            Row r = rows.get(i);
+            if (!r.isDay && key.equals(routeKey(vehicleId, r.trip))) notifyItemChanged(i);
         }
     }
 
-    static class TripCardViewHolder extends RecyclerView.ViewHolder {
-        TextView tvTripDistance, tvTripAddresses, tvTripTime, tvTopSpeed, tvStartPlaceName, tvEndPlaceName;
-        View layoutTripIconClick;
-        ImageView ivTripMap;
-        MaterialButton btnPostTrip;
+    /** Keeps every n-th point plus the last one: enough for a 76 x 96 dp thumbnail. */
+    private static List<LatLng> simplify(List<LatLng> in, int max) {
+        if (in.size() <= max) return in;
+        List<LatLng> out = new ArrayList<>(max + 1);
+        double step = (double) in.size() / max;
+        for (double i = 0; i < in.size(); i += step) out.add(in.get((int) i));
+        LatLng last = in.get(in.size() - 1);
+        if (!out.get(out.size() - 1).equals(last)) out.add(last);
+        return out;
+    }
 
-        TripCardViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvTripDistance = itemView.findViewById(R.id.tvTripDistance);
-            tvTripAddresses = itemView.findViewById(R.id.tvTripAddresses);
-            tvTripTime = itemView.findViewById(R.id.tvTripTime);
-            tvTopSpeed = itemView.findViewById(R.id.tvTopSpeed);
-            tvStartPlaceName = itemView.findViewById(R.id.tvStartPlaceName);
-            tvEndPlaceName = itemView.findViewById(R.id.tvEndPlaceName);
-            layoutTripIconClick = itemView.findViewById(R.id.layoutTripIconClick);
-            ivTripMap = itemView.findViewById(R.id.ivTripMap);
-            btnPostTrip = itemView.findViewById(R.id.btnPostTrip);
+    // ── View holders ───────────────────────────────────────
+
+    static final class DayHolder extends RecyclerView.ViewHolder {
+        final TextView title, summary;
+
+        DayHolder(@NonNull View v) {
+            super(v);
+            title = v.findViewById(R.id.tvDayTitle);
+            summary = v.findViewById(R.id.tvDaySummary);
         }
+    }
+
+    final class TripHolder extends RecyclerView.ViewHolder implements OnMapReadyCallback {
+        final MapView mapView;
+        final TextView times, distance, start, end, meta;
+        @Nullable GoogleMap map;
+        @Nullable TripSummary trip;
+
+        TripHolder(@NonNull View v) {
+            super(v);
+            mapView = v.findViewById(R.id.liteMapTrip);
+            times = v.findViewById(R.id.tvTripTimes);
+            distance = v.findViewById(R.id.tvTripDistance);
+            start = v.findViewById(R.id.tvTripStart);
+            end = v.findViewById(R.id.tvTripEnd);
+            meta = v.findViewById(R.id.tvTripMeta);
+            Context c = v.getContext();
+            start.setCompoundDrawablesRelativeWithIntrinsicBounds(dot(c, R.color.st_status_moving), null, null, null);
+            end.setCompoundDrawablesRelativeWithIntrinsicBounds(dot(c, R.color.st_signal), null, null, null);
+            if (mapView != null) {
+                mapView.onCreate(null);
+                mapView.getMapAsync(this);
+            }
+        }
+
+        void bind(TripSummary t) {
+            trip = t;
+            Context c = itemView.getContext();
+            times.setText(c.getString(R.string.st_trips_time_range, TimeText.clock(t.getStartTime()),
+                    t.isInProgress() ? c.getString(R.string.st_trips_now) : TimeText.clock(t.getEndTime())));
+            distance.setText(c.getString(R.string.st_trips_km_value, String.format(Locale.getDefault(), "%.1f", t.getDistanceKm())));
+            meta.setText(c.getString(R.string.st_trips_meta, TimeText.duration(c, t.getDurationMinutes()),
+                    Math.round(t.getMaxSpeed())));
+
+            start.setText(R.string.st_trips_finding_place);
+            end.setText(R.string.st_trips_finding_place);
+            String key = routeKey(vehicleId, t);
+            itemView.setTag(key);
+            AddressResolver.resolveCached(c, t.getStartLatitude(), t.getStartLongitude(), name -> {
+                if (key.equals(itemView.getTag())) start.setText(name);
+            });
+            AddressResolver.resolveCached(c, t.getEndLatitude(), t.getEndLongitude(), name -> {
+                if (key.equals(itemView.getTag())) end.setText(name);
+            });
+
+            itemView.setContentDescription(c.getString(R.string.st_trips_card_description,
+                    TimeText.clock(t.getStartTime()), TimeText.clock(t.getEndTime()),
+                    String.format(Locale.getDefault(), "%.1f", t.getDistanceKm())));
+            itemView.setOnClickListener(x -> {
+                if (clickListener != null) clickListener.onTripClick(t);
+            });
+
+            if (ROUTES.get(key) == null) loadRoute(t, key);
+            drawRoute();
+        }
+
+        @Override
+        public void onMapReady(@NonNull GoogleMap googleMap) {
+            map = googleMap;
+            Context c = itemView.getContext();
+            map.getUiSettings().setMapToolbarEnabled(false);
+            // A tap on the lite map would otherwise open the Google Maps app.
+            map.setOnMapClickListener(latLng -> itemView.performClick());
+            map.setOnMarkerClickListener(m -> {
+                itemView.performClick();
+                return true;
+            });
+            try {
+                map.setMapStyle(MapStyleOptions.loadRawResourceStyle(c, R.raw.map_style_daylight));
+            } catch (Exception ignored) {
+                // default style
+            }
+            drawRoute();
+        }
+
+        void drawRoute() {
+            GoogleMap m = map;
+            TripSummary t = trip;
+            if (m == null || t == null) return;
+            Context c = itemView.getContext();
+            m.clear();
+            m.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+
+            LatLng a = new LatLng(t.getStartLatitude(), t.getStartLongitude());
+            LatLng b = new LatLng(t.getEndLatitude(), t.getEndLongitude());
+            List<LatLng> route = ROUTES.get(routeKey(vehicleId, t));
+            List<LatLng> line = route != null ? route : java.util.Arrays.asList(a, b);
+
+            m.addPolyline(new PolylineOptions().addAll(line)
+                    .width(3f * c.getResources().getDisplayMetrics().density)
+                    .color(ContextCompat.getColor(c, R.color.st_navy)));
+            m.addMarker(new MarkerOptions().position(a).anchor(0.5f, 0.5f).icon(markerDot(c, R.color.st_status_moving)));
+            m.addMarker(new MarkerOptions().position(b).anchor(0.5f, 0.5f).icon(markerDot(c, R.color.st_signal)));
+
+            LatLngBounds.Builder bounds = new LatLngBounds.Builder();
+            for (LatLng p : line) bounds.include(p);
+            float d = c.getResources().getDisplayMetrics().density;
+            int w = Math.round(76 * d), h = Math.round(96 * d), pad = Math.round(12 * d);
+            try {
+                LatLngBounds bb = bounds.build();
+                double span = Math.max(Math.abs(bb.northeast.latitude - bb.southwest.latitude),
+                        Math.abs(bb.northeast.longitude - bb.southwest.longitude));
+                if (span < 0.002) {
+                    m.moveCamera(CameraUpdateFactory.newLatLngZoom(bb.getCenter(), 15f));
+                } else {
+                    m.moveCamera(CameraUpdateFactory.newLatLngBounds(bb, w, h, pad));
+                }
+            } catch (Exception e) {
+                m.moveCamera(CameraUpdateFactory.newLatLngZoom(a, 14f));
+            }
+        }
+
+        void clearMap() {
+            if (map != null) {
+                map.clear();
+                map.setMapType(GoogleMap.MAP_TYPE_NONE);
+            }
+        }
+    }
+
+    // ── Small drawing helpers ──────────────────────────────
+
+    private static final Map<Integer, BitmapDescriptor> MARKER_DOTS = new java.util.HashMap<>();
+
+    private static BitmapDescriptor markerDot(Context c, int colorRes) {
+        BitmapDescriptor cached = MARKER_DOTS.get(colorRes);
+        if (cached != null) return cached;
+        float d = c.getResources().getDisplayMetrics().density;
+        int size = Math.round(10 * d);
+        Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(ContextCompat.getColor(c, R.color.st_surface));
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, p);
+        p.setColor(ContextCompat.getColor(c, colorRes));
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 1.5f * d, p);
+        BitmapDescriptor out = BitmapDescriptorFactory.fromBitmap(bmp);
+        MARKER_DOTS.put(colorRes, out);
+        return out;
+    }
+
+    private static android.graphics.drawable.GradientDrawable dot(Context c, int colorRes) {
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        g.setColor(ContextCompat.getColor(c, colorRes));
+        int px = Math.round(8 * c.getResources().getDisplayMetrics().density);
+        g.setSize(px, px);
+        return g;
     }
 }

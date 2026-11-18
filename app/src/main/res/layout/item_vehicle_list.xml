@@ -1,146 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rounded-card style, confirmed via mockup comparison against the
-     previous flat Letstrack-style row. Each row stays its own
-     independent card (not a shared continuous card with dividers)
-     because the swipe-to-remove mechanism needs the foreground row's
-     own opaque background to properly cover the red reveal layer
-     underneath, a continuous card with dividers would let that red
-     layer show through the gaps between rows. Swipe structure, view
-     IDs, and all existing logic are otherwise completely unchanged. -->
+<!-- One vehicle row (Vehicles tab and the "Other vehicles" list on the map). Plate first, status on the
+     right, a red warning line when the tracker reports a problem. Swipe left reveals Remove (owner only). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="6dp">
+    android:layout_height="wrap_content">
 
-    <!-- Static background reveal layer. Never translated, only the
-         foreground row on top of it moves. Rounded to match the
-         foreground card so no square corner peeks out from behind it
-         mid-swipe. -->
-    <LinearLayout
-        android:id="@+id/layoutVehicleListSwipeBg"
-        android:layout_width="match_parent"
+    <!-- Revealed behind the row when swiped left -->
+    <TextView
+        android:id="@+id/btnVehicleListSwipeRemove"
+        android:layout_width="84dp"
         android:layout_height="match_parent"
-        android:background="@drawable/bg_swipe_remove_rounded"
-        android:orientation="horizontal"
-        android:gravity="center_vertical|end">
+        android:layout_gravity="end"
+        android:background="@color/st_danger"
+        android:fontFamily="@font/inter_semibold"
+        android:gravity="center"
+        android:text="@string/st_action_remove"
+        android:textColor="@color/st_surface"
+        android:textSize="13sp" />
 
-        <LinearLayout
-            android:id="@+id/btnVehicleListSwipeRemove"
-            android:layout_width="84dp"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:src="@android:drawable/ic_menu_delete"
-                android:contentDescription="Remove vehicle"
-                app:tint="@color/surface_white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Remove"
-                android:textColor="@color/surface_white"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Foreground: now its own rounded card. -->
     <LinearLayout
         android:id="@+id/layoutVehicleListForeground"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@drawable/bg_stat_card_opaque">
+        android:background="@color/st_surface"
+        android:orientation="vertical">
 
         <LinearLayout
+            android:id="@+id/vehicleRowClickable"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:background="@drawable/bg_st_row"
+            android:duplicateParentState="true"
             android:gravity="center_vertical"
-            android:paddingHorizontal="18dp"
-            android:paddingVertical="16dp">
+            android:minHeight="72dp"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="12dp">
 
-            <androidx.cardview.widget.CardView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                app:cardCornerRadius="14dp"
-                app:cardBackgroundColor="#E6F0FA"
-                app:cardElevation="0dp">
+            <FrameLayout
+                android:id="@+id/vehicleIconRing"
+                android:layout_width="44dp"
+                android:layout_height="44dp">
 
                 <ImageView
                     android:id="@+id/imgVehicleListIcon"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_car"
-                    android:contentDescription="@string/desc_car_icon"
-                    app:tint="#1976D2" />
-            </androidx.cardview.widget.CardView>
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_st_car" />
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:layout_marginStart="14dp"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvVehicleListName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="JAPAN Mazda"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/tvVehicleListStatus"
+                    android:id="@+id/tvVehicleListPlate"
+                    style="@style/Widget.ST.Plate.Small"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Parked"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/brand_primary" />
+                    android:textSize="13sp"
+                    tools:text="WP CAB-1234" />
 
-                <!-- Caption: plate + GPS-link status. NOT a "last seen"
-                     timestamp, DashboardVehicle carries no timestamp
-                     field, see adapter comment. -->
                 <TextView
                     android:id="@+id/tvVehicleListCaption"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="WP JK 9931 &#8226; GPS Device Linked"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="5dp"
+                    android:ellipsize="end"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:textAppearance="@style/TextAppearance.ST.BodySmall"
+                    tools:text="Toyota Aqua · 42 km/h" />
             </LinearLayout>
 
-            <ImageView
-                android:id="@+id/imgVehicleListFavorite"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_marginStart="10dp"
-                android:src="@android:drawable/btn_star_big_off"
-                android:contentDescription="@string/desc_favorite"
-                app:tint="#BDBDBD" />
+            <LinearLayout
+                android:id="@+id/vehicleRowEnd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/tvVehicleListStatus"
+                    style="@style/Widget.ST.StatusPill"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="Moving" />
+
+                <TextView
+                    android:id="@+id/tvVehicleListTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textAppearance="@style/TextAppearance.ST.Caption"
+                    tools:text="12 s ago" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVehicleListLink"
+                style="@style/Widget.ST.Button.Secondary.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/st_vehicle_link_tracker"
+                android:visibility="gone" />
         </LinearLayout>
 
-    </LinearLayout>
+        <!-- Shown only when the tracker reports a problem (power cut) or the vehicle is the demo/shared one -->
+        <TextView
+            android:id="@+id/tvVehicleListNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="14dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_st_tile"
+            android:drawablePadding="8dp"
+            android:gravity="center_vertical"
+            android:paddingStart="10dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="8dp"
+            android:textAppearance="@style/TextAppearance.ST.Caption"
+            android:visibility="gone"
+            tools:text="Tracker cut from vehicle power"
+            tools:visibility="visible" />
 
+        <View
+            android:id="@+id/vehicleRowDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/st_line_soft" />
+    </LinearLayout>
 </FrameLayout>

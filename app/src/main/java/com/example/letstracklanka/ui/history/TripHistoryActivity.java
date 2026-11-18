@@ -1,36 +1,43 @@
 package com.example.letstracklanka.ui.history;
 
-import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.Network;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.letstracklanka.R;
+import com.example.letstracklanka.data.model.DashboardVehicle;
 import com.example.letstracklanka.data.model.TripSummary;
 import com.example.letstracklanka.data.model.TripsReportResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
-import com.example.letstracklanka.data.remote.ApiService;
 import com.example.letstracklanka.data.remote.ShaloTrackApi;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.example.letstracklanka.ui.common.BottomNav;
+import com.example.letstracklanka.ui.common.EdgeToEdge;
+import com.example.letstracklanka.ui.common.EmptyState;
+import com.example.letstracklanka.ui.common.InlineBanner;
+import com.example.letstracklanka.ui.common.NetworkWatcher;
+import com.example.letstracklanka.ui.common.Plates;
+import com.example.letstracklanka.ui.common.TimeText;
+import com.example.letstracklanka.ui.common.VehiclePickerSheet;
+import com.example.letstracklanka.ui.vehicles.VehicleListActivity;
+import com.example.letstracklanka.utils.ApiJson;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -38,33 +45,15 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Rewritten for the new day-grouped, Letstrack-style layout (activity_trip_history.xml,
- * item_trip_history_day_header.xml, item_trip_history_card.xml). Previous version used a
- * completely different set of view IDs (tvRangeLabel/chipToday/recyclerTrips/etc.) that no
- * longer exist in the new layout at all -- this is a full rewrite, not a patch.
+ * Trips tab: one vehicle's trips for Today / Yesterday / the last 7 days / a picked day, with totals.
  *
- * IMPORTANT FIX: the previous version had NO vehicle context passed in at all -- it called
- * getVehiclesByCustomer() itself and grabbed list.get(list.size()-1), the exact same
- * "silently pick whichever vehicle happens to be last in a confirmed-incomplete endpoint"
- * bug already fixed in VehiclesActivity's vehicle switcher. Worse here: since nothing passed
- * vehicle context, tapping "History" on ANY vehicle would always show the same one arbitrary
- * vehicle's trips, never the one actually being viewed. Now reads EXTRA_VEHICLE_ID/
- * EXTRA_VEHICLE_NAME directly from the Intent (see VehiclesActivity.openTripHistory()) and
- * never calls getVehiclesByCustomer at all for vehicle selection.
+ * Opened three ways:
+ *   - the Trips tab: follows the vehicle selected on the map (or the first vehicle);
+ *   - "Trips" on the map or a vehicle's page: EXTRA_VEHICLE_ID (+ EXTRA_VEHICLE_NAME);
+ *   - a Trip Report: EXTRA_REPORT_FROM_MILLIS / EXTRA_REPORT_TO_MILLIS fix the range (back arrow, no tab bar).
  *
- * "Post" and "Save Place" are intentionally NOT wired anywhere in this Activity or
- * TripHistoryAdapter -- both hidden in the layouts per explicit decision to defer them past
- * this deployment.
- *
- * Report generation feature: when launched from ReportFilterBottomSheet's Trip Report card,
- * EXTRA_REPORT_FROM_MILLIS/EXTRA_REPORT_TO_MILLIS carry the exact chosen range. Reuses the
- * existing isCustomRangeSelected mechanism (originally built for DateDrillDownBottomSheet's
- * single-day picks) rather than introducing a separate "report mode" concept -- a fixed
- * report window behaves identically to a fixed custom-picked day: no further lazy-loading.
- *
- * Assumes Material Components version with date-range-picker support (materialdatepicker
- * package) is already a dependency -- consistent with the extensive existing use of Material
- * widgets throughout this app, but not verified against build.gradle directly.
+ * Ranges are bounded on purpose (at most 7 days per request): the API derives trips from raw GPS points,
+ * so unbounded or 30-day windows are the expensive queries.
  */
 public class TripHistoryActivity extends AppCompatActivity {
 
@@ -73,320 +62,300 @@ public class TripHistoryActivity extends AppCompatActivity {
     public static final String EXTRA_REPORT_FROM_MILLIS = "extra_report_from_millis";
     public static final String EXTRA_REPORT_TO_MILLIS = "extra_report_to_millis";
 
-    // Was DEFAULT_RANGE_DAYS = 7 (too narrow), briefly changed to 365*5
-    // (dangerously wide -- GetTripsSummaryAsync processes raw GPS points
-    // to derive trips, so one request covering years of data risks
-    // scanning millions of points server-side, not just being slow to
-    // render). Real fix: small initial window, loaded incrementally as
-    // the user actually scrolls, never one giant request.
-    private static final int INITIAL_RANGE_DAYS = 30;
-    private static final int LOAD_MORE_CHUNK_DAYS = 30;
+    private enum Range { TODAY, YESTERDAY, LAST_7, DAY, REPORT }
 
-    private ApiService mainApiService;
     private ShaloTrackApi trackingApi;
 
-    private String selectedVehicleId;
-    private String selectedVehicleName = "Vehicle";
+    private String vehicleId;
+    private String vehicleLabel;
+    private Range range = Range.TODAY;
+    private ZonedDateTime from;
+    private ZonedDateTime to;
+    private boolean reportMode = false;
+    private int requestSeq = 0;
 
-    private TextView tvHistoryDeviceName, tvErrorBannerMessage, tvErrorBannerRetry;
-    private View btnBackHistory, btnCalendarPicker, errorBanner;
-    private RecyclerView rvTripHistory;
+    private TextView tvPlate, segToday, segYesterday, seg7Days, segPickDate;
+    private TextView tvSumDistance, tvSumDriving, tvSumTrips, tvSumTopSpeed;
+    private RecyclerView list;
     private TripHistoryAdapter adapter;
-    private ConnectivityManager.NetworkCallback networkCallback;
-
-    private Date rangeFrom;
-    private Date rangeTo;
-
-    // Incremental loading state -- accumulated across multiple fetches
-    // rather than replacing the list each time. isCustomRangeSelected
-    // stops auto-loading-further-back once the user has explicitly picked
-    // their own range via the calendar picker -- they asked for exactly
-    // that period, not an ever-expanding one.
-    private final List<TripSummary> allLoadedTrips = new ArrayList<>();
-    private boolean isLoadingMore = false;
-    private boolean hasMoreToLoad = true;
-    private boolean isCustomRangeSelected = false;
+    private ProgressBar progress;
+    private SwipeRefreshLayout swipe;
+    private InlineBanner banner;
+    private EmptyState empty;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_trip_history);
-
-        mainApiService = ApiClient.getClient().create(ApiService.class);
+        com.example.letstracklanka.utils.SecureScreen.guardTouches(this);
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
+        bindViews();
 
-        selectedVehicleId = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
-        String passedName = getIntent().getStringExtra(EXTRA_VEHICLE_NAME);
-        if (passedName != null && !passedName.trim().isEmpty()) selectedVehicleName = passedName;
-
-        initViews();
-        registerNetworkMonitor();
-
-        if (selectedVehicleId == null) {
-            showErrorBanner("No vehicle selected. Go back and try again.", null);
-            return;
-        }
-
-        long reportFromMillis = getIntent().getLongExtra(EXTRA_REPORT_FROM_MILLIS, -1);
-        long reportToMillis = getIntent().getLongExtra(EXTRA_REPORT_TO_MILLIS, -1);
-        if (reportFromMillis > 0 && reportToMillis > reportFromMillis) {
-            rangeFrom = new Date(reportFromMillis);
-            rangeTo = new Date(reportToMillis);
-            isCustomRangeSelected = true;
+        long reportFrom = getIntent().getLongExtra(EXTRA_REPORT_FROM_MILLIS, -1);
+        long reportTo = getIntent().getLongExtra(EXTRA_REPORT_TO_MILLIS, -1);
+        reportMode = reportFrom > 0 && reportTo > reportFrom;
+        if (reportMode) {
+            BottomNav.hide(this);
+            View back = findViewById(R.id.btnBackHistory);
+            back.setVisibility(View.VISIBLE);
+            back.setOnClickListener(v -> finish());
+            findViewById(R.id.rangeSegments).setVisibility(View.GONE);
+            EdgeToEdge.padBottom(findViewById(R.id.rvTripHistory));
+            from = java.time.Instant.ofEpochMilli(reportFrom).atZone(ZoneId.systemDefault());
+            to = java.time.Instant.ofEpochMilli(reportTo).atZone(ZoneId.systemDefault());
+            range = Range.REPORT;
         } else {
-            setDefaultRange();
+            BottomNav.bind(this, BottomNav.Tab.TRIPS);
+            setRange(Range.TODAY, null, false);
         }
-        fetchTrips();
-    }
 
-    private void initViews() {
-        btnBackHistory = findViewById(R.id.btnBackHistory);
-        tvHistoryDeviceName = findViewById(R.id.tvHistoryDeviceName);
-        btnCalendarPicker = findViewById(R.id.btnCalendarPicker);
-        errorBanner = findViewById(R.id.errorBanner);
-        tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
-        tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
-        rvTripHistory = findViewById(R.id.rvTripHistory);
-
-        if (tvHistoryDeviceName != null) tvHistoryDeviceName.setText(selectedVehicleName);
-        if (btnBackHistory != null) btnBackHistory.setOnClickListener(v -> finish());
-        if (btnCalendarPicker != null) btnCalendarPicker.setOnClickListener(v -> showRangePicker());
-        if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchTrips());
-
-        rvTripHistory.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new TripHistoryAdapter(this::openTripDetail, trackingApi);
-        adapter.setVehicleId(selectedVehicleId);
-        rvTripHistory.setAdapter(adapter);
-
-        // Real chunked loading -- fires loadOlderTrips() when the user
-        // scrolls near the bottom, instead of ever fetching years of data
-        // in one request.
-        rvTripHistory.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        NetworkWatcher.watch(this, new NetworkWatcher.Listener() {
             @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                if (dy <= 0 || isLoadingMore || !hasMoreToLoad || isCustomRangeSelected) return;
-                LinearLayoutManager lm = (LinearLayoutManager) recyclerView.getLayoutManager();
-                if (lm == null) return;
-                int lastVisible = lm.findLastVisibleItemPosition();
-                int totalCount = adapter.getItemCount();
-                if (lastVisible >= totalCount - 5) {
-                    loadOlderTrips();
-                }
+            public void onLost() {
+                banner.showOffline(R.string.st_banner_offline_list, null);
+            }
+
+            @Override
+            public void onRestored() {
+                banner.hide();
+                fetchTrips();
             }
         });
+
+        applyIntentVehicle(getIntent());
+        if (vehicleId == null) loadDefaultVehicle(); else fetchTrips();
     }
 
-    private void setDefaultRange() {
-        Calendar cal = Calendar.getInstance();
-        rangeTo = cal.getTime();
-        cal.add(Calendar.DAY_OF_YEAR, -INITIAL_RANGE_DAYS);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        rangeFrom = cal.getTime();
+    /** The tab is reordered to the front with a new vehicle when "Trips" is tapped on another screen. */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String before = vehicleId;
+        applyIntentVehicle(intent);
+        if (vehicleId != null && !vehicleId.equalsIgnoreCase(before)) fetchTrips();
     }
 
-    // Replaced the previous raw MaterialDatePicker calendar grid with a
-    // structured Month -> Week -> Day drill-down, per explicit request.
-    // Selecting a day sets that single day as the range, using the same
-    // isCustomRangeSelected + fetchTrips() path already established for
-    // the old range picker.
-    private void showRangePicker() {
-        DateDrillDownBottomSheet drillDown = new DateDrillDownBottomSheet(this, selectedDay -> {
-            Calendar startOfDay = (Calendar) selectedDay.clone();
-            startOfDay.set(Calendar.HOUR_OF_DAY, 0);
-            startOfDay.set(Calendar.MINUTE, 0);
-            startOfDay.set(Calendar.SECOND, 0);
+    private void applyIntentVehicle(Intent intent) {
+        String id = intent.getStringExtra(EXTRA_VEHICLE_ID);
+        if (id == null) return;
+        setVehicle(id, intent.getStringExtra(EXTRA_VEHICLE_NAME));
+    }
 
-            Calendar endOfDay = (Calendar) selectedDay.clone();
-            endOfDay.set(Calendar.HOUR_OF_DAY, 23);
-            endOfDay.set(Calendar.MINUTE, 59);
-            endOfDay.set(Calendar.SECOND, 59);
+    private void setVehicle(String id, @Nullable String label) {
+        vehicleId = id;
+        vehicleLabel = label != null && !label.trim().isEmpty() ? label : vehicleLabel;
+        adapter.setVehicleId(id);
+        tvPlate.setText(vehicleLabel != null ? Plates.format(this, vehicleLabel) : getString(R.string.st_picker_title));
+    }
 
-            rangeFrom = startOfDay.getTime();
-            rangeTo = endOfDay.getTime();
-            isCustomRangeSelected = true;
-            allLoadedTrips.clear();
+    private void bindViews() {
+        EdgeToEdge.padTop(findViewById(R.id.tripsHeader));
+        tvPlate = findViewById(R.id.tvTripVehiclePlate);
+        segToday = findViewById(R.id.segToday);
+        segYesterday = findViewById(R.id.segYesterday);
+        seg7Days = findViewById(R.id.seg7Days);
+        segPickDate = findViewById(R.id.segPickDate);
+        tvSumDistance = findViewById(R.id.tvSumDistance);
+        tvSumDriving = findViewById(R.id.tvSumDriving);
+        tvSumTrips = findViewById(R.id.tvSumTrips);
+        tvSumTopSpeed = findViewById(R.id.tvSumTopSpeed);
+        list = findViewById(R.id.rvTripHistory);
+        progress = findViewById(R.id.progressTrips);
+        swipe = findViewById(R.id.swipeRefreshTrips);
+        banner = InlineBanner.in(this);
+        empty = new EmptyState(findViewById(R.id.emptyState));
+
+        list.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new TripHistoryAdapter(this::openTripDetail, trackingApi);
+        list.setAdapter(adapter);
+
+        swipe.setColorSchemeResources(R.color.st_navy);
+        swipe.setOnRefreshListener(this::fetchTrips);
+
+        segToday.setOnClickListener(v -> setRange(Range.TODAY, null, true));
+        segYesterday.setOnClickListener(v -> setRange(Range.YESTERDAY, null, true));
+        seg7Days.setOnClickListener(v -> setRange(Range.LAST_7, null, true));
+        segPickDate.setOnClickListener(v -> pickDay());
+        findViewById(R.id.btnTripVehicle).setOnClickListener(v -> pickVehicle());
+    }
+
+    private void setRange(Range r, @Nullable LocalDate day, boolean fetch) {
+        range = r;
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate today = LocalDate.now(zone);
+        switch (r) {
+            case YESTERDAY:
+                from = today.minusDays(1).atStartOfDay(zone);
+                to = today.atStartOfDay(zone).minusSeconds(1);
+                break;
+            case LAST_7:
+                from = today.minusDays(6).atStartOfDay(zone);
+                to = ZonedDateTime.now(zone);
+                break;
+            case DAY:
+                LocalDate d = day != null ? day : today;
+                from = d.atStartOfDay(zone);
+                to = d.plusDays(1).atStartOfDay(zone).minusSeconds(1);
+                break;
+            case TODAY:
+            default:
+                from = today.atStartOfDay(zone);
+                to = ZonedDateTime.now(zone);
+                break;
+        }
+        segToday.setSelected(r == Range.TODAY);
+        segYesterday.setSelected(r == Range.YESTERDAY);
+        seg7Days.setSelected(r == Range.LAST_7);
+        segPickDate.setSelected(r == Range.DAY);
+        segPickDate.setText(r == Range.DAY && day != null
+                ? day.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
+                : getString(R.string.st_trips_pick_date));
+        if (fetch) fetchTrips();
+    }
+
+    private void pickDay() {
+        new DateDrillDownBottomSheet(this, selected -> {
+            LocalDate day = LocalDate.of(selected.get(Calendar.YEAR), selected.get(Calendar.MONTH) + 1,
+                    selected.get(Calendar.DAY_OF_MONTH));
+            setRange(Range.DAY, day, true);
+        }).show();
+    }
+
+    private void pickVehicle() {
+        VehiclePickerSheet.show(this, false, v -> {
+            if (v == null) return;
+            VehicleListActivity.rememberSelected(this, v.getVehicleId());
+            setVehicle(v.getVehicleId(), v.getVehicleNumber());
             fetchTrips();
         });
-        drillDown.show();
+    }
+
+    private void loadDefaultVehicle() {
+        progress.setVisibility(View.VISIBLE);
+        VehiclePickerSheet.load(this, new VehiclePickerSheet.LoadCallback() {
+            @Override
+            public void onLoaded(List<DashboardVehicle> vehicles) {
+                progress.setVisibility(View.GONE);
+                if (vehicles.isEmpty()) {
+                    empty.show(getString(R.string.st_trips_no_vehicle_title), getString(R.string.st_trips_no_vehicle_body), null, null);
+                    return;
+                }
+                String remembered = VehicleListActivity.selectedVehicleId(TripHistoryActivity.this);
+                DashboardVehicle pick = vehicles.get(0);
+                for (DashboardVehicle v : vehicles) {
+                    if (remembered != null && remembered.equalsIgnoreCase(v.getVehicleId())) {
+                        pick = v;
+                        break;
+                    }
+                }
+                setVehicle(pick.getVehicleId(), pick.getVehicleNumber());
+                fetchTrips();
+            }
+
+            @Override
+            public void onFailed(int httpCode) {
+                progress.setVisibility(View.GONE);
+                showFailure(httpCode, TripHistoryActivity.this::loadDefaultVehicle);
+            }
+        });
     }
 
     private void fetchTrips() {
-        if (selectedVehicleId == null || rangeFrom == null || rangeTo == null) return;
-        hideErrorBanner();
-
-        String fromIso = toIsoUtc(rangeFrom);
-        String toIso = toIsoUtc(rangeTo);
-
-        trackingApi.getTripsSummary(selectedVehicleId, fromIso, toIso).enqueue(new Callback<ResponseBody>() {
+        if (vehicleId == null) {
+            swipe.setRefreshing(false);
+            return;
+        }
+        final int seq = ++requestSeq;
+        empty.hide();
+        if (!swipe.isRefreshing()) progress.setVisibility(View.VISIBLE);
+        // Whole seconds: Instant.toString() can carry 9 fraction digits, more than .NET's parser promises to read.
+        String fromIso = from.toInstant().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString();
+        String toIso = to.toInstant().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString();
+        trackingApi.getTripsSummary(vehicleId, fromIso, toIso).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (seq != requestSeq || isFinishing() || isDestroyed()) return;
+                progress.setVisibility(View.GONE);
+                swipe.setRefreshing(false);
                 try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        TripsReportResponse report = extractObject(body.string(), TripsReportResponse.class);
-                        List<TripSummary> trips = report != null ? report.getTrips() : null;
-
-                        allLoadedTrips.clear();
-                        if (trips != null) allLoadedTrips.addAll(trips);
-                        hasMoreToLoad = !isCustomRangeSelected; // a custom pick is exactly what was asked for, nothing more to load
-
-                        if (!allLoadedTrips.isEmpty()) {
-                            adapter.updateTrips(allLoadedTrips);
-                            hideErrorBanner();
-                        } else {
-                            adapter.updateTrips(new ArrayList<>());
-                            showErrorBanner("No trips found for this period.", null);
-                        }
-                    } else {
-                        Log.w("TripHistory", "fetchTrips failed, code " + response.code());
-                        showErrorBanner("Couldn't load trips (code " + response.code() + ")", TripHistoryActivity.this::fetchTrips);
+                    if (!response.isSuccessful() || body == null) {
+                        showFailure(response.code(), TripHistoryActivity.this::fetchTrips);
+                        return;
                     }
+                    banner.hide();
+                    TripsReportResponse report = ApiJson.object(body.string(), TripsReportResponse.class);
+                    List<TripSummary> trips = report != null && report.getTrips() != null ? report.getTrips() : new ArrayList<>();
+                    render(trips);
                 } catch (Exception e) {
-                    Log.e("TripHistory", "fetchTrips parse error", e);
-                    showErrorBanner("Something went wrong loading trips.", TripHistoryActivity.this::fetchTrips);
+                    showFailure(-1, TripHistoryActivity.this::fetchTrips);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("TripHistory", "fetchTrips network error", t);
-                showErrorBanner("Network error — check your connection.", TripHistoryActivity.this::fetchTrips);
+                if (seq != requestSeq || isFinishing() || isDestroyed()) return;
+                progress.setVisibility(View.GONE);
+                swipe.setRefreshing(false);
+                showFailure(0, TripHistoryActivity.this::fetchTrips);
             }
         });
     }
 
-    // Extends the window another LOAD_MORE_CHUNK_DAYS further back and
-    // fetches just that smaller slice, appending to what's already shown
-    // -- never re-fetches the whole accumulated range. A failure here
-    // shows a quiet Toast rather than the full-screen error banner, since
-    // the trips already on screen are still valid and shouldn't be hidden
-    // by a failed "load more" attempt.
-    private void loadOlderTrips() {
-        if (rangeFrom == null) return;
-        isLoadingMore = true;
+    private void render(List<TripSummary> trips) {
+        double km = 0, minutes = 0, top = 0;
+        for (TripSummary t : trips) {
+            km += t.getDistanceKm();
+            minutes += t.getDurationMinutes();
+            top = Math.max(top, t.getMaxSpeed());
+        }
+        tvSumDistance.setText(String.format(Locale.getDefault(), "%.1f", km));
+        tvSumDriving.setText(TimeText.duration(this, minutes));
+        tvSumTrips.setText(String.valueOf(trips.size()));
+        tvSumTopSpeed.setText(String.valueOf(Math.round(top)));
 
-        Date newTo = new Date(rangeFrom.getTime() - 1000); // just before the current window starts
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(rangeFrom);
-        cal.add(Calendar.DAY_OF_YEAR, -LOAD_MORE_CHUNK_DAYS);
-        Date newFrom = cal.getTime();
+        adapter.updateTrips(this, trips);
+        if (trips.isEmpty()) {
+            list.setVisibility(View.GONE);
+            empty.show(getString(R.string.st_trips_empty_title, rangeLabel()), getString(R.string.st_trips_empty_body),
+                    reportMode ? null : getString(R.string.st_trips_pick_another_day), reportMode ? null : this::pickDay);
+        } else {
+            list.setVisibility(View.VISIBLE);
+            list.scrollToPosition(0);
+        }
+    }
 
-        String fromIso = toIsoUtc(newFrom);
-        String toIso = toIsoUtc(newTo);
+    private String rangeLabel() {
+        switch (range) {
+            case YESTERDAY: return getString(R.string.st_time_yesterday).toLowerCase(Locale.getDefault());
+            case LAST_7: return getString(R.string.st_trips_range_last_7);
+            case DAY:
+            case REPORT: return from.toLocalDate().format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()));
+            case TODAY:
+            default: return getString(R.string.st_time_today).toLowerCase(Locale.getDefault());
+        }
+    }
 
-        trackingApi.getTripsSummary(selectedVehicleId, fromIso, toIso).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                isLoadingMore = false;
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        TripsReportResponse report = extractObject(body.string(), TripsReportResponse.class);
-                        List<TripSummary> olderTrips = report != null ? report.getTrips() : null;
-
-                        rangeFrom = newFrom; // window only advances after a successful fetch
-
-                        if (olderTrips != null && !olderTrips.isEmpty()) {
-                            allLoadedTrips.addAll(olderTrips);
-                            adapter.updateTrips(allLoadedTrips);
-                        }
-                        // An empty chunk doesn't mean "no more ever" -- an
-                        // idle 30-day stretch is normal. Keep hasMoreToLoad
-                        // true and let the next scroll try the next chunk.
-                    } else {
-                        Log.w("TripHistory", "loadOlderTrips failed, code " + response.code());
-                        Toast.makeText(TripHistoryActivity.this, "Couldn't load older trips.", Toast.LENGTH_SHORT).show();
-                    }
-                } catch (Exception e) {
-                    Log.e("TripHistory", "loadOlderTrips parse error", e);
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                isLoadingMore = false;
-                Log.e("TripHistory", "loadOlderTrips network error", t);
-                Toast.makeText(TripHistoryActivity.this, "Network error \u2014 couldn't load older trips.", Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void showFailure(int httpCode, Runnable retry) {
+        if (httpCode == 0 && !NetworkWatcher.isOnline(this)) {
+            banner.showOffline(R.string.st_banner_offline_list, retry);
+        } else {
+            banner.showError(R.string.st_trips_load_failed, retry);
+        }
     }
 
     private void openTripDetail(TripSummary trip) {
-        if (selectedVehicleId == null) return;
-        Intent intent = new Intent(TripHistoryActivity.this, TripDetailActivity.class);
-        intent.putExtra(TripDetailActivity.EXTRA_VEHICLE_ID, selectedVehicleId);
+        if (vehicleId == null) return;
+        Intent intent = new Intent(this, TripDetailActivity.class);
+        intent.putExtra(TripDetailActivity.EXTRA_VEHICLE_ID, vehicleId);
         intent.putExtra(TripDetailActivity.EXTRA_FROM_ISO, trip.getStartTime());
         intent.putExtra(TripDetailActivity.EXTRA_TO_ISO, trip.getEndTime());
-        intent.putExtra(TripDetailActivity.EXTRA_VEHICLE_NAME, selectedVehicleName);
+        intent.putExtra(TripDetailActivity.EXTRA_VEHICLE_NAME, vehicleLabel != null ? Plates.plain(vehicleLabel) : "");
         intent.putExtra(TripDetailActivity.EXTRA_DISTANCE_KM, trip.getDistanceKm());
         intent.putExtra(TripDetailActivity.EXTRA_DURATION_MIN, trip.getDurationMinutes());
         intent.putExtra(TripDetailActivity.EXTRA_MAX_SPEED, trip.getMaxSpeed());
         intent.putExtra(TripDetailActivity.EXTRA_AVG_SPEED, trip.getAvgSpeed());
         startActivity(intent);
-    }
-
-    private void showErrorBanner(String message, Runnable retryAction) {
-        if (errorBanner == null) return;
-        errorBanner.setVisibility(View.VISIBLE);
-        if (tvErrorBannerMessage != null) tvErrorBannerMessage.setText(message);
-        if (tvErrorBannerRetry != null) {
-            tvErrorBannerRetry.setVisibility(retryAction != null ? View.VISIBLE : View.GONE);
-        }
-        // The retry click listener itself is wired once in initViews() to
-        // fetchTrips() directly, since that's the only retry action this
-        // screen ever needs -- no need to re-wire a different Runnable per
-        // call the way the old per-message retryAction parameter implied.
-    }
-
-    private void hideErrorBanner() {
-        if (errorBanner != null) errorBanner.setVisibility(View.GONE);
-    }
-
-    private void registerNetworkMonitor() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return;
-
-        networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onLost(@NonNull Network network) {
-                runOnUiThread(() -> showErrorBanner("No internet connection.", TripHistoryActivity.this::fetchTrips));
-            }
-
-            @Override
-            public void onAvailable(@NonNull Network network) {
-                runOnUiThread(TripHistoryActivity.this::fetchTrips);
-            }
-        };
-        cm.registerDefaultNetworkCallback(networkCallback);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (networkCallback != null) {
-            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
-        }
-    }
-
-    private String toIsoUtc(Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return sdf.format(date);
-    }
-
-    private <T> T extractObject(String json, Class<T> clazz) {
-        if (json == null || json.trim().isEmpty()) return null;
-        Gson gson = new Gson();
-        try {
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root != null && root.has("data") && root.get("data").isJsonObject()) {
-                return gson.fromJson(root.getAsJsonObject("data"), clazz);
-            }
-            return null;
-        } catch (Exception e) {
-            Log.e("TripHistory", "extractObject error", e);
-            return null;
-        }
     }
 }

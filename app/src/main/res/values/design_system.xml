@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ════════════════════════════════════════════════════════════
+     ShaloTrack design system: spacing, type, shapes and widget styles.
+     Everything a screen needs to look like the rest of the app. New layouts use these styles and the
+     st_* colours only: no hex colours, no raw text sizes, no per-screen button shapes.
+     Type: Archivo (semi-condensed) for names, plates and numbers; Inter for everything people read.
+     ════════════════════════════════════════════════════════════ -->
+<resources>
+
+    <!-- Spacing: 4dp grid -->
+    <dimen name="st_space_1">4dp</dimen>
+    <dimen name="st_space_2">8dp</dimen>
+    <dimen name="st_space_3">12dp</dimen>
+    <dimen name="st_space_4">16dp</dimen>
+    <dimen name="st_space_5">20dp</dimen>
+    <dimen name="st_space_6">24dp</dimen>
+    <dimen name="st_space_8">32dp</dimen>
+    <dimen name="st_gutter">16dp</dimen>
+    <dimen name="st_touch">48dp</dimen>
+    <dimen name="st_icon_button">44dp</dimen>
+    <dimen name="st_nav_height">64dp</dimen>
+    <dimen name="st_row_height">60dp</dimen>
+    <dimen name="st_radius_card">14dp</dimen>
+    <dimen name="st_radius_control">12dp</dimen>
+
+    <!-- ── Type ───────────────────────────────────────────── -->
+    <style name="TextAppearance.ST" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">@font/inter_regular</item>
+        <item name="fontFamily">@font/inter_regular</item>
+        <item name="android:textColor">@color/st_text_1</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <!-- Screen titles ("Vehicles", "Trips") -->
+    <style name="TextAppearance.ST.Display">
+        <item name="android:fontFamily">@font/archivo_extrabold</item>
+        <item name="fontFamily">@font/archivo_extrabold</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:textColor">@color/st_navy</item>
+    </style>
+
+    <!-- Card and sheet titles -->
+    <style name="TextAppearance.ST.Title">
+        <item name="android:fontFamily">@font/archivo_bold</item>
+        <item name="fontFamily">@font/archivo_bold</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+
+    <style name="TextAppearance.ST.TitleSmall">
+        <item name="android:fontFamily">@font/archivo_bold</item>
+        <item name="fontFamily">@font/archivo_bold</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">@color/st_navy</item>
+    </style>
+
+    <style name="TextAppearance.ST.Headline">
+        <item name="android:fontFamily">@font/inter_semibold</item>
+        <item name="fontFamily">@font/inter_semibold</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="TextAppearance.ST.BodyStrong">
+        <item name="android:fontFamily">@font/inter_semibold</item>
+        <item name="fontFamily">@font/inter_semibold</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <style name="TextAppearance.ST.Body">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/st_text_2</item>
+    </style>
+
+    <style name="TextAppearance.ST.BodySmall">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/st_text_2</item>
+    </style>
+
+    <style name="TextAppearance.ST.Label">
+        <item name="android:fontFamily">@font/inter_medium</item>
+        <item name="fontFamily">@font/inter_medium</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/st_text_2</item>
+    </style>
+
+    <style name="TextAppearance.ST.Caption">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/st_text_3</item>
+    </style>
+
+    <!-- Section labels ("TODAY", "ACCOUNT") -->
+    <style name="TextAppearance.ST.Overline">
+        <item name="android:fontFamily">@font/inter_semibold</item>
+        <item name="fontFamily">@font/inter_semibold</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">@color/st_text_3</item>
+    </style>
+
+    <!-- Big live numbers (speed). Tabular digits so the value does not jitter as it changes. -->
+    <style name="TextAppearance.ST.Number">
+        <item name="android:fontFamily">@font/archivo_bold</item>
+        <item name="fontFamily">@font/archivo_bold</item>
+        <item name="android:textSize">40sp</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="TextAppearance.ST.NumberSmall">
+        <item name="android:fontFamily">@font/archivo_bold</item>
+        <item name="fontFamily">@font/archivo_bold</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <style name="TextAppearance.ST.Plate">
+        <item name="android:fontFamily">@font/archivo_extrabold</item>
+        <item name="fontFamily">@font/archivo_extrabold</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textColor">@color/st_text_1</item>
+    </style>
+
+    <style name="TextAppearance.ST.Plate.Small">
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="TextAppearance.ST.Button">
+        <item name="android:fontFamily">@font/inter_bold</item>
+        <item name="fontFamily">@font/inter_bold</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.ST.Chip">
+        <item name="android:fontFamily">@font/inter_semibold</item>
+        <item name="fontFamily">@font/inter_semibold</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="TextAppearance.ST.Nav">
+        <item name="android:fontFamily">@font/inter_medium</item>
+        <item name="fontFamily">@font/inter_medium</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <!-- ── Shapes ─────────────────────────────────────────── -->
+    <style name="ShapeAppearance.ST.Small" parent="ShapeAppearance.Material3.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">10dp</item>
+    </style>
+    <style name="ShapeAppearance.ST.Medium" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">14dp</item>
+    </style>
+    <style name="ShapeAppearance.ST.Large" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+    </style>
+    <style name="ShapeAppearance.ST.Sheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">20dp</item>
+        <item name="cornerSizeTopRight">20dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!-- ── Buttons ────────────────────────────────────────── -->
+    <!-- Primary: the ONE next action on a screen. Orange, navy label (5.5:1). -->
+    <style name="Widget.ST.Button.Primary" parent="Widget.Material3.Button">
+        <item name="android:minHeight">52dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="backgroundTint">@color/st_button_primary_bg</item>
+        <item name="android:textColor">@color/st_button_primary_text</item>
+        <item name="iconTint">@color/st_button_primary_text</item>
+        <item name="rippleColor">#33021F4A</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Button</item>
+        <item name="elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="Widget.ST.Button.Primary.Small">
+        <item name="android:minHeight">44dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- Secondary: navy outline on white. -->
+    <style name="Widget.ST.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">52dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="strokeColor">@color/st_navy</item>
+        <item name="strokeWidth">1.5dp</item>
+        <item name="backgroundTint">@color/st_surface</item>
+        <item name="android:textColor">@color/st_button_outline_text</item>
+        <item name="iconTint">@color/st_button_outline_text</item>
+        <item name="rippleColor">#1F021F4A</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Button</item>
+    </style>
+
+    <style name="Widget.ST.Button.Secondary.Small">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- Destructive: red outline. Never a filled red button except the SOS hold control. -->
+    <style name="Widget.ST.Button.Danger" parent="Widget.ST.Button.Secondary">
+        <item name="strokeColor">@color/st_danger_line</item>
+        <item name="android:textColor">@color/st_danger_text</item>
+        <item name="iconTint">@color/st_danger_text</item>
+        <item name="rippleColor">#1FD92D20</item>
+    </style>
+
+    <!-- Text button: still a 48dp touch target. -->
+    <style name="Widget.ST.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:textColor">@color/st_navy</item>
+        <item name="iconTint">@color/st_navy</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Button</item>
+    </style>
+
+    <!-- 44dp square icon button floating over the map. Always set android:contentDescription. -->
+    <style name="Widget.ST.IconButton" parent="">
+        <item name="android:layout_width">@dimen/st_icon_button</item>
+        <item name="android:layout_height">@dimen/st_icon_button</item>
+        <item name="android:background">@drawable/bg_st_icon_button</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:elevation">2dp</item>
+        <item name="tint">@color/st_navy</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="Widget.ST.Fab" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="backgroundTint">@color/st_signal</item>
+        <item name="tint">@color/st_navy</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.ST.Medium</item>
+    </style>
+
+    <!-- ── Cards, chips, plates ───────────────────────────── -->
+    <!-- Card: white, 1dp line, no shadow. -->
+    <style name="Widget.ST.Card" parent="Widget.Material3.CardView.Outlined">
+        <item name="cardBackgroundColor">@color/st_surface</item>
+        <item name="strokeColor">@color/st_line</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="cardCornerRadius">14dp</item>
+    </style>
+
+    <!-- Status pill. Text colour and backgroundTint are set from VehicleStatus. -->
+    <style name="Widget.ST.StatusPill" parent="">
+        <item name="android:background">@drawable/bg_st_pill</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:drawablePadding">6dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Chip</item>
+    </style>
+
+    <!-- Number plate: the way owners actually recognise their vehicles. Text set with Plates.format(). -->
+    <style name="Widget.ST.Plate" parent="">
+        <item name="android:background">@drawable/bg_st_plate</item>
+        <item name="android:paddingStart">9dp</item>
+        <item name="android:paddingEnd">9dp</item>
+        <item name="android:paddingTop">3dp</item>
+        <item name="android:paddingBottom">3dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Plate</item>
+    </style>
+
+    <style name="Widget.ST.Plate.Small">
+        <item name="android:background">@drawable/bg_st_plate_small</item>
+        <item name="android:paddingStart">6dp</item>
+        <item name="android:paddingEnd">6dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Plate.Small</item>
+    </style>
+
+    <!-- Filter chip (All / Moving / Parked ...). Selection is View.setSelected(). -->
+    <style name="Widget.ST.FilterChip" parent="">
+        <item name="android:layout_height">36dp</item>
+        <item name="android:background">@drawable/bg_st_filter_chip</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:drawablePadding">6dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/st_filter_chip_text</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Label</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- One segment of a segmented control (Today / Yesterday / 7 days). Selection is View.setSelected(). -->
+    <style name="Widget.ST.Segment" parent="">
+        <item name="android:layout_height">36dp</item>
+        <item name="android:background">@drawable/bg_st_segment</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/st_segment_text</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Label</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Small fact tile under the live speed (Ignition on / Battery 86% / Signal good). -->
+    <style name="Widget.ST.FactTile" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:background">@drawable/bg_st_outline_tile</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:drawablePadding">6dp</item>
+        <item name="android:drawableTint">@color/st_navy</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Caption</item>
+        <item name="android:textColor">@color/st_text_2</item>
+    </style>
+
+    <!-- One option in the map type picker (thumbnail + label). Selection is View.setSelected(). -->
+    <style name="Widget.ST.MapTypeOption" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/bg_st_map_type_option</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:padding">6dp</item>
+    </style>
+
+    <!-- Totals strip (km / driving / trips / top speed): equal cells split by hairlines. -->
+    <style name="Widget.ST.TotalCell" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="Widget.ST.TotalValue" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.NumberSmall</item>
+    </style>
+
+    <style name="Widget.ST.TotalLabel" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">2dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Caption</item>
+    </style>
+
+    <style name="Widget.ST.TotalDivider" parent="">
+        <item name="android:layout_width">1dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:background">@color/st_line_soft</item>
+    </style>
+
+    <!-- Section label above a card group -->
+    <style name="Widget.ST.SectionLabel" parent="">
+        <item name="android:textAppearance">@style/TextAppearance.ST.Overline</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:accessibilityHeading">true</item>
+    </style>
+
+    <!-- ── Inputs ─────────────────────────────────────────── -->
+    <style name="Widget.ST.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">10dp</item>
+        <item name="boxCornerRadiusTopEnd">10dp</item>
+        <item name="boxCornerRadiusBottomStart">10dp</item>
+        <item name="boxCornerRadiusBottomEnd">10dp</item>
+        <item name="boxStrokeColor">@color/st_input_stroke</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">1.5dp</item>
+        <item name="boxBackgroundColor">@color/st_surface</item>
+        <item name="hintTextColor">@color/st_navy</item>
+        <item name="android:textColorHint">@color/st_text_3</item>
+        <item name="errorTextColor">@color/st_danger_text</item>
+        <item name="boxStrokeErrorColor">@color/st_danger</item>
+        <item name="helperTextTextColor">@color/st_text_3</item>
+    </style>
+
+    <style name="Widget.ST.Switch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/st_surface</item>
+    </style>
+
+    <!-- ── Sheets and dialogs ─────────────────────────────── -->
+    <style name="ThemeOverlay.ST.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.ST.BottomSheet</item>
+        <item name="android:backgroundDimAmount">0.32</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Widget.ST.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/st_surface</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.ST.Sheet</item>
+        <item name="shapeAppearanceOverlay">@null</item>
+    </style>
+
+    <!-- Only for screens not redesigned yet that still build a dialog: at least it matches the palette. -->
+    <style name="ThemeOverlay.ST.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/st_navy</item>
+        <item name="colorSurface">@color/st_surface</item>
+        <item name="android:fontFamily">@font/inter_regular</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.ST.Button.Text</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.ST.Button.Text</item>
+    </style>
+
+</resources>

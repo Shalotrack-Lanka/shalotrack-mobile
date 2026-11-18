@@ -33,4 +33,7 @@ public class AlertResponse {
     public String getMessage() { return message; }
     public String getTriggeredAt() { return triggeredAt; }
     public boolean isRead() { return isRead; }
+
+    /** Optimistic update on tap; reverted by AlertsActivity if the server call fails. */
+    public void setRead(boolean read) { this.isRead = read; }
 }

@@ -7,8 +7,6 @@ import android.graphics.Color;
 import androidx.core.content.ContextCompat;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import android.net.ConnectivityManager;
-import android.net.Network;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,8 +24,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -46,13 +42,10 @@ import com.example.letstracklanka.ui.main.AddressResolver;
 import com.example.letstracklanka.ui.main.FallbackPollScheduler;
 import com.example.letstracklanka.ui.main.HomeActivity;
 import com.example.letstracklanka.ui.history.TripHistoryActivity;
-import com.example.letstracklanka.ui.main.TagsActivity;
-import com.example.letstracklanka.ui.main.CirclesActivity;
 import com.example.letstracklanka.ui.main.VehicleTrailRenderer;
 import com.example.letstracklanka.ui.main.RealtimeLocationClient;
 import com.example.letstracklanka.ui.main.RealtimeLocationPayload;
 import com.example.letstracklanka.ui.main.AlertsActivity;
-import com.example.letstracklanka.ui.main.DrawerMenuHelper;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -80,6 +73,9 @@ import retrofit2.Response;
 
 public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    /** The vehicle to open. Saved as the selected vehicle so the Map tab follows it too. */
+    public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
+
     private GoogleMap mMap;
     private ShaloTrackApi trackingApi;
     private ApiService mainApiService;
@@ -88,10 +84,10 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private RealtimeLocationClient realtimeClient;
 
     private View layoutCollapsed;
-    private LinearLayout layoutExpanded, layoutLeftFabs;
+    private LinearLayout layoutExpanded;
     private GridLayout gridMenu;
     private ImageView btnCloseExpanded;
-    private View fabAdd, fabHistory, btnRefresh;
+    private View fabHistory, btnRefresh;
     private ActivityResultLauncher<Intent> addVehicleLauncher;
     private BottomSheetBehavior<View> bottomSheetBehavior;
 
@@ -106,20 +102,11 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     private android.widget.EditText etVehicleSearch;
     private TextView tvCountMoving, tvCountIdle, tvCountParked, tvCountOffline;
 
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(android.os.Looper.getMainLooper());
+    // Single-vehicle location polling, paused in onStop. The old 1-second full-dashboard refresh of a
+    // list this page no longer shows is gone (the Vehicles tab is the list).
     private FallbackPollScheduler fallbackPollScheduler;
-    private Runnable vehicleListRefreshRunnable;
-    private final int UPDATE_INTERVAL = 1000;
-    // (FALLBACK_POLL_INTERVAL_TICKS moved into FallbackPollScheduler,
-    // shared with HomeActivity -- this was the exact, line-for-line
-    // duplicated piece between the two files.)
-    // Matches UPDATE_INTERVAL per explicit request. Real cost tradeoff: this
-    // fires a full dashboard API call (ALL of the customer's vehicles) every
-    // second the Vehicles screen is open, not the lightweight single-vehicle
-    // poll the "Currently Tracking" panel uses. Fine for a couple of test
-    // vehicles; worth revisiting if a customer's vehicle count grows, or if
-    // this shows up as meaningful load on the dashboard endpoint.
-    private static final int VEHICLE_LIST_REFRESH_INTERVAL_MS = 1000;
+    private boolean startedOnce = false;
 
     private String currentCustomerId = null;
     private String selectedVehicleId = null;
@@ -150,8 +137,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
 
     private View errorBanner;
     private TextView tvErrorBannerMessage, tvErrorBannerRetry;
-    private ConnectivityManager.NetworkCallback networkCallback;
-    private DrawerLayout drawerLayout;
 
     private static final String MAP_PREFS_NAME = "ShaloTrackMapPrefs";
     private static final double MOVEMENT_SPEED_THRESHOLD_KMH = 7.0;
@@ -162,6 +147,15 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vehicles);
+        com.example.letstracklanka.utils.SecureScreen.guardTouches(this);
+
+        String requested = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
+        if (requested != null && !requested.trim().isEmpty()) {
+            getSharedPreferences(VehicleListActivity.VEHICLE_PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit().putString(VehicleListActivity.SELECTED_VEHICLE_ID_KEY, requested.trim()).apply();
+        }
+        View back = findViewById(R.id.btnBackVehicle);
+        if (back != null) back.setOnClickListener(v -> finish());
 
         // Must be registered here, synchronously during onCreate -- not
         // inside initViews() or any later callback.
@@ -176,7 +170,21 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         errorBanner = findViewById(R.id.errorBanner);
         tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
         tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
-        registerNetworkMonitor();
+        // Fires only on a real loss and the recovery after it (the old callback also fired on register,
+        // so every open loaded everything twice and opened two live connections).
+        com.example.letstracklanka.ui.common.NetworkWatcher.watch(this,
+                new com.example.letstracklanka.ui.common.NetworkWatcher.Listener() {
+                    @Override
+                    public void onLost() {
+                        showRetryDialog(getString(R.string.st_error_offline_short), VehiclesActivity.this::loadUserData);
+                    }
+
+                    @Override
+                    public void onRestored() {
+                        hideErrorBanner();
+                        loadUserData();
+                    }
+                });
 
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         mainApiService = ApiClient.getClient().create(ApiService.class);
@@ -191,19 +199,34 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (mapFragment != null) mapFragment.getMapAsync(this);
 
         loadUserData();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         startRealTimeTracking();
+        // Coming back to the page: reconnect live updates for the vehicle on screen.
+        if (startedOnce && selectedVehicleId != null && realtimeClient == null) {
+            realtimeClient = new RealtimeLocationClient();
+            realtimeClient.connect(selectedVehicleId, payload -> runOnUiThread(() -> handlePushedLocation(payload)));
+        }
+        startedOnce = true;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Nothing polls or stays subscribed while the page is not on screen.
+        if (fallbackPollScheduler != null) fallbackPollScheduler.stop();
+        RealtimeLocationClient client = realtimeClient;
+        realtimeClient = null;
+        if (client != null) new Thread(client::stop, "RealtimeClient-Stop-OnStop").start();
     }
 
     private void initViews() {
-        drawerLayout = findViewById(R.id.drawerLayout);
-        DrawerMenuHelper.wireDrawer(this, drawerLayout,
-                findViewById(R.id.tvDrawerName), findViewById(R.id.tvDrawerPhone), findViewById(R.id.tvDrawerEmail));
-
         layoutCollapsed = findViewById(R.id.layoutCollapsed);
         layoutExpanded = findViewById(R.id.layoutExpanded);
-        layoutLeftFabs = findViewById(R.id.layoutLeftFabs);
         gridMenu = findViewById(R.id.gridMenu);
-        fabAdd = findViewById(R.id.fabAdd);
         fabHistory = findViewById(R.id.fabHistory);
 
         if (fabHistory != null) {
@@ -214,17 +237,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         // real, visible, tappable-looking button with no click listener
         // at all anywhere in this file. Now launches the real Add
         // Vehicle flow, refreshing the list on a successful add.
-        if (fabAdd != null) {
-            fabAdd.setOnClickListener(v -> {
-                if (currentCustomerId == null) {
-                    Toast.makeText(this, "Still loading your profile \u2014 try again in a moment.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Intent intent = new Intent(VehiclesActivity.this, AddVehicleActivity.class);
-                intent.putExtra(AddVehicleActivity.EXTRA_CUSTOMER_ID, currentCustomerId);
-                addVehicleLauncher.launch(intent);
-            });
-        }
+        // Adding a vehicle lives on the Vehicles tab and in More; this page is about one vehicle.
 
         tvCollapsedStatus = findViewById(R.id.tvCollapsedStatus);
         tvCollapsedAddress = findViewById(R.id.tvCollapsedAddress);
@@ -319,8 +332,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     layoutExpanded.setVisibility(View.GONE);
                     gridMenu.setVisibility(View.GONE);
                     layoutCollapsed.setVisibility(View.VISIBLE);
-                    if (fabAdd != null) fabAdd.setVisibility(View.VISIBLE);
-                    if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.GONE);
                 }
             }
             @Override public void onSlide(@NonNull View bottomSheet, float slideOffset) { }
@@ -338,8 +349,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (btnMenuAlerts != null) {
             btnMenuAlerts.setOnClickListener(v -> {
                 // NEW: filters to the currently selected vehicle's alerts,
-                // unlike the bottom-nav Alerts tab below (nav_alerts),
-                // which deliberately stays a global "all vehicles" view.
+                // unlike the Alerts tab, which shows every vehicle.
                 Intent intent = new Intent(VehiclesActivity.this, AlertsActivity.class);
                 intent.putExtra(AlertsActivity.EXTRA_VEHICLE_ID, selectedVehicleId);
                 intent.putExtra(AlertsActivity.EXTRA_VEHICLE_NAME, selectedVehicleName);
@@ -348,71 +358,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
             });
         }
 
-        View navHome = findViewById(R.id.nav_home);
-        if (navHome != null) {
-            navHome.setOnClickListener(v -> {
-                Intent intent = new Intent(VehiclesActivity.this, HomeActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
-        }
-
-        View navVehicles = findViewById(R.id.nav_vehicles);
-        if (navVehicles != null) {
-            navVehicles.setOnClickListener(v -> {
-                if (bottomSheetBehavior != null) {
-                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                }
-            });
-        }
-
-        View navTags = findViewById(R.id.nav_tags);
-        if (navTags != null) {
-            navTags.setOnClickListener(v -> {
-                Intent intent = new Intent(VehiclesActivity.this, TagsActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
-        }
-
-        View navCircles = findViewById(R.id.nav_circles);
-        if (navCircles != null) {
-            navCircles.setOnClickListener(v -> {
-                Intent intent = new Intent(VehiclesActivity.this, CirclesActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
-        }
-
-        View navAlerts = findViewById(R.id.nav_alerts);
-        if (navAlerts != null) {
-            navAlerts.setOnClickListener(v -> {
-                Intent intent = new Intent(VehiclesActivity.this, AlertsActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            });
-        }
-
-        View navMenu = findViewById(R.id.nav_menu);
-        if (navMenu != null) {
-            navMenu.setOnClickListener(v -> {
-                // FIX: previously navigated to HomeActivity with an
-                // open_drawer extra -- now opens this screen's own real
-                // drawer directly, found during a systematic dead-end
-                // audit of "Menu doesn't work from every tab".
-                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
-            });
-        }
-
         if (btnRefresh != null) {
-            btnRefresh.setOnClickListener(v -> {
-                Toast.makeText(this, "Refreshing location...", Toast.LENGTH_SHORT).show();
-                fetchLocationData();
-            });
+            btnRefresh.setOnClickListener(v -> fetchLocationData());
         }
     }
 
@@ -420,12 +367,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         View btnMenuHistory = findViewById(R.id.btnMenuHistory);
         if (btnMenuHistory != null) {
             btnMenuHistory.setOnClickListener(v -> openTripHistory());
-        }
-
-        View btnMenuVoiceTrack = findViewById(R.id.btnMenuVoiceTrack);
-        if (btnMenuVoiceTrack != null) {
-            btnMenuVoiceTrack.setOnClickListener(v ->
-                    Toast.makeText(this, "Not available for this device", Toast.LENGTH_SHORT).show());
         }
 
         View btnMenuValue = findViewById(R.id.btnMenuValue);
@@ -452,15 +393,22 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                     startActivity(new Intent(VehiclesActivity.this, com.example.letstracklanka.ui.places.PlacesActivity.class)));
         }
 
-        View btnMenuImmobilize = findViewById(R.id.btnMenuImmobilize);
-        if (btnMenuImmobilize != null) {
-            btnMenuImmobilize.setOnClickListener(v -> new AlertDialog.Builder(this)
-                    .setTitle("Not available yet")
-                    .setMessage("Remote engine cut requires additional safety configuration " +
-                            "and is not enabled for this vehicle yet.")
-                    .setPositiveButton("OK", null)
-                    .show());
+        // Geofences for this vehicle (its own areas and the "all vehicles" ones). Replaces the Circles tab.
+        View btnMenuGeofences = findViewById(R.id.btnMenuGeofences);
+        if (btnMenuGeofences != null) {
+            btnMenuGeofences.setOnClickListener(v -> {
+                Intent intent = new Intent(VehiclesActivity.this,
+                        com.example.letstracklanka.ui.geofences.GeofencesActivity.class);
+                if (selectedVehicleId != null) {
+                    intent.putExtra(com.example.letstracklanka.ui.geofences.GeofencesActivity.EXTRA_VEHICLE_ID, selectedVehicleId);
+                    intent.putExtra(com.example.letstracklanka.ui.geofences.GeofencesActivity.EXTRA_VEHICLE_NAME, selectedVehicleName);
+                }
+                startActivity(intent);
+            });
         }
+
+        // Remote engine cut is not offered: it stays off until there is a written safety specification
+        // (moving-vehicle interlock, confirmation, audit). The tile that only said "not available" is gone.
 
         View btnMenuNav = findViewById(R.id.btnMenuNav);
         if (btnMenuNav != null) {
@@ -1001,12 +949,16 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                         // stale message arriving during the brief overlap), so
                         // it's pushed onto a background thread instead.
                         RealtimeLocationClient oldRealtimeClient = realtimeClient;
+                        realtimeClient = null;
                         if (oldRealtimeClient != null) {
                             new Thread(oldRealtimeClient::stop, "RealtimeClient-Stop").start();
                         }
-                        realtimeClient = new RealtimeLocationClient();
-                        realtimeClient.connect(selectedVehicleId, payload ->
-                                runOnUiThread(() -> handlePushedLocation(payload)));
+                        // Only subscribe while the page is on screen (onStart reconnects otherwise).
+                        if (getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+                            realtimeClient = new RealtimeLocationClient();
+                            realtimeClient.connect(selectedVehicleId, payload ->
+                                    runOnUiThread(() -> handlePushedLocation(payload)));
+                        }
 
                         selectedVehicleName = dashboardMatch != null
                                 ? (dashboardMatch.getMake() + " " + dashboardMatch.getModel()).trim()
@@ -1097,7 +1049,7 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         // both handlePushedLocation() and fetchLocationData() call
         // trailRenderer.updatePosition() unconditionally, which after the
         // marker exists once always animates. Without this reset, the
-        // very next poll (within 1s, via vehicleListRefreshRunnable) would
+        // very next location poll would
         // animate the marker across the whole map from the previously-
         // selected vehicle's position to the new one's.
         trailRenderer.resetForVehicleSwitch(vehicle.getVehicleType());
@@ -1116,10 +1068,8 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
     // list's row tap -- previously duplicated inline only in the former.
     private void expandVehicleDetails() {
         if (layoutCollapsed != null) layoutCollapsed.setVisibility(View.GONE);
-        if (fabAdd != null) fabAdd.setVisibility(View.GONE);
         if (layoutExpanded != null) layoutExpanded.setVisibility(View.VISIBLE);
         if (gridMenu != null) gridMenu.setVisibility(View.VISIBLE);
-        if (layoutLeftFabs != null) layoutLeftFabs.setVisibility(View.VISIBLE);
 
         View bottomSheetView = findViewById(R.id.bottomSheetVehicleDetails);
         if (bottomSheetView != null && bottomSheetBehavior != null) {
@@ -1196,20 +1146,6 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
                 null // no extra-per-tick action here, unlike HomeActivity's fetchDashboard()
         );
 
-        // FIX: fetchVehiclesTabList() was previously only ever called once,
-        // at initial load (plus once more after a delete) -- meaning the
-        // switcher list's speed/status went stale the moment the screen
-        // opened, while the "Currently Tracking" panel kept updating every
-        // second via a completely separate pipeline. That's exactly why the
-        // same vehicle could show two different speeds at the same moment.
-        if (vehicleListRefreshRunnable != null) handler.removeCallbacks(vehicleListRefreshRunnable);
-        vehicleListRefreshRunnable = new Runnable() {
-            @Override public void run() {
-                fetchVehiclesTabList();
-                handler.postDelayed(this, VEHICLE_LIST_REFRESH_INTERVAL_MS);
-            }
-        };
-        handler.postDelayed(vehicleListRefreshRunnable, VEHICLE_LIST_REFRESH_INTERVAL_MS);
     }
 
     private void handlePushedLocation(RealtimeLocationPayload payload) {
@@ -1367,44 +1303,18 @@ public class VehiclesActivity extends AppCompatActivity implements OnMapReadyCal
         if (errorBanner != null) errorBanner.setVisibility(View.GONE);
     }
 
-    private void registerNetworkMonitor() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return;
-
-        networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onLost(@NonNull Network network) {
-                runOnUiThread(() -> showRetryDialog("No internet connection", VehiclesActivity.this::loadUserData));
-            }
-
-            @Override
-            public void onAvailable(@NonNull Network network) {
-                runOnUiThread(() -> {
-                    hideErrorBanner();
-                    loadUserData();
-                });
-            }
-        };
-        cm.registerDefaultNetworkCallback(networkCallback);
-    }
-
     @Override protected void onDestroy() {
         super.onDestroy();
         if (fallbackPollScheduler != null) fallbackPollScheduler.stop();
-        if (vehicleListRefreshRunnable != null) handler.removeCallbacks(vehicleListRefreshRunnable);
         // Same blocking-call concern as the reconnect fix above: stop() can
         // block up to 3 seconds. onDestroy() runs on the main thread too, so
         // this is pushed to a background thread rather than left inline.
         // Pre-existing code (not introduced by this session's changes), but
         // worth fixing now that stop()'s actual blocking behavior is confirmed.
         RealtimeLocationClient clientToStop = realtimeClient;
+        realtimeClient = null;
         if (clientToStop != null) {
             new Thread(clientToStop::stop, "RealtimeClient-Stop-OnDestroy").start();
-        }
-
-        if (networkCallback != null) {
-            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
         }
     }
 }

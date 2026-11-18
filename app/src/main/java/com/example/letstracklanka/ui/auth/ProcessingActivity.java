@@ -125,11 +125,8 @@ public class ProcessingActivity extends AppCompatActivity {
             builder.setPositiveButton("Retry", (dialog, which) -> registerCustomer());
         }
 
-        builder.setNegativeButton("Sign Out", (dialog, which) -> {
-            FirebaseAuth.getInstance().signOut();
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-        }).show();
+        builder.setNegativeButton("Sign Out", (dialog, which) ->
+                com.example.letstracklanka.utils.SignOut.perform(this)).show();
     }
 
     private String extractMessage(String rawResult) {

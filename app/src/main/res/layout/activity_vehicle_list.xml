@@ -1,118 +1,183 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Vehicles tab: every vehicle the customer owns or can see, with live status. Tap a row to open the
+     vehicle; Add opens the add-vehicle flow. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_app_gradient">
+    android:background="@color/st_canvas"
+    android:orientation="vertical">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@color/brand_primary"
-        android:padding="16dp"
-        app:layout_constraintTop_toTopOf="parent"
-        android:id="@+id/headerVehicleList">
-
-        <ImageView
-            android:id="@+id/btnBack"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="@color/text_on_dark"
-            android:contentDescription="Back" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="16dp"
-            android:text="My Vehicles"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_on_dark" />
-    </LinearLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerVehicleList"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshVehicles"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginBottom="12dp"
-        app:layout_constraintTop_toBottomOf="@id/headerVehicleList"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        android:layout_weight="1">
 
-    <ProgressBar
-        android:id="@+id/progressVehicleList"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/headerVehicleList"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="40dp" />
-
-    <TextView
-        android:id="@+id/tvEmptyVehicleList"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="No vehicles yet"
-        android:textSize="14sp"
-        android:textColor="@color/text_muted"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/headerVehicleList"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="40dp" />
-
-    <!-- Same reusable error banner pattern used throughout the app. -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/errorBanner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="8dp"
-        android:visibility="gone"
-        app:cardBackgroundColor="@color/status_danger"
-        app:cardCornerRadius="10dp"
-        app:cardElevation="6dp"
-        app:layout_constraintTop_toBottomOf="@id/headerVehicleList">
-
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/vehiclesScroll"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="12dp">
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true">
 
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@android:drawable/stat_notify_error"
-                app:tint="@color/surface_white" />
-
-            <TextView
-                android:id="@+id/tvErrorBannerMessage"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:id="@+id/vehiclesContent"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:text="Couldn't load data"
-                android:textColor="@color/surface_white"
-                android:textSize="13sp" />
+                android:orientation="vertical"
+                android:paddingStart="@dimen/st_gutter"
+                android:paddingTop="20dp"
+                android:paddingEnd="@dimen/st_gutter"
+                android:paddingBottom="@dimen/st_space_6">
 
-            <TextView
-                android:id="@+id/tvErrorBannerRetry"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="RETRY"
-                android:textColor="@color/surface_white"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:padding="4dp"
-                android:clickable="true"
-                android:focusable="true" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                    <ImageButton
+                        android:id="@+id/btnBack"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="-10dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/st_action_back"
+                        android:src="@drawable/ic_st_back"
+                        android:visibility="gone"
+                        app:tint="@color/st_navy" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:accessibilityHeading="true"
+                        android:text="@string/st_nav_vehicles"
+                        android:textAppearance="@style/TextAppearance.ST.Display" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddVehicle"
+                        style="@style/Widget.ST.Button.Primary.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/st_action_add"
+                        app:icon="@drawable/ic_st_plus"
+                        app:iconPadding="6dp"
+                        app:iconSize="16dp" />
+                </LinearLayout>
+
+                <EditText
+                    android:id="@+id/etVehicleSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="14dp"
+                    android:autofillHints=""
+                    android:background="@drawable/bg_st_input"
+                    android:drawableStart="@drawable/ic_st_search"
+                    android:drawablePadding="10dp"
+                    android:drawableTint="@color/st_text_3"
+                    android:hint="@string/st_vehicles_search_hint"
+                    android:imeOptions="actionSearch"
+                    android:inputType="textNoSuggestions"
+                    android:maxLength="40"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:textAppearance="@style/TextAppearance.ST.Body"
+                    android:textColor="@color/st_text_1" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/chipAll"
+                            style="@style/Widget.ST.FilterChip"
+                            android:layout_width="wrap_content"
+                            tools:text="All 4" />
+
+                        <TextView
+                            android:id="@+id/chipMoving"
+                            style="@style/Widget.ST.FilterChip"
+                            android:layout_width="wrap_content"
+                            android:layout_marginStart="8dp"
+                            tools:text="Moving 1" />
+
+                        <TextView
+                            android:id="@+id/chipStopped"
+                            style="@style/Widget.ST.FilterChip"
+                            android:layout_width="wrap_content"
+                            android:layout_marginStart="8dp"
+                            tools:text="Parked 1" />
+
+                        <TextView
+                            android:id="@+id/chipOffline"
+                            style="@style/Widget.ST.FilterChip"
+                            android:layout_width="wrap_content"
+                            android:layout_marginStart="8dp"
+                            tools:text="Offline 1" />
+
+                        <TextView
+                            android:id="@+id/chipNoDevice"
+                            style="@style/Widget.ST.FilterChip"
+                            android:layout_width="wrap_content"
+                            android:layout_marginStart="8dp"
+                            tools:text="No tracker 1" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <include
+                    layout="@layout/include_inline_banner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" />
+
+                <ProgressBar
+                    android:id="@+id/progressVehicleList"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="32dp"
+                    android:indeterminateTint="@color/st_navy"
+                    android:visibility="gone" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerVehicleList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_st_card"
+                    android:nestedScrollingEnabled="false"
+                    android:overScrollMode="never"
+                    android:padding="1dp" />
+
+                <include
+                    layout="@layout/include_empty_state"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" />
+
+                <TextView
+                    android:id="@+id/tvVehicleListHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:text="@string/st_vehicles_swipe_hint"
+                    android:textAppearance="@style/TextAppearance.ST.Caption"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <include layout="@layout/include_bottom_nav" />
+</LinearLayout>

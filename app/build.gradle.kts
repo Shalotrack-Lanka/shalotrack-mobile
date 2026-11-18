@@ -82,6 +82,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.0")
     implementation("androidx.lifecycle:lifecycle-livedata:2.8.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+    // Pull-to-refresh on the Vehicles, Trips and Alerts tabs (design system v1.0)
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // SignalR for realtime vehicle location updates
     implementation("com.microsoft.signalr:signalr:7.0.20")

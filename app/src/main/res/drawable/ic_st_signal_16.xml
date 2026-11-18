@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ShaloTrack design system icon (stroke 2, round caps). Recolour with app:tint. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/st_text_1"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M4,20v-3" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/st_text_1"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M9,20v-7" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/st_text_1"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M14,20v-11" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/st_text_1"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M19,20V5" />
+</vector>

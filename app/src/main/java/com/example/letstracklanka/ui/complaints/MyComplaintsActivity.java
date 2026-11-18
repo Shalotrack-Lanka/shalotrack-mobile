@@ -34,8 +34,8 @@ import retrofit2.Response;
  * "My Complaints" list — the Android entry point into the
  * Complaint/Feedback feature. Real backend calls throughout (GET
  * api/Complaints/mine), same error-banner/retry + empty-state pattern
- * already established for Emergency Contacts. Opened from the drawer
- * menu (DrawerMenuHelper, "My Complaints" item) and, via the FCM tap
+ * already established for Emergency Contacts. Opened from the More tab
+ * ("Complaints" row) and, via the FCM tap
  * handler, straight into a specific complaint's detail screen when
  * pushed from a reply/status-change notification.
  */

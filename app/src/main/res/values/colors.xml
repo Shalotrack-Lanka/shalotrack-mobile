@@ -1,69 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Legacy/default - restored after being accidentally dropped once already.
-         Existing screens (Tags, Circles, and likely others not touched tonight)
-         reference this directly by name; do not remove without checking every
-         usage first. -->
+    <!-- ════════════════════════════════════════════════════════════
+         ShaloTrack design system: colour tokens (Daylight)
+         Brand navy and signal orange are the same values as the website and the Fleet portal.
+         Rules:
+           - Orange marks the ONE next action on a screen (primary button, selected tab marker, unread dot).
+           - Status colours (st_status_*) carry vehicle data only. Never use them for decoration.
+           - Text on white must pass 4.5:1. st_text_4 is for icons and disabled states only, never for text.
+         New screens use the st_* tokens. The older names further down are kept so screens that have not
+         been redesigned yet still compile; they now point at the same palette.
+         ════════════════════════════════════════════════════════════ -->
+
+    <!-- Brand -->
+    <color name="st_navy">#021F4A</color>
+    <color name="st_navy_700">#163C78</color>
+    <color name="st_navy_100">#EEF1F6</color>
+    <color name="st_navy_950">#011634</color>
+    <color name="st_signal">#FA6908</color>
+    <color name="st_signal_pressed">#E25A00</color>
+    <color name="st_signal_50">#FFF4EC</color>
+    <color name="st_signal_text">#A34405</color>
+
+    <!-- Surfaces and lines -->
+    <color name="st_canvas">#F6F7F9</color>
+    <color name="st_surface">#FFFFFF</color>
+    <color name="st_surface_sunken">#EAECF0</color>
+    <color name="st_line">#E4E7EC</color>
+    <color name="st_line_soft">#EEF0F3</color>
+    <color name="st_scrim">#52021F4A</color>
+
+    <!-- Text (contrast on white: 1 = 16:1, 2 = 7.4:1, 3 = 5:1) -->
+    <color name="st_text_1">#0F1E36</color>
+    <color name="st_text_2">#475467</color>
+    <color name="st_text_3">#667085</color>
+    <color name="st_text_4">#98A2B3</color>
+    <color name="st_text_on_navy">#FFFFFF</color>
+    <color name="st_text_on_navy_2">#C7D2E4</color>
+
+    <!-- Vehicle status: dot / text / background -->
+    <color name="st_status_moving">#16A34A</color>
+    <color name="st_status_moving_text">#15803D</color>
+    <color name="st_status_moving_bg">#ECFDF3</color>
+
+    <color name="st_status_idling">#2563EB</color>
+    <color name="st_status_idling_text">#1D4ED8</color>
+    <color name="st_status_idling_bg">#EFF4FF</color>
+
+    <color name="st_status_parked">#021F4A</color>
+    <color name="st_status_parked_text">#021F4A</color>
+    <color name="st_status_parked_bg">#EEF1F6</color>
+
+    <color name="st_status_offline">#F59E0B</color>
+    <color name="st_status_offline_text">#B45309</color>
+    <color name="st_status_offline_bg">#FFFAEB</color>
+    <color name="st_status_offline_line">#FEDF89</color>
+    <color name="st_status_offline_ink">#7A2E0E</color>
+
+    <color name="st_status_nodevice">#E5484D</color>
+    <color name="st_status_nodevice_text">#B42318</color>
+    <color name="st_status_nodevice_bg">#FEF3F2</color>
+    <color name="st_status_nodevice_line">#FDA29B</color>
+
+    <!-- Feedback (same family as the status colours) -->
+    <color name="st_danger">#D92D20</color>
+    <color name="st_danger_text">#B42318</color>
+    <color name="st_danger_bg">#FEF3F2</color>
+    <color name="st_danger_line">#FDA29B</color>
+    <color name="st_success_text">#15803D</color>
+
+    <!-- ════════════════════════════════════════════════════════════
+         Older names, kept for screens not redesigned yet. Same palette as above.
+         Do not use these in new layouts.
+         ════════════════════════════════════════════════════════════ -->
     <color name="white">#FFFFFF</color>
 
-    <!-- Brand - navy design system -->
-    <color name="brand_primary">#0A2463</color>
-    <color name="brand_primary_light">#1976D2</color>
-    <color name="brand_accent">#1877F2</color>   <!-- still used in the provided design package -->
+    <color name="brand_primary">#021F4A</color>
+    <color name="brand_primary_light">#163C78</color>
+    <!-- Was #1877F2 (Facebook's blue). Text and icons that used it now use navy 700, which passes 4.5:1. -->
+    <color name="brand_accent">#163C78</color>
 
-    <!-- Status colors - grounded in the actual provided design files' palette -->
-    <color name="status_moving">#16A34A</color>   <!-- CHANGED: was #00BFA5 (teal), now matches design package's green -->
-    <color name="status_idle">#1976D2</color>     <!-- unchanged - already matched -->
-    <color name="status_danger">#E53935</color>   <!-- unchanged - already matched -->
+    <color name="status_moving">#16A34A</color>
+    <color name="status_idle">#2563EB</color>
+    <color name="status_danger">#D92D20</color>
     <color name="status_success">#16A34A</color>
-    <color name="status_warning">#FF9800</color>  <!-- kept - no equivalent found in the provided design package -->
+    <color name="status_warning">#F59E0B</color>
 
-    <!-- Danger/warning banner treatment (e.g. Immobilize safety panel) -->
-    <color name="danger_banner_bg">#FEF2F2</color>
-    <color name="danger_banner_border">#FEE2E2</color>
-    <color name="danger_banner_text">#991B1B</color>
+    <color name="danger_banner_bg">#FEF3F2</color>
+    <color name="danger_banner_border">#FDA29B</color>
+    <color name="danger_banner_text">#B42318</color>
 
-    <!-- Text -->
-    <color name="text_primary">#222222</color>
-    <color name="text_secondary">#5B6B82</color>
-    <color name="text_tertiary">#757575</color>   <!-- NEW - from the design package -->
-    <color name="text_muted">#888888</color>
+    <color name="text_primary">#0F1E36</color>
+    <color name="text_secondary">#475467</color>
+    <color name="text_tertiary">#667085</color>
+    <!-- Was #888888 (3.5:1, fails). -->
+    <color name="text_muted">#667085</color>
     <color name="text_on_dark">#FFFFFF</color>
 
-    <!-- Splash screen -->
-    <!-- Slightly darker than brand_primary to make the orange/white icon
-         pop on AMOLED screens and reduce halo artifacts around the AVD icon. -->
-    <color name="splash_background">#081427</color>
+    <color name="splash_background">#011634</color>
 
-    <!-- Surfaces -->
-    <color name="surface_background">#F0F0F0</color>
+    <color name="surface_background">#F6F7F9</color>
     <color name="surface_white">#FFFFFF</color>
-    <color name="surface_chip_selected_bg">#EAF2FE</color>
-    <color name="surface_stroke">#E0E0E0</color>
-    <color name="surface_muted_blue">#9FB2C9</color>   <!-- NEW - from the design package -->
+    <color name="surface_chip_selected_bg">#EEF1F6</color>
+    <color name="surface_stroke">#E4E7EC</color>
+    <color name="surface_muted_blue">#98A2B3</color>
 
+    <!-- Light "glass" tokens from the previous look: now flat canvas and white cards. -->
+    <color name="glass_bg_top">#F6F7F9</color>
+    <color name="glass_bg_bottom">#F6F7F9</color>
+    <color name="glass_card_fill">#FFFFFF</color>
+    <color name="glass_card_stroke">#E4E7EC</color>
+    <color name="glass_sheet_fill">#FFFFFF</color>
 
-    <!-- ════ Glass design system ════
-         Light glass (whole app): soft blue-white backdrop, frosted white cards.
-         Dark glass (sign-in flow, same look as the Fleet web portal): deep navy gradient, translucent white panels. -->
-    <color name="glass_bg_top">#EAF1FD</color>
-    <color name="glass_bg_bottom">#F8FAFF</color>
-    <color name="glass_card_fill">#EBFFFFFF</color>
-    <color name="glass_card_stroke">#1F0A2463</color>
-    <color name="glass_sheet_fill">#F5FFFFFF</color>
-
-    <color name="hero_top">#06183D</color>
-    <color name="hero_mid">#0A2463</color>
-    <color name="hero_bottom">#0F4AA3</color>
-    <color name="glass_dark_fill">#1FFFFFFF</color>
-    <color name="glass_dark_stroke">#3DFFFFFF</color>
-    <color name="glass_dark_sheet">#CC061A40</color>
+    <!-- Sign-in flow (dark navy, same family as the Fleet portal). -->
+    <color name="hero_top">#011634</color>
+    <color name="hero_mid">#021F4A</color>
+    <color name="hero_bottom">#0B3470</color>
+    <color name="glass_dark_fill">#1AFFFFFF</color>
+    <color name="glass_dark_stroke">#33FFFFFF</color>
+    <color name="glass_dark_sheet">#F2021F4A</color>
     <color name="glass_text_primary">#FFFFFF</color>
-    <color name="glass_text_secondary">#CFDCF2</color>
-    <color name="glass_text_hint">#B3C4E0</color>
-    <color name="glass_outline">#8FA6CC</color>
-    <color name="glass_focus">#8DC3FF</color>
-    <color name="glass_error">#FF9A92</color>
-    <color name="glass_button">#1A6EE0</color>
+    <color name="glass_text_secondary">#C7D2E4</color>
+    <color name="glass_text_hint">#A9B6CA</color>
+    <color name="glass_outline">#7F92B0</color>
+    <color name="glass_focus">#FFB37A</color>
+    <color name="glass_error">#FDA29B</color>
+    <color name="glass_button">#FA6908</color>
 </resources>

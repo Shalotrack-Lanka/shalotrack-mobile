@@ -38,4 +38,5 @@ public class RealtimeLocationPayload {
     public double getSpeed() { return speed; }
     public double getHeading() { return heading; }
     public boolean isIgnitionOn() { return ignitionStatus; }
+    public String getLastUpdate() { return lastUpdate; }
 }

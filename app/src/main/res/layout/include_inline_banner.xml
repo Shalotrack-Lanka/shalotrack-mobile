@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- In-line banner (offline / request failed). Shown and styled by InlineBanner. Never a toast. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/inlineBanner"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:accessibilityLiveRegion="polite"
+    android:background="@drawable/bg_st_banner_warning"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="6dp"
+    android:paddingBottom="8dp"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <ImageView
+        android:id="@+id/inlineBannerIcon"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_st_wifi_off" />
+
+    <TextView
+        android:id="@+id/inlineBannerText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.ST.BodySmall"
+        android:textColor="@color/st_status_offline_ink"
+        tools:text="You're offline. Showing positions from 2 min ago." />
+
+    <TextView
+        android:id="@+id/inlineBannerAction"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:background="?attr/selectableItemBackground"
+        android:fontFamily="@font/inter_bold"
+        android:gravity="center"
+        android:minWidth="48dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:text="@string/st_action_retry"
+        android:textColor="@color/st_navy"
+        android:textSize="13sp" />
+</LinearLayout>

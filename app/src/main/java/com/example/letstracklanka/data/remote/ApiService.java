@@ -103,10 +103,23 @@ public interface ApiService {
     @PATCH("api/Alerts/{alertId}/read")
     Call<ResponseBody> markAlertAsRead(@Path("alertId") long alertId);
 
+    // Unread count for the Alerts badge: one COUNT on the server (data is a number).
+    @GET("api/Alerts/unread-count")
+    Call<ResponseBody> getUnreadAlertCount();
+
+    // Marks every unread alert read; vehicleId null = all the customer's vehicles. data = how many changed.
+    @PATCH("api/Alerts/read-all")
+    Call<ResponseBody> markAllAlertsRead(@Query("vehicleId") String vehicleId);
+
     // NEW — was built on the API side during Alerts Stage 1 but never actually
     // wired on the mobile side until now.
     @POST("api/Alerts/register-token")
     Call<ResponseBody> registerFcmToken(@Body RegisterFcmTokenRequest request);
+
+    // Sign-out: stops this phone receiving the customer's alerts. Server deletes the token only if it
+    // belongs to the caller. POST because the token travels in the body.
+    @POST("api/Alerts/unregister-token")
+    Call<ResponseBody> unregisterFcmToken(@Body RegisterFcmTokenRequest request);
 
     // NEW — soft-deletes a vehicle (sets IsActive=false, frees its device's
     // IMEI for reassignment). See VehicleService.DeleteAsync() on the API side.
@@ -115,6 +128,10 @@ public interface ApiService {
 
     @POST("api/Subscriptions")
     Call<ResponseBody> requestSubscription(@Body CreateSubscriptionRequest request);
+
+    // This customer's app plans, newest first (More > App plan shows the active or pending one).
+    @GET("api/Subscriptions")
+    Call<ResponseBody> getMySubscriptions();
 
     // NEW — Emergency Contacts (EmergencyContactsActivity). Plan-based limit
     // is enforced server-side in EmergencyContactService.AddContactAsync;

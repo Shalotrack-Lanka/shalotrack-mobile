@@ -68,6 +68,32 @@ public class DashboardVehicle {
     @SerializedName("isDemo")
     private Boolean isDemo;
 
+    // NEW (18 Nov 2026): the API already sent these; the app ignored them.
+    @SerializedName(value = "lastUpdate", alternate = {"LastUpdate"})
+    private String lastUpdate;
+
+    @SerializedName(value = "heading", alternate = {"Heading"})
+    private JsonElement heading;
+
+    // NEW (18 Nov 2026, API change in the same drop): tracker reports it is cut off from vehicle power.
+    @SerializedName(value = "powerCut", alternate = {"PowerCut"})
+    private Boolean powerCut;
+
+    /** UTC ISO timestamp of the last position, or null when the vehicle never reported. */
+    public String getLastUpdate() { return lastUpdate; }
+
+    public float getHeading() {
+        if (heading == null || heading.isJsonNull()) return 0f;
+        try { return heading.getAsFloat(); } catch (Exception e) { return 0f; }
+    }
+
+    public boolean isPowerCut() { return powerCut != null && powerCut; }
+
+    /** True when the vehicle has a usable position to put on the map. */
+    public boolean hasPosition() {
+        return getLatitude() != 0 || getLongitude() != 0;
+    }
+
     public boolean isShared() { return isShared != null && isShared; }
     public String getOwnerName() { return ownerName; }
     public boolean isDemo() { return isDemo != null && isDemo; }

@@ -9,6 +9,8 @@
     <application
         android:name=".ShaloTrackApp"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@mipmap/ic_launcher"
@@ -17,25 +19,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LetsTrackLanka">
 
+        <!-- The five tabs (Map, Vehicles, Trips, Alerts, More) and the screens they open all use the app
+             theme (Daylight design system). No per-screen MaterialComponents overrides any more. -->
+        <!-- singleTop: a tapped alert notification reloads an Alerts screen already on top. -->
         <activity
             android:name=".ui.main.AlertsActivity"
             android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:launchMode="singleTop" />
 
-        <activity
-            android:name=".ui.main.CirclesActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+        <activity android:name=".ui.main.MoreActivity" android:exported="false" />
 
-        <activity
-            android:name=".ui.main.TagsActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+        <activity android:name=".ui.geofences.GeofencesActivity" android:exported="false" />
 
-        <activity
-            android:name=".ui.vehicles.VehiclesActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+        <activity android:name=".ui.vehicles.VehiclesActivity" android:exported="false" />
+
+        <!-- Link or unlink trackers. Existed in code but was never registered, so it could not open. -->
+        <activity android:name=".ui.devices.DevicesActivity" android:exported="false" />
 
         <activity android:name=".ui.vehicles.VehicleListActivity" android:exported="false" />
 
@@ -68,10 +67,7 @@
 
         <activity android:name=".ui.vehicles.SharedVehicleMapActivity" android:exported="false" />
 
-        <activity
-            android:name=".ui.main.HomeActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+        <activity android:name=".ui.main.HomeActivity" android:exported="false" />
 
         <activity
             android:name=".ui.auth.ProcessingActivity"
@@ -108,7 +104,7 @@
         <activity
             android:name=".ui.main.WelcomeActivity"
             android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar" />
+            android:theme="@style/Theme.ShaloTrack.Auth" />
 
         <activity
             android:name=".ui.auth.OtpVerificationActivity"
@@ -154,13 +150,24 @@
         </service>
 
 
-        <!-- Restrict BOTH keys in Google Cloud Console: Android package + SHA-1 (upload AND Play App Signing certs) -->
+        <!-- Pushes that arrive while the app is in the background are drawn by the system with these. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/st_navy" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="shalotrack_alerts" />
+
+        <!-- Maps SDK key. In Google Cloud Console it must be restricted to Android apps (package
+             com.shalotrack.shalotrack + the SHA-1 of the upload key AND the Play App Signing key) and to the
+             Maps SDK for Android only. The Static Maps key that used to sit here is no longer used by the app
+             (trip thumbnails are lite-mode maps); delete that key in the console after this release. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCCEcm2yd65eBw5aUJI0akiXkwySTBS_LE" />
-
-        <meta-data android:name="com.example.letstracklanka.STATIC_MAPS_API_KEY"
-            android:value="AIzaSyAAk1aVIma-49jfCJ40SDU-8fzufCGmQnA"/>
     </application>
 
 </manifest>

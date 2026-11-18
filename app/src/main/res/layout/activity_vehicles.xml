@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FIX: wrapped in a real DrawerLayout so the "Menu" bottom-nav tab can
-     open an actual, working drawer directly on this screen. Wiring is
-     done via DrawerMenuHelper.wireDrawer(), shared across Home/Vehicles/
-     Alerts/Tags/Circles so this isn't duplicated per screen. -->
-<androidx.drawerlayout.widget.DrawerLayout
+<!-- Vehicle page (one vehicle: live position, status, actions). Opened from the Vehicles tab or the
+     Map sheet. No drawer and no bottom bar here any more: back returns to where it was opened from.
+     Full redesign in the next drop; this keeps the working parts and removes the dead and fake ones. -->
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/drawerLayout"
+    android:id="@+id/vehiclePageRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -23,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@+id/bottomNavBar">
+            app:layout_constraintBottom_toBottomOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -37,78 +36,15 @@
                     android:contentDescription="@string/desc_map"
                     tools:context=".ui.vehicles.VehiclesActivity" />
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="40dp"
-                    android:layout_marginEnd="16dp"
-                    android:baselineAligned="false"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent">
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:contentDescription="@string/desc_map_layers"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="mini"
-                        app:tint="@color/brand_primary"
-                        app:srcCompat="@drawable/ic_layers" />
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:contentDescription="@string/desc_my_location"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="mini"
-                        app:tint="@color/brand_primary"
-                        app:srcCompat="@drawable/ic_my_location" />
-                </LinearLayout>
-
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/fabAdd"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="160dp"
-                    android:contentDescription="@string/desc_add_vehicle"
-                    app:backgroundTint="#FFFFFF"
-                    app:fabSize="normal"
-                    app:tint="@color/brand_primary"
-                    app:srcCompat="@android:drawable/ic_input_add"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
-
-                <LinearLayout
-                    android:id="@+id/layoutLeftFabs"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginBottom="270dp"
-                    android:visibility="gone"
-                    android:baselineAligned="false"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent">
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:contentDescription="@string/desc_places"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="normal"
-                        app:tint="#BDBDBD"
-                        app:srcCompat="@android:drawable/ic_dialog_map" />
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:contentDescription="@string/desc_menu"
-                        app:backgroundTint="#FFFFFF"
-                        app:fabSize="normal"
-                        app:tint="#BDBDBD"
-                        app:srcCompat="@android:drawable/ic_menu_sort_by_size" />
-                </LinearLayout>
-
+                <ImageButton
+                    android:id="@+id/btnBackVehicle"
+                    style="@style/Widget.ST.IconButton"
+                    android:layout_marginStart="@dimen/st_gutter"
+                    android:layout_marginTop="12dp"
+                    android:contentDescription="@string/st_action_back"
+                    android:src="@drawable/ic_st_back"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.core.widget.NestedScrollView
@@ -145,6 +81,7 @@
                          the already-fetched vehicle list, no extra network
                          call. -->
                     <LinearLayout
+                        android:visibility="gone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
@@ -179,9 +116,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginBottom="12dp"
-                        android:background="#F0F0F0" />
+                        android:background="#F0F0F0"
+                        android:visibility="gone" />
 
                     <LinearLayout
+                        android:visibility="gone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
@@ -303,6 +242,7 @@
                          wrapping paddingHorizontal here either. -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recyclerVehiclesTabList"
+                        android:visibility="gone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingBottom="8dp"
@@ -615,20 +555,6 @@
                                 app:drawableTopCompat="@android:drawable/ic_popup_reminder"
                                 app:drawableTint="@color/brand_primary" />
 
-                            <androidx.appcompat.widget.AppCompatTextView
-                                android:id="@+id/btnMenuVoiceTrack"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_columnWeight="1"
-                                android:gravity="center"
-                                android:padding="8dp"
-                                android:text="@string/voicetrack"
-                                android:textSize="12sp"
-                                android:textColor="#BDBDBD"
-                                android:textStyle="bold"
-                                android:drawablePadding="4dp"
-                                app:drawableTopCompat="@android:drawable/ic_btn_speak_now"
-                                app:drawableTint="#BDBDBD" />
 
                             <androidx.appcompat.widget.AppCompatTextView
                                 android:id="@+id/btnMenuValue"
@@ -637,7 +563,7 @@
                                 android:layout_columnWeight="1"
                                 android:gravity="center"
                                 android:padding="8dp"
-                                android:text="@string/value"
+                                android:text="@string/st_vehicle_statistics"
                                 android:textSize="12sp"
                                 android:textColor="#BDBDBD"
                                 android:textStyle="bold"
@@ -662,20 +588,21 @@
                                 app:drawableTint="@color/text_primary" />
 
                             <androidx.appcompat.widget.AppCompatTextView
-                                android:id="@+id/btnMenuImmobilize"
+                                android:id="@+id/btnMenuGeofences"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_columnWeight="1"
                                 android:layout_marginTop="16dp"
                                 android:gravity="center"
                                 android:padding="8dp"
-                                android:text="@string/immobilize"
+                                android:text="@string/st_more_geofences"
                                 android:textSize="12sp"
-                                android:textColor="#000000"
+                                android:textColor="@color/text_primary"
                                 android:textStyle="bold"
                                 android:drawablePadding="4dp"
-                                app:drawableTopCompat="@android:drawable/ic_lock_power_off"
-                                app:drawableTint="#E53935" />
+                                app:drawableTopCompat="@drawable/ic_st_geofence"
+                                app:drawableTint="@color/text_primary" />
+
 
                             <androidx.appcompat.widget.AppCompatTextView
                                 android:id="@+id/btnMenuNav"
@@ -747,116 +674,13 @@
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-        <LinearLayout
-            android:id="@+id/bottomNavBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="65dp"
-            android:orientation="horizontal"
-            android:background="#FFFFFF"
-            android:elevation="16dp"
-            android:baselineAligned="false"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_home"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/home"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_home"
-                app:drawableTopCompat="@drawable/ic_home"
-                app:drawableTint="#757575" />
-
-            <LinearLayout
-                android:id="@+id/nav_vehicles"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:baselineAligned="false">
-                <View android:layout_width="24dp" android:layout_height="3dp" android:background="#1976D2" android:layout_marginBottom="4dp"/>
-                <androidx.appcompat.widget.AppCompatTextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/vehicles"
-                    android:textSize="11sp"
-                    android:textColor="#1976D2"
-                    android:textStyle="bold"
-                    android:contentDescription="@string/desc_vehicles"
-                    app:drawableTopCompat="@drawable/ic_car"
-                    app:drawableTint="#1976D2" />
-            </LinearLayout>
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_tags"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/tags"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_tags"
-                app:drawableTopCompat="@drawable/ic_tag"
-                app:drawableTint="#757575" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_circles"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/circles"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_circles"
-                app:drawableTopCompat="@drawable/ic_radar"
-                app:drawableTint="#757575" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_alerts"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/alerts"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_alerts"
-                app:drawableTopCompat="@drawable/ic_alert"
-                app:drawableTint="#757575" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/nav_menu"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/menu"
-                android:textSize="11sp"
-                android:textColor="#757575"
-                android:paddingTop="12dp"
-                android:contentDescription="@string/desc_menu"
-                app:drawableTopCompat="@drawable/ic_menu"
-                app:drawableTint="#757575" />
-
-        </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/errorBanner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="12dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="68dp"
             android:visibility="gone"
             app:cardBackgroundColor="@color/status_danger"
             app:cardCornerRadius="10dp"
@@ -903,10 +727,5 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <include
-        layout="@layout/layout_drawer_menu"
-        android:layout_width="300dp"
-        android:layout_height="match_parent"
-        android:layout_gravity="start" />
 
-</androidx.drawerlayout.widget.DrawerLayout>
+</FrameLayout>

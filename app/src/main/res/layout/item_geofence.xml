@@ -1,58 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One geofence: name, size and what it applies to, on/off switch (owner only). Tap to edit (owner)
+     or to show it on the map (set by someone else). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/geofenceRow"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="14dp">
+    android:minHeight="68dp"
+    android:orientation="horizontal"
+    android:paddingEnd="8dp">
 
     <LinearLayout
-        android:id="@+id/circleIconBg"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:background="@drawable/bg_circle_gray">
-        <ImageView
-            android:id="@+id/imgGeofenceIcon"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@android:drawable/ic_menu_mylocation"
-            app:tint="@color/brand_accent" />
-    </LinearLayout>
-
-    <LinearLayout
+        android:id="@+id/geofenceRowClickable"
         android:layout_width="0dp"
+        android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:orientation="vertical">
+        android:background="@drawable/bg_st_row"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="12dp">
 
-        <TextView
-            android:id="@+id/tvGeofenceName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Geofence Name"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:maxLines="1"
-            android:ellipsize="end" />
+        <FrameLayout
+            android:id="@+id/geofenceIconTile"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_st_icon_tile"
+            android:backgroundTint="@color/st_navy_100"
+            android:importantForAccessibility="no">
 
-        <TextView
-            android:id="@+id/tvGeofenceCaption"
-            android:layout_width="match_parent"
+            <ImageView
+                android:id="@+id/imgGeofenceIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_st_geofence"
+                app:tint="@color/st_navy" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="200m radius \u2022 All vehicles \u2022 Enter + Exit"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary" />
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="noHideDescendants"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvGeofenceName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+                tools:text="Home" />
+
+            <TextView
+                android:id="@+id/tvGeofenceCaption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textAppearance="@style/TextAppearance.ST.BodySmall"
+                tools:text="200 m · All vehicles · Arrive and leave" />
+        </LinearLayout>
     </LinearLayout>
 
-    <androidx.appcompat.widget.SwitchCompat
+    <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchGeofenceActive"
+        style="@style/Widget.ST.Switch"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
+        android:layout_height="wrap_content"
+        android:minWidth="56dp"
+        android:minHeight="48dp" />
 </LinearLayout>
