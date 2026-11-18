@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Label on the left, value on the right (health facts, vehicle details). Optional status dot before the value. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/kvRow"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="40dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/tvKvLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.ST.Body"
+        android:textColor="@color/st_text_2"
+        tools:text="Vehicle power" />
+
+    <View
+        android:id="@+id/kvDot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginStart="12dp"
+        android:background="@drawable/bg_st_dot"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvKvValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:fontFeatureSettings="tnum"
+        android:gravity="end"
+        android:maxWidth="220dp"
+        android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+        android:textIsSelectable="false"
+        tools:text="Connected" />
+</LinearLayout>

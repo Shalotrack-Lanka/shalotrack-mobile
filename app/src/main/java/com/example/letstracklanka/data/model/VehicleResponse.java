@@ -1,5 +1,10 @@
 package com.example.letstracklanka.data.model;
 
+import androidx.annotation.Nullable;
+
+import com.example.letstracklanka.utils.ApiJson;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
 @SuppressWarnings("unused")
@@ -188,5 +193,24 @@ public class VehicleResponse {
 
     public String getInstalledAt() {
         return installedAtUpper != null ? installedAtUpper : installedAt;
+    }
+
+    private static final Gson GSON = new Gson();
+
+    /**
+     * The vehicle from a /api/Vehicles reply body. The API wraps it as { success, message, data: { ... } };
+     * null when there is no "data" object or it has no vehicle ID (never a half-empty vehicle).
+     */
+    @Nullable
+    public static VehicleResponse from(@Nullable String body) {
+        if (body == null) return null;
+        JsonObject data = ApiJson.dataObject(body);
+        if (data == null) return null;
+        try {
+            VehicleResponse v = GSON.fromJson(data, VehicleResponse.class);
+            return v != null && v.getVehicleId() != null && !v.getVehicleId().isEmpty() ? v : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 }

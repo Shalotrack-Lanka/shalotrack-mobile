@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vehicle page pieces (Daylight design system). Kept apart from design_system.xml so that file stays the core. -->
+<resources>
+    <!-- One of the four quick actions under the vehicle header: icon over a short label, bordered tile. -->
+    <style name="Widget.ST.ActionTile" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minHeight">72dp</item>
+        <item name="android:background">@drawable/bg_st_card</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:drawablePadding">6dp</item>
+        <item name="android:drawableTint">@color/st_navy</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textAppearance">@style/TextAppearance.ST.Label</item>
+        <item name="android:textColor">@color/st_navy</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+</resources>

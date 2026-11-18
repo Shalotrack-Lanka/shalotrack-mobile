@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drop 2 copy: vehicle page, tracker health, live links, reminders, alert settings, phone change, data export,
+     weekly summary. Same voice as strings_app.xml; typographic apostrophes, numbers always as arguments. -->
+<resources>
+
+    <!-- Vehicle page -->
+    <string name="st_vehicle_page_title">Vehicle</string>
+    <string name="st_vehicle_navigate">Directions</string>
+    <string name="st_vehicle_make_year">%1$s · %2$d</string>
+    <string name="st_vehicle_speed_updated">%1$d km/h · updated %2$s</string>
+    <string name="st_vehicle_page_shared_note">Shared by %1$s. You can follow it; only the owner can change it.</string>
+    <string name="st_vehicle_page_demo_note">Demo vehicle. Everyone sees it so they can try the app; it can’t be changed.</string>
+    <string name="st_vehicle_page_load_failed_title">Couldn’t load this vehicle</string>
+    <string name="st_vehicle_page_refresh_failed">Couldn’t refresh. Showing what was loaded last.</string>
+    <string name="st_vehicle_page_missing_title">This vehicle isn’t on your account</string>
+    <string name="st_vehicle_page_missing_body">It may have been removed, or its owner stopped sharing it.</string>
+    <string name="st_vehicle_page_details_loading">Still loading the vehicle’s details. Try again in a moment.</string>
+    <string name="st_vehicle_section_manage">Manage</string>
+    <string name="st_vehicle_section_more">For this vehicle</string>
+    <string name="st_vehicle_section_details">Details</string>
+    <string name="st_vehicle_geofences_detail">Alerts when it arrives or leaves</string>
+    <string name="st_vehicle_geofences_detail_viewer">Areas the owner set</string>
+    <string name="st_vehicle_sharing_detail">Who else can see your vehicles</string>
+    <string name="st_vehicle_statistics_detail">Distance, trips and speeds</string>
+    <string name="st_vehicle_tracker_row">Tracker</string>
+    <string name="st_vehicle_tracker_linked">Linked · unlink or move it</string>
+    <string name="st_vehicle_tracker_none">Not linked · link one by IMEI</string>
+    <string name="st_vehicle_remove_detail">Deletes it and frees its tracker</string>
+    <string name="st_speed_kmh">%1$d km/h</string>
+
+    <string name="st_detail_plate">Plate</string>
+    <string name="st_detail_make">Make</string>
+    <string name="st_detail_model">Model</string>
+    <string name="st_detail_year">Year</string>
+    <string name="st_detail_colour">Colour</string>
+    <string name="st_detail_type">Type</string>
+    <string name="st_detail_fuel">Fuel</string>
+    <string name="st_detail_chassis">Chassis no.</string>
+    <string name="st_detail_engine">Engine no.</string>
+    <string name="st_detail_tracker">Tracker</string>
+    <string name="st_detail_tracker_none">Not linked</string>
+    <string name="st_detail_warranty">Tracker warranty until</string>
+    <string name="st_detail_ends_with">•••• %1$s</string>
+
+    <!-- Tracker health (same words as Fleet) -->
+    <string name="st_health_title">Tracker health</string>
+    <string name="st_health_connection">Connection</string>
+    <string name="st_health_online">Online</string>
+    <string name="st_health_offline">Offline</string>
+    <string name="st_health_power">Vehicle power</string>
+    <string name="st_health_power_ok">Connected</string>
+    <string name="st_health_power_cut">Disconnected</string>
+    <string name="st_health_battery">Device battery</string>
+    <string name="st_health_signal">Mobile signal</string>
+    <string name="st_health_no_signal">No signal</string>
+    <string name="st_health_ignition">Ignition</string>
+    <string name="st_health_all_normal">All systems normal</string>
+    <string name="st_health_not_reporting">Not reporting yet</string>
+    <string name="st_health_not_reporting_since">Not reporting, last contact %1$s</string>
+    <string name="st_health_headline_power">Tracker is disconnected from the vehicle’s power</string>
+    <string name="st_health_headline_battery_critical">Tracker battery is critically low</string>
+    <string name="st_health_headline_battery_low">Tracker battery is low</string>
+    <string name="st_health_headline_weak_signal">Weak mobile signal</string>
+    <string name="st_health_last_contact">Last contact %1$s</string>
+    <string name="st_health_imei_tail">IMEI ends %1$s</string>
+    <string name="st_health_no_tracker">No tracker linked to this vehicle</string>
+    <string name="st_health_unavailable">Tracker status isn’t available right now</string>
+
+    <!-- Live location links -->
+    <string name="st_live_title">Live location link</string>
+    <string name="st_live_body">Anyone with the link can watch this vehicle live, without the app, until the link ends. Share it only with people you trust. You can stop a link at any time.</string>
+    <string name="st_live_how_long">How long</string>
+    <string name="st_live_1h">1 h</string>
+    <string name="st_live_4h">4 h</string>
+    <string name="st_live_8h">8 h</string>
+    <string name="st_live_24h">24 h</string>
+    <string name="st_live_create">Make a link</string>
+    <string name="st_live_limit">3 links are active. Stop one first.</string>
+    <string name="st_live_create_failed">Couldn’t make the link. Try again.</string>
+    <string name="st_live_ready">Link ready</string>
+    <string name="st_live_ready_until">Link ready, works until %1$s. Copy or share it now: it isn’t shown again.</string>
+    <string name="st_live_copy">Copy</string>
+    <string name="st_live_copied">Copied</string>
+    <string name="st_live_share">Share</string>
+    <string name="st_live_share_text">Follow %1$s live: %2$s</string>
+    <string name="st_live_active">Active links</string>
+    <string name="st_live_ends">Ends %1$s</string>
+    <string name="st_live_made">Made %1$s</string>
+    <string name="st_live_stop">Stop</string>
+    <string name="st_live_stop_a11y">Stop the link that ends %1$s</string>
+    <string name="st_live_stop_failed">Couldn’t stop the link. Try again.</string>
+    <string name="st_live_row_none">Share it live for a few hours</string>
+    <plurals name="st_live_row_active">
+        <item quantity="one">%d active link</item>
+        <item quantity="other">%d active links</item>
+    </plurals>
+
+    <!-- Reminders -->
+    <string name="st_reminders_title">Reminders</string>
+    <string name="st_reminders_body">Set the dates and you get a notification before each one is due.</string>
+    <string name="st_reminders_row_none">Licence, insurance and service</string>
+    <string name="st_reminders_load_failed">Couldn’t load the reminders.</string>
+    <string name="st_reminders_save_failed">Couldn’t save the reminder. Try again.</string>
+    <string name="st_reminder_licence">Revenue licence</string>
+    <string name="st_reminder_insurance">Insurance</string>
+    <string name="st_reminder_service">Service</string>
+    <string name="st_reminder_not_set">Not set. Tap to add the date</string>
+    <string name="st_reminder_remove">Remove reminder</string>
+    <string name="st_reminder_due_today">%1$s · due today</string>
+    <plurals name="st_reminder_due_in">
+        <item quantity="one">%1$s · in %2$d day</item>
+        <item quantity="other">%1$s · in %2$d days</item>
+    </plurals>
+    <plurals name="st_reminder_overdue">
+        <item quantity="one">%1$s · %2$d day overdue</item>
+        <item quantity="other">%1$s · %2$d days overdue</item>
+    </plurals>
+    <string name="st_reminder_row_overdue">%1$s is overdue</string>
+    <string name="st_reminder_row_today">%1$s is due today</string>
+    <plurals name="st_reminder_row_in">
+        <item quantity="one">%1$s in %2$d day</item>
+        <item quantity="other">%1$s in %2$d days</item>
+    </plurals>
+
+    <!-- Alert settings -->
+    <string name="st_alert_settings_title">Alert settings</string>
+    <string name="st_alert_settings_speed">Over-speed alert</string>
+    <string name="st_alert_settings_speed_hint">You get an alert when the vehicle goes faster than this.</string>
+    <string name="st_alert_settings_idle">Idling alert</string>
+    <string name="st_alert_settings_idle_after">Alert after idling for</string>
+    <string name="st_alert_settings_load_failed">Couldn’t load the alert settings.</string>
+    <string name="st_alert_settings_save_failed">Couldn’t save the alert settings. Try again.</string>
+    <string name="st_alert_settings_row_default">Speed limit and idling</string>
+    <string name="st_alert_settings_row">Over %1$d km/h · idling alert off</string>
+    <string name="st_alert_settings_row_idle">Over %1$d km/h · idling after %2$d min</string>
+
+    <!-- Change sign-in number -->
+    <string name="st_phone_change_action">Change</string>
+    <string name="st_phone_change_title">Change your sign-in number</string>
+    <string name="st_phone_change_body">We text a code to the new number. After the change you sign in again with it, your other phones are signed out, and we tell your old number.</string>
+    <string name="st_phone_change_new_hint">New mobile number</string>
+    <string name="st_phone_change_send">Send code</string>
+    <string name="st_phone_change_invalid">Enter a Sri Lankan mobile number, for example 771234567</string>
+    <string name="st_phone_change_same">That’s your current number</string>
+    <string name="st_phone_change_send_failed">Couldn’t send the code. Try again.</string>
+    <string name="st_phone_change_code_title">Enter the code</string>
+    <string name="st_phone_change_code_body">We texted a 6-digit code to %1$s. It works for 5 minutes.</string>
+    <string name="st_phone_change_code_hint">6-digit code</string>
+    <string name="st_phone_change_code_invalid">Enter the 6 digits from the text</string>
+    <string name="st_phone_change_confirm">Change number</string>
+    <string name="st_phone_change_checking">Checking…</string>
+    <string name="st_phone_change_verify_failed">Couldn’t change the number. Try again.</string>
+    <string name="st_phone_change_resend">Send the code again</string>
+    <string name="st_phone_change_resend_in">Send again in %1$d s</string>
+    <string name="st_phone_change_done_title">Number changed</string>
+    <string name="st_phone_change_done_body">Your sign-in number is now %1$s. Sign in again with it to keep going.</string>
+    <string name="st_phone_change_sign_in">Sign in again</string>
+    <string name="st_phone_change_reauth_title">Sign in again first</string>
+    <string name="st_phone_change_reauth_body">For your security, changing the number needs a sign-in from the last 10 minutes. Sign in again, then change it straight away.</string>
+
+    <!-- More: weekly summary, data export -->
+    <string name="st_more_weekly">Weekly summary</string>
+    <string name="st_more_weekly_detail">A notification every Monday with last week’s distance, trips and alerts</string>
+    <string name="st_more_weekly_failed">Couldn’t change the weekly summary. It’s back as it was.</string>
+    <string name="st_more_export">Download my data</string>
+    <string name="st_more_export_detail">Your profile, vehicles, places and alerts</string>
+    <string name="st_more_export_preparing">Preparing your file…</string>
+    <string name="st_more_export_choose">Choose where to save it</string>
+    <string name="st_more_export_saved">Saved. Open it from your Files app.</string>
+    <string name="st_more_export_failed">Couldn’t prepare your data. Try again later.</string>
+    <string name="st_more_export_write_failed">Couldn’t save the file there. Try another folder.</string>
+
+    <!-- Add / edit vehicle -->
+    <string name="st_addv_title_add">Add vehicle</string>
+    <string name="st_addv_title_edit">Edit vehicle</string>
+    <string name="st_addv_section_vehicle">Vehicle</string>
+    <string name="st_addv_plate">Vehicle number</string>
+    <string name="st_addv_plate_helper">As on the number plate, for example WP CAB-1234</string>
+    <string name="st_addv_make">Make</string>
+    <string name="st_addv_model">Model</string>
+    <string name="st_addv_year">Year</string>
+    <string name="st_addv_colour">Colour (optional)</string>
+    <string name="st_addv_type">Type</string>
+    <string name="st_addv_fuel">Fuel</string>
+    <string name="st_addv_show_numbers">Add chassis and engine numbers</string>
+    <string name="st_addv_hide_numbers">Hide chassis and engine numbers</string>
+    <string name="st_addv_required">Required</string>
+    <string name="st_addv_year_range">Enter a year from 1950 to %1$d</string>
+    <string name="st_addv_add">Add vehicle</string>
+    <string name="st_addv_save">Save changes</string>
+    <string name="st_addv_no_customer">Your profile didn’t load. Go back and try again.</string>
+    <string name="st_addv_add_failed">Couldn’t add the vehicle. Try again.</string>
+    <string name="st_addv_add_network">No connection, so we can’t tell if the vehicle was added. Check your vehicle list before trying again.</string>
+    <string name="st_addv_save_failed">Couldn’t save the changes. Try again.</string>
+    <string name="st_addv_save_network">No connection. Your changes weren’t saved.</string>
+
+    <string name="st_addv_section_tracker">Tracker (optional)</string>
+    <string name="st_addv_tracker_body">Enter the 15-digit IMEI from the tracker’s label and check it. You can also link a tracker later from the vehicle’s page.</string>
+    <string name="st_addv_imei">Tracker IMEI</string>
+    <string name="st_addv_check">Check</string>
+    <string name="st_addv_checking">Checking…</string>
+    <string name="st_addv_imei_invalid">Enter the 15-digit IMEI exactly as on the label</string>
+    <string name="st_addv_imei_check_first">Tap Check to confirm this tracker, or clear the IMEI</string>
+    <string name="st_addv_imei_not_found">No tracker with this IMEI. Check the number on the label, or ask your dealer.</string>
+    <string name="st_addv_imei_linked">This tracker is already linked to a vehicle. If it’s one of yours, unlink it from that vehicle’s page first.</string>
+    <string name="st_addv_imei_too_many">Too many checks. Wait 15 minutes and try again.</string>
+    <string name="st_addv_lookup_failed">Couldn’t check this tracker. Try again.</string>
+    <string name="st_addv_found">Tracker found</string>
+    <string name="st_addv_found_detail">IMEI %1$s · it’s linked when you add the vehicle</string>
+    <string name="st_addv_link_later">The tracker wasn’t linked.</string>
+    <string name="st_addv_added_not_linked">The vehicle was added, but its tracker wasn’t linked: %1$s Link it from the vehicle’s page, under Tracker.</string>
+
+    <!-- Download my data: format choice and PDF (same sections and words as Fleet's exports/my-data PDF) -->
+    <string name="st_export_body">A copy of the personal data ShaloTrack holds about you. Your trips aren’t included; they’re in the Trips tab. Up to 3 downloads an hour.</string>
+    <string name="st_export_pdf">PDF</string>
+    <string name="st_export_pdf_detail">Easy to read, share or print</string>
+    <string name="st_export_json">JSON</string>
+    <string name="st_export_json_detail">Everything, for other apps or services</string>
+    <string name="st_more_export_building_pdf">Making your PDF…</string>
+    <string name="st_more_export_limit">You can download your data up to 3 times an hour. Try again later.</string>
+    <string name="st_more_export_lost">The download was interrupted. Tap Download my data again.</string>
+
+    <string name="st_pdf_brand_sub">Vehicle tracking</string>
+    <string name="st_pdf_title">My personal data</string>
+    <string name="st_pdf_generated">Generated %1$s (Sri Lanka time)</string>
+    <string name="st_pdf_note">This document lists the personal data ShaloTrack holds about you. It does not include push notification tokens or bank-slip images. Your trips are in the app’s Trips tab. A machine-readable JSON copy is also available from Download my data.</string>
+    <string name="st_pdf_footer">ShaloTrack · Confidential · Personal data export · %1$s</string>
+    <string name="st_pdf_page">Page %1$d</string>
+    <string name="st_pdf_none">None.</string>
+    <string name="st_pdf_none_short">None</string>
+    <string name="st_pdf_yes">Yes</string>
+    <string name="st_pdf_no">No</string>
+    <string name="st_pdf_off">Off</string>
+    <string name="st_pdf_all">All</string>
+    <string name="st_pdf_enter">Enter</string>
+    <string name="st_pdf_exit">Exit</string>
+    <string name="st_pdf_kmh">%1$d km/h</string>
+    <string name="st_pdf_minutes">%1$d min</string>
+    <string name="st_pdf_metres">%1$d m</string>
+    <string name="st_pdf_since">since %1$s</string>
+    <string name="st_pdf_chassis">Chassis %1$s</string>
+    <string name="st_pdf_engine">Engine %1$s</string>
+    <string name="st_pdf_opened">Opened %1$s</string>
+    <string name="st_pdf_resolved">Resolved %1$s</string>
+    <string name="st_pdf_alerts_more">Showing the latest %1$d of %2$d. The JSON download has all of them.</string>
+
+    <string name="st_pdf_profile">Profile</string>
+    <string name="st_pdf_name">Name</string>
+    <string name="st_pdf_email">Email</string>
+    <string name="st_pdf_phone">Phone</string>
+    <string name="st_pdf_nic">NIC</string>
+    <string name="st_pdf_address">Address</string>
+    <string name="st_pdf_account_status">Account status</string>
+    <string name="st_pdf_weekly">Weekly summary push</string>
+    <string name="st_pdf_member_since">Member since</string>
+
+    <string name="st_pdf_vehicles">Vehicles (%1$d)</string>
+    <string name="st_pdf_reminders">Reminders (%1$d)</string>
+    <string name="st_pdf_places">Saved places (%1$d)</string>
+    <string name="st_pdf_geofences">Geofences (%1$d)</string>
+    <string name="st_pdf_contacts">Emergency contacts (%1$d)</string>
+    <string name="st_pdf_complaints">Complaints (%1$d)</string>
+    <string name="st_pdf_renewals">Renewal requests (%1$d)</string>
+    <string name="st_pdf_shares_given">Vehicles you shared (%1$d)</string>
+    <string name="st_pdf_shares_received">Vehicles shared with you (%1$d)</string>
+    <string name="st_pdf_push_devices">Notification devices (%1$d)</string>
+    <string name="st_pdf_alerts">Recent alerts, last 90 days (%1$d)</string>
+
+    <string name="st_pdf_col_plate">Plate</string>
+    <string name="st_pdf_col_vehicle">Vehicle</string>
+    <string name="st_pdf_col_details">Details</string>
+    <string name="st_pdf_col_speed_limit">Speed limit</string>
+    <string name="st_pdf_col_idle_alert">Idle alert</string>
+    <string name="st_pdf_col_tracker">Tracker bound</string>
+    <string name="st_pdf_col_type">Type</string>
+    <string name="st_pdf_col_due">Due</string>
+    <string name="st_pdf_col_notes">Notes</string>
+    <string name="st_pdf_col_name">Name</string>
+    <string name="st_pdf_col_latitude">Latitude</string>
+    <string name="st_pdf_col_longitude">Longitude</string>
+    <string name="st_pdf_col_radius">Radius</string>
+    <string name="st_pdf_col_visits">Visits</string>
+    <string name="st_pdf_col_last_visit">Last visit</string>
+    <string name="st_pdf_col_alerts">Alerts</string>
+    <string name="st_pdf_col_active">Active</string>
+    <string name="st_pdf_col_phone">Phone</string>
+    <string name="st_pdf_col_relationship">Relationship</string>
+    <string name="st_pdf_col_period">Period</string>
+    <string name="st_pdf_col_payment">Payment</string>
+    <string name="st_pdf_col_amount">Amount</string>
+    <string name="st_pdf_col_status">Status</string>
+    <string name="st_pdf_col_requested">Requested</string>
+    <string name="st_pdf_col_decided">Decided</string>
+    <string name="st_pdf_col_shared_with">Shared with</string>
+    <string name="st_pdf_col_owner">Owner</string>
+    <string name="st_pdf_col_invited">Invited</string>
+    <string name="st_pdf_col_platform">Platform</string>
+    <string name="st_pdf_col_last_seen">Last seen</string>
+    <string name="st_pdf_col_when">When</string>
+    <string name="st_pdf_col_message">Message</string>
+</resources>

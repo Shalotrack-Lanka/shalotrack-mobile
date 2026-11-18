@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One row on the More tab and in the support sheet: icon tile, title, optional one-line detail,
+<!-- One row on the More tab and in the support sheet: icon tile, title, optional detail (written to fit one line; 2 at large font sizes),
      chevron. The whole row is the button and reads as one item to TalkBack. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -55,10 +55,12 @@
             android:id="@+id/moreRowDetail"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:maxLines="2"
             android:textAppearance="@style/TextAppearance.ST.BodySmall"
+            android:includeFontPadding="false"
+            android:lineSpacingMultiplier="0.95"
             android:visibility="gone"
             tools:text="Home, office and other places you name"
             tools:visibility="visible" />
