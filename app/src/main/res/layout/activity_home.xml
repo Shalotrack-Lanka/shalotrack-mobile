@@ -370,10 +370,13 @@
                             tools:text="Signal good" />
                     </LinearLayout>
 
+                    <!-- baselineAligned off: with it on, a button whose label wraps is pushed down to line up
+                         baselines and gets clipped at the bottom of the row. Labels are one line anyway. -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
+                        android:baselineAligned="false"
                         android:orientation="horizontal">
 
                         <com.google.android.material.button.MaterialButton
@@ -381,9 +384,11 @@
                             style="@style/Widget.ST.Button.Primary"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1.3"
+                            android:layout_weight="1"
+                            android:contentDescription="@string/st_home_share_location"
+                            android:maxLines="1"
                             android:minHeight="48dp"
-                            android:text="@string/st_home_share_location"
+                            android:text="@string/st_home_share"
                             app:icon="@drawable/ic_st_share"
                             app:iconGravity="textStart"
                             app:iconPadding="8dp"
@@ -396,6 +401,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
+                            android:maxLines="1"
                             android:minHeight="48dp"
                             android:text="@string/st_nav_trips" />
 

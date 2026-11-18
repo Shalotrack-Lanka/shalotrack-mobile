@@ -121,6 +121,7 @@
     <string name="st_home_other_vehicles">Other vehicles</string>
     <string name="st_home_vehicle_details">Vehicle page</string>
     <string name="st_home_share_location">Share location</string>
+    <string name="st_home_share">Share</string>
     <string name="st_home_share_text">%1$s is here: %2$s</string>
     <string name="st_home_sos">SOS</string>
     <string name="st_home_sos_description">SOS. Opens the emergency alert.</string>
@@ -304,6 +305,8 @@
     <string name="st_plan_option_a11y">%1$s, %2$s, %3$s</string>
     <string name="st_plan_current_active">Your plan: %1$s</string>
     <string name="st_plan_current_active_until">Your plan: %1$s, until %2$s</string>
+    <string name="st_plan_current_free">You’re on the Free plan. Pick a paid plan to upgrade.</string>
+    <string name="st_plan_current_tag">Current plan</string>
     <string name="st_plan_current_pending">%1$s requested, waiting for payment. It switches on when payment is confirmed. A new request can be made after that.</string>
     <string name="st_plan_request">Request plan</string>
     <string name="st_plan_request_named">Request %1$s</string>
