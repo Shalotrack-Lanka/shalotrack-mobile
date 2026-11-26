@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tones for the state of a record (an invite, a complaint, a renewal, a tracker link). Kept apart from
+     st_status_*, which carry live vehicle data only. Same hues, so the app reads as one system. -->
+<resources>
+    <color name="st_tone_green_dot">#16A34A</color>
+    <color name="st_tone_green_text">#15803D</color>
+    <color name="st_tone_green_bg">#ECFDF3</color>
+    <color name="st_tone_green_line">#ABEFC6</color>
+
+    <color name="st_tone_navy_dot">#021F4A</color>
+    <color name="st_tone_navy_text">#021F4A</color>
+    <color name="st_tone_navy_bg">#EEF1F6</color>
+
+    <color name="st_tone_amber_dot">#F59E0B</color>
+    <color name="st_tone_amber_text">#B45309</color>
+    <color name="st_tone_amber_bg">#FFFAEB</color>
+
+    <color name="st_tone_red_dot">#F04438</color>
+    <color name="st_tone_red_text">#B42318</color>
+    <color name="st_tone_red_bg">#FEF3F2</color>
+
+    <color name="st_tone_grey_dot">#98A2B3</color>
+    <color name="st_tone_grey_text">#475467</color>
+    <color name="st_tone_grey_bg">#F2F4F7</color>
+
+    <color name="st_tone_info_text">#1E3A8A</color>
+    <color name="st_tone_info_bg">#EFF4FF</color>
+    <color name="st_tone_info_line">#C7D7FE</color>
+</resources>

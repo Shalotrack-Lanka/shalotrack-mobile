@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Top bar for a full screen opened from More or a vehicle: back and title on a 56 dp row. Bound by
+     TopBar.bind(), which also pads the bar below the status bar (the white runs behind it). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/stTopBar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_st_top_bar"
+    android:orientation="vertical"
+    android:paddingBottom="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingEnd="@dimen/st_gutter">
+
+        <ImageButton
+            android:id="@+id/btnTopBarBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/st_action_back"
+            android:src="@drawable/ic_st_back"
+            app:tint="@color/st_navy" />
+
+        <TextView
+            android:id="@+id/tvTopBarTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:accessibilityHeading="true"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.ST.Title"
+            tools:text="Places" />
+    </LinearLayout>
+</LinearLayout>

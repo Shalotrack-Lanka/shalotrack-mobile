@@ -1,90 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One emergency contact: initials, name, number and relationship, remove. Tapping the row opens the dialer. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="14dp">
+    android:minHeight="@dimen/st_row_height"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingEnd="4dp">
 
-    <!-- Avatar circle with initials, matching the approved emergency
-         contacts mockup, initials computed in the adapter, same
-         rounded-card background already established for Value's stat
-         cards, reused here for visual consistency across the app. -->
     <LinearLayout
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:background="@drawable/bg_circle_gray">
+        android:id="@+id/contactCall"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/st_row_height"
+        android:orientation="horizontal"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
         <TextView
             android:id="@+id/tvContactInitials"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="?"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_st_avatar"
+            android:backgroundTint="@color/st_navy_100"
+            android:fontFamily="@font/inter_bold"
+            android:gravity="center"
+            android:importantForAccessibility="no"
+            android:textColor="@color/st_navy"
             android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="@color/brand_accent" />
+            tools:text="NP" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="noHideDescendants"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvContactName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+                tools:text="Nimal Perera" />
+
+            <TextView
+                android:id="@+id/tvContactDetail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFeatureSettings="tnum"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.ST.Caption"
+                tools:text="+94 77 123 4567 · Brother" />
+        </LinearLayout>
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_weight="1"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/tvContactName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Contact Name"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/tvContactPhone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="+94 7X XXX XXXX"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary" />
-
-        <TextView
-            android:id="@+id/tvContactRelationship"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:text=" "
-            android:textSize="11sp"
-            android:textColor="@color/text_muted" />
-    </LinearLayout>
-
-    <!-- NEW: matches the approved mockup's tap-to-call button, same
-         green-circle style already used in the post-SOS call sheet. -->
-    <ImageView
-        android:id="@+id/btnCallContact"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="@drawable/bg_circle_success"
-        android:padding="8dp"
-        android:src="@drawable/ic_phone_call"
-        app:tint="@color/status_success"
-        android:contentDescription="Call contact" />
-
-    <ImageView
+    <ImageButton
         android:id="@+id/btnDeleteContact"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="6dp"
-        android:src="@android:drawable/ic_menu_delete"
-        app:tint="@color/status_danger"
-        android:contentDescription="Remove contact"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:padding="8dp" />
-
+        android:src="@drawable/ic_st_trash"
+        app:tint="@color/st_text_3"
+        tools:contentDescription="Remove Nimal Perera" />
 </LinearLayout>

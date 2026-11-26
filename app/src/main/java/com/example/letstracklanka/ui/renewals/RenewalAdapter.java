@@ -1,20 +1,26 @@
 package com.example.letstracklanka.ui.renewals;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.RenewalResponse;
+import com.example.letstracklanka.ui.common.Pill;
+import com.example.letstracklanka.ui.common.Plates;
+import com.example.letstracklanka.ui.common.TimeText;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/** Renewal request cards: plate, state, package and amount, a note, and Upload / Replace slip and Cancel. */
 public class RenewalAdapter extends RecyclerView.Adapter<RenewalAdapter.Holder> {
 
     public interface Actions {
@@ -24,6 +30,7 @@ public class RenewalAdapter extends RecyclerView.Adapter<RenewalAdapter.Holder> 
 
     private List<RenewalResponse> items = new ArrayList<>();
     private final Actions actions;
+    private boolean busy;
 
     public RenewalAdapter(Actions actions) {
         this.actions = actions;
@@ -32,6 +39,22 @@ public class RenewalAdapter extends RecyclerView.Adapter<RenewalAdapter.Holder> 
     public void submit(List<RenewalResponse> newItems) {
         items = newItems == null ? new ArrayList<>() : newItems;
         notifyDataSetChanged();
+    }
+
+    /** While a slip is uploading, the slip and cancel buttons are disabled. */
+    public void setBusy(boolean busy) {
+        if (this.busy == busy) return;
+        this.busy = busy;
+        notifyDataSetChanged();
+    }
+
+    /** "1 year" for the API's duration name ("OneYear"), from st_renewal_durations. */
+    static String duration(@NonNull Context c, @Nullable String name) {
+        String[] labels = c.getResources().getStringArray(R.array.st_renewal_durations);
+        for (int i = 0; i < RenewalResponse.DURATION_NAMES.length && i < labels.length; i++) {
+            if (RenewalResponse.DURATION_NAMES[i].equals(name)) return labels[i];
+        }
+        return name == null ? "" : name;
     }
 
     @NonNull
@@ -43,30 +66,55 @@ public class RenewalAdapter extends RecyclerView.Adapter<RenewalAdapter.Holder> 
     @Override
     public void onBindViewHolder(@NonNull Holder h, int position) {
         RenewalResponse r = items.get(position);
-        h.tvVehicle.setText(r.getVehicleNumber() == null ? "Vehicle" : r.getVehicleNumber());
-        h.tvStatus.setText(r.getStatusLabel());
-        h.tvDetail.setText(r.getDurationLabel() + " renewal"
-                + (r.getAmountLkr() != null ? " \u00B7 " + RenewalResponse.formatLkr(r.getAmountLkr()) : ""));
+        Context c = h.itemView.getContext();
+        String status = r.getStatus();
 
-        String note = null;
-        if (RenewalResponse.STATUS_REJECTED.equals(r.getStatus()) && r.getDecisionReason() != null) {
-            note = r.getDecisionReason();
-        } else if (RenewalResponse.STATUS_AWAITING_SLIP.equals(r.getStatus())) {
-            note = "Pay by bank transfer, then upload a photo of the slip.";
-        } else if (RenewalResponse.STATUS_PENDING_REVIEW.equals(r.getStatus())) {
-            note = "We have your slip and will confirm shortly.";
-        } else if (RenewalResponse.STATUS_APPROVED.equals(r.getStatus())) {
-            note = "Your subscription has been renewed.";
+        h.tvPlate.setText(Plates.format(c, r.getVehicleNumber()));
+        Pill.Tone tone;
+        if (RenewalResponse.STATUS_AWAITING_SLIP.equals(status)) tone = Pill.Tone.AMBER;
+        else if (RenewalResponse.STATUS_PENDING_REVIEW.equals(status)) tone = Pill.Tone.NAVY;
+        else if (RenewalResponse.STATUS_APPROVED.equals(status)) tone = Pill.Tone.GREEN;
+        else if (RenewalResponse.STATUS_REJECTED.equals(status)) tone = Pill.Tone.RED;
+        else tone = Pill.Tone.GREY;
+        Pill.apply(h.tvStatus, r.getStatusLabel(), tone);
+
+        String length = duration(c, r.getDuration());
+        h.tvDetail.setText(r.getAmountLkr() != null
+                ? c.getString(R.string.st_renewal_line, length, RenewalResponse.formatLkr(r.getAmountLkr()))
+                : length);
+
+        String note;
+        if (RenewalResponse.STATUS_REJECTED.equals(status) && r.getDecisionReason() != null
+                && !r.getDecisionReason().trim().isEmpty()) {
+            note = r.getDecisionReason().trim();
+        } else if (RenewalResponse.STATUS_AWAITING_SLIP.equals(status)) {
+            String asked = c.getString(R.string.st_renewal_asked, TimeText.date(r.getCreatedAt()));
+            String ref = r.getPaymentReference();
+            note = ref != null && !ref.trim().isEmpty()
+                    ? c.getString(R.string.st_renewal_line, c.getString(R.string.st_renewal_reference, ref.trim()), asked)
+                    : c.getString(R.string.st_renewal_note_waiting);
+        } else if (RenewalResponse.STATUS_PENDING_REVIEW.equals(status)) {
+            note = c.getString(R.string.st_renewal_note_review);
+        } else if (RenewalResponse.STATUS_APPROVED.equals(status)) {
+            note = c.getString(R.string.st_renewal_note_approved);
+        } else if (RenewalResponse.STATUS_CANCELLED.equals(status)) {
+            note = c.getString(R.string.st_renewal_note_cancelled);
+        } else {
+            note = null;
         }
         h.tvNote.setText(note == null ? "" : note);
         h.tvNote.setVisibility(note == null ? View.GONE : View.VISIBLE);
 
         boolean open = r.isOpen();
-        h.btnUpload.setVisibility(open ? View.VISIBLE : View.GONE);
-        h.btnUpload.setText(r.hasSlip() ? "Replace slip" : "Upload slip");
-        h.btnCancel.setVisibility(open ? View.VISIBLE : View.GONE);
+        h.actions.setVisibility(open ? View.VISIBLE : View.GONE);
+        h.btnUpload.setText(r.hasSlip() ? R.string.st_renewal_replace : R.string.st_renewal_upload);
+        h.btnUpload.setEnabled(!busy);
+        h.btnCancel.setEnabled(!busy);
         h.btnUpload.setOnClickListener(v -> actions.onUploadSlip(r));
         h.btnCancel.setOnClickListener(v -> actions.onCancel(r));
+
+        h.summary.setContentDescription(Plates.plain(r.getVehicleNumber()) + ", " + r.getStatusLabel() + ", "
+                + h.tvDetail.getText() + (note == null ? "" : ". " + note));
     }
 
     @Override
@@ -75,12 +123,15 @@ public class RenewalAdapter extends RecyclerView.Adapter<RenewalAdapter.Holder> 
     }
 
     static class Holder extends RecyclerView.ViewHolder {
-        final TextView tvVehicle, tvStatus, tvDetail, tvNote;
+        final View summary, actions;
+        final TextView tvPlate, tvStatus, tvDetail, tvNote;
         final MaterialButton btnUpload, btnCancel;
 
         Holder(@NonNull View v) {
             super(v);
-            tvVehicle = v.findViewById(R.id.tvRenewalVehicle);
+            summary = v.findViewById(R.id.renewalSummary);
+            actions = v.findViewById(R.id.groupRenewalActions);
+            tvPlate = v.findViewById(R.id.tvRenewalPlate);
             tvStatus = v.findViewById(R.id.tvRenewalStatus);
             tvDetail = v.findViewById(R.id.tvRenewalDetail);
             tvNote = v.findViewById(R.id.tvRenewalNote);

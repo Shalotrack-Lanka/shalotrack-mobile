@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch A, everyday screens: Places, Emergency contacts, Sharing, Trackers, Complaints, Renewals. -->
+<resources>
+
+    <!-- Shared -->
+    <string name="st_field_vehicle">Vehicle</string>
+    <string name="st_field_vehicle_pick">Choose a vehicle</string>
+    <string name="st_field_vehicle_loading">Loading your vehicles…</string>
+    <string name="st_field_vehicle_failed">Couldn\'t load your vehicles. Tap to try again.</string>
+    <string name="st_field_vehicle_none_owned">You need a vehicle of your own for this.</string>
+    <string name="st_error_session_expired">Your sign-in has expired. Please sign out and sign in again.</string>
+    <string name="st_error_try_again">Couldn\'t do that. Try again.</string>
+    <string name="st_a11y_selected">selected</string>
+
+    <!-- Places -->
+    <string name="st_places_title">Places</string>
+    <string name="st_places_intro">Name the places your vehicles go, like home or the office. Each one counts the visits.</string>
+    <string name="st_places_frequent">Frequent places</string>
+    <string name="st_places_frequent_detail">Where your vehicles stop most often</string>
+    <string name="st_places_saved">Saved places</string>
+    <string name="st_places_save_now">Save where a vehicle is now</string>
+    <string name="st_places_empty_title">No saved places yet</string>
+    <string name="st_places_empty_body">Save where a vehicle is right now, then give it a name.</string>
+    <string name="st_places_load_failed">Couldn\'t load your places.</string>
+    <string name="st_places_resolving">Finding the address…</string>
+    <string name="st_places_no_visits">No visits yet</string>
+    <plurals name="st_places_visits">
+        <item quantity="one">Visited once</item>
+        <item quantity="other">Visited %1$d times</item>
+    </plurals>
+    <string name="st_places_visits_last">%1$s · %2$s</string>
+    <string name="st_places_remove">Remove %1$s</string>
+    <string name="st_places_remove_title">Remove %1$s?</string>
+    <string name="st_places_remove_body">Its visit count goes too. Trips are not affected.</string>
+    <string name="st_places_remove_failed">Couldn\'t remove this place. Try again.</string>
+    <string name="st_places_removed">Removed %1$s.</string>
+
+    <string name="st_place_save_title">Save a place</string>
+    <string name="st_place_save_body">Saves where the vehicle is right now, from its tracker. Your phone\'s location is never used.</string>
+    <string name="st_place_locating">Getting where %1$s is…</string>
+    <string name="st_place_now_at">Now at %1$s · reported %2$s</string>
+    <string name="st_place_now_at_coords">Position from %1$s</string>
+    <string name="st_place_no_fix">%1$s hasn\'t reported a position yet. Try again once it has.</string>
+    <string name="st_place_fix_failed">Couldn\'t get where this vehicle is. Try again.</string>
+    <string name="st_place_name">Name</string>
+    <string name="st_place_name_hint">Home, office, school…</string>
+    <string name="st_place_name_helper">Up to 100 characters</string>
+    <string name="st_place_save">Save place</string>
+    <string name="st_place_saved">Saved %1$s.</string>
+    <string name="st_place_save_failed">Couldn\'t save this place. Try again.</string>
+
+    <!-- Emergency contacts -->
+    <string name="st_contacts_title">Emergency contacts</string>
+    <string name="st_contacts_intro">After you send an SOS, the app lists these people so you can call them in one tap. ShaloTrack doesn\'t message them.</string>
+    <string name="st_contacts_add">Add a contact</string>
+    <string name="st_contacts_empty_title">No emergency contacts yet</string>
+    <string name="st_contacts_empty_body">Add the people you would call first if something happened.</string>
+    <string name="st_contacts_load_failed">Couldn\'t load your emergency contacts.</string>
+    <string name="st_contacts_remove">Remove %1$s</string>
+    <string name="st_contacts_remove_title">Remove %1$s?</string>
+    <string name="st_contacts_remove_body">They won\'t be listed after an SOS any more.</string>
+    <string name="st_contacts_remove_failed">Couldn\'t remove this contact. Try again.</string>
+    <string name="st_contacts_removed">Removed %1$s.</string>
+    <string name="st_contacts_line">%1$s · %2$s</string>
+
+    <string name="st_contact_add_title">Add an emergency contact</string>
+    <string name="st_contact_name">Name</string>
+    <string name="st_contact_phone">Phone number</string>
+    <string name="st_contact_phone_helper">Mobile or landline</string>
+    <string name="st_contact_relationship">Relationship (optional)</string>
+    <string name="st_contact_relationship_hint">Mother, brother, neighbour…</string>
+    <string name="st_contact_save">Save contact</string>
+    <string name="st_contact_save_failed">Couldn\'t add this contact. Try again.</string>
+    <string name="st_contact_added">Added %1$s.</string>
+
+    <!-- Sharing -->
+    <string name="st_sharing_title">Sharing</string>
+    <string name="st_sharing_share">Share a vehicle</string>
+    <string name="st_sharing_invites">Invites for you</string>
+    <string name="st_sharing_with_you">Shared with you</string>
+    <string name="st_sharing_you_shared">You shared</string>
+    <string name="st_sharing_invite_body">%1$s wants to share this vehicle with you. You\'ll see where it is and its trips.</string>
+    <string name="st_sharing_accept">Accept</string>
+    <string name="st_sharing_decline">Decline</string>
+    <string name="st_sharing_from">From %1$s</string>
+    <string name="st_sharing_with_you_empty">Nobody has shared a vehicle with you.</string>
+    <string name="st_sharing_you_shared_empty">You haven\'t shared a vehicle yet.</string>
+    <string name="st_sharing_load_failed">Couldn\'t load sharing.</string>
+    <string name="st_sharing_accepted">You can now follow %1$s.</string>
+    <string name="st_sharing_declined">Invite declined.</string>
+    <string name="st_sharing_respond_failed">Couldn\'t answer this invite. Try again.</string>
+
+    <string name="st_share_status_accepted">Accepted</string>
+    <string name="st_share_status_invited">Invited</string>
+    <string name="st_share_status_declined">Declined</string>
+    <string name="st_share_status_expired">Expired</string>
+    <string name="st_share_since">since %1$s</string>
+    <string name="st_share_revoke">Revoke</string>
+    <string name="st_share_cancel_invite">Cancel</string>
+    <string name="st_share_revoke_title">Stop sharing %1$s with %2$s?</string>
+    <string name="st_share_revoke_body">They lose access straight away. You can share again any time.</string>
+    <string name="st_share_revoke_action">Stop sharing</string>
+    <string name="st_share_revoke_busy">Stopping…</string>
+    <string name="st_share_cancel_title">Cancel the invite to %1$s?</string>
+    <string name="st_share_cancel_body">The invite disappears from their app.</string>
+    <string name="st_share_cancel_action">Cancel invite</string>
+    <string name="st_share_cancel_busy">Cancelling…</string>
+    <string name="st_share_ended">Done. %1$s no longer has access.</string>
+
+    <string name="st_share_invite_title">Share a vehicle</string>
+    <string name="st_share_invite_body">They need the ShaloTrack app, signed up with this number. They can follow the vehicle and see its trips. They can\'t change anything, and you can revoke it any time. Invites expire after 14 days.</string>
+    <string name="st_share_phone">Their mobile number</string>
+    <string name="st_share_phone_helper">A Sri Lankan mobile number</string>
+    <string name="st_share_send">Send invite</string>
+    <string name="st_share_sending">Sending…</string>
+    <string name="st_share_sent">Invite sent. If %1$s uses ShaloTrack, they\'ll see it in Sharing.</string>
+    <string name="st_share_send_failed">Couldn\'t send the invite. Try again.</string>
+    <string name="st_share_rate_limited">You\'ve sent a lot of invites. Wait an hour and try again.</string>
+
+    <!-- Trackers -->
+    <string name="st_trackers_title">Trackers</string>
+    <string name="st_trackers_intro">Link the GPS tracker fitted in each vehicle. The 15-digit IMEI is printed on the tracker\'s label.</string>
+    <string name="st_trackers_empty_title">No vehicles yet</string>
+    <string name="st_trackers_empty_body">Add a vehicle first, then link its tracker.</string>
+    <string name="st_trackers_load_failed">Couldn\'t load your vehicles.</string>
+    <string name="st_tracker_linked">Linked</string>
+    <string name="st_tracker_none">No tracker</string>
+    <string name="st_tracker_ending">Tracker ending %1$s</string>
+    <string name="st_tracker_linked_plain">Tracker linked</string>
+    <string name="st_tracker_link">Link a tracker</string>
+    <string name="st_tracker_unlink">Unlink</string>
+    <string name="st_tracker_imei">Tracker IMEI</string>
+    <string name="st_tracker_imei_helper">15 digits, on the tracker\'s label</string>
+    <string name="st_tracker_imei_invalid">Enter the 15-digit IMEI from the label (check for a typo)</string>
+    <string name="st_tracker_check_link">Check and link</string>
+    <string name="st_tracker_linking">Linking…</string>
+    <string name="st_tracker_not_found">We couldn\'t find a tracker with that IMEI. Check the number on the label and try again.</string>
+    <string name="st_tracker_lookup_failed">We couldn\'t check that tracker. Please try again.</string>
+    <string name="st_tracker_link_failed">We couldn\'t link the tracker. Please try again.</string>
+    <string name="st_tracker_linked_done">Tracker linked to %1$s.</string>
+    <string name="st_tracker_unlink_title">Unlink the tracker from %1$s?</string>
+    <string name="st_tracker_unlink_body">The vehicle stops updating until a tracker is linked again. The subscription stays with the tracker.</string>
+    <string name="st_tracker_unlink_action">Unlink tracker</string>
+    <string name="st_tracker_unlink_busy">Unlinking…</string>
+    <string name="st_tracker_unlinked">Tracker unlinked from %1$s. Its subscription stays with the tracker.</string>
+    <string name="st_tracker_unlink_failed">We couldn\'t unlink the tracker. Please try again.</string>
+    <string name="st_tracker_gone">%1$s has no linked tracker any more.</string>
+
+    <!-- Complaints -->
+    <string name="st_complaints_title">Complaints</string>
+    <string name="st_complaints_new">New complaint</string>
+    <string name="st_complaints_empty_title">No complaints</string>
+    <string name="st_complaints_empty_body">If something isn\'t working, tell us here. Your dealer sees it first.</string>
+    <string name="st_complaints_load_failed">Couldn\'t load your complaints.</string>
+    <string name="st_complaints_sent">Complaint sent. You\'ll get a notification when someone replies.</string>
+    <string name="st_complaint_cat_device">Device issue</string>
+    <string name="st_complaint_cat_billing">Billing</string>
+    <string name="st_complaint_cat_app">App bug</string>
+    <string name="st_complaint_cat_other">Other</string>
+    <string name="st_complaint_status_dealer">With dealer</string>
+    <string name="st_complaint_status_admin">With ShaloTrack</string>
+    <string name="st_complaint_status_resolved">Resolved</string>
+    <string name="st_complaint_status_closed">Closed</string>
+    <string name="st_complaint_opened">Opened %1$s</string>
+    <string name="st_complaint_resolved_on">resolved %1$s</string>
+    <plurals name="st_complaint_replies">
+        <item quantity="one">%1$d reply</item>
+        <item quantity="other">%1$d replies</item>
+    </plurals>
+    <string name="st_complaint_meta">%1$s · %2$s</string>
+
+    <string name="st_complaint_new_title">New complaint</string>
+    <string name="st_complaint_about">What is it about?</string>
+    <string name="st_complaint_describe">Describe the problem</string>
+    <string name="st_complaint_describe_helper">When it happened and what you saw helps us fix it faster</string>
+    <string name="st_complaint_describe_required">Describe the problem first.</string>
+    <string name="st_complaint_route_note">Your dealer sees it first. If they can\'t fix it, it goes to ShaloTrack. You\'ll get a notification on every reply.</string>
+    <string name="st_complaint_send">Send complaint</string>
+    <string name="st_complaint_sending">Sending…</string>
+    <string name="st_complaint_send_failed">Couldn\'t send your complaint. Try again.</string>
+
+    <string name="st_complaint_title">Complaint</string>
+    <string name="st_complaint_conversation">Conversation</string>
+    <string name="st_complaint_write_reply">Write a reply</string>
+    <string name="st_complaint_send_reply">Send reply</string>
+    <string name="st_complaint_closed_notice">This complaint is closed. Start a new one if you still need help.</string>
+    <string name="st_complaint_reply_failed">Couldn\'t send your reply. Try again.</string>
+    <string name="st_complaint_reply_required">Type a message first.</string>
+    <string name="st_complaint_load_failed">Couldn\'t load this complaint.</string>
+    <string name="st_complaint_not_found">This complaint isn\'t available.</string>
+    <string name="st_complaint_author_you">You</string>
+    <string name="st_complaint_author_dealer">Dealer</string>
+    <string name="st_complaint_author_dealer_named">Dealer · %1$s</string>
+    <string name="st_complaint_author_support">ShaloTrack support</string>
+    <string name="st_complaint_bubble_meta">%1$s · %2$s</string>
+
+    <!-- Renewals -->
+    <string name="st_renewals_title">Renewals</string>
+    <string name="st_renewals_new">Renew a vehicle</string>
+    <string name="st_renewals_empty_title">No renewals yet</string>
+    <string name="st_renewals_empty_body">Renew a vehicle\'s subscription here, then upload the bank slip.</string>
+    <string name="st_renewals_load_failed">Couldn\'t load your renewals.</string>
+    <string name="st_renewal_line">%1$s · %2$s</string>
+    <string name="st_renewal_reference">Reference %1$s</string>
+    <string name="st_renewal_asked">asked %1$s</string>
+    <string name="st_renewal_note_waiting">Pay by bank transfer, then upload a photo or PDF of the slip.</string>
+    <string name="st_renewal_note_review">Slip received. We\'ll notify you when it\'s checked.</string>
+    <string name="st_renewal_note_approved">The subscription has been renewed.</string>
+    <string name="st_renewal_note_cancelled">You cancelled this request.</string>
+    <string name="st_renewal_upload">Upload slip</string>
+    <string name="st_renewal_replace">Replace slip</string>
+    <string name="st_renewal_cancel">Cancel request</string>
+    <string name="st_renewal_cancel_title">Cancel this renewal request?</string>
+    <string name="st_renewal_cancel_body">You can make a new one any time.</string>
+    <string name="st_renewal_cancel_busy">Cancelling…</string>
+    <string name="st_renewal_cancel_failed">Couldn\'t cancel the request.</string>
+    <string name="st_renewal_preparing">Preparing your slip…</string>
+    <string name="st_renewal_uploading">Uploading slip… %1$d%%</string>
+    <string name="st_renewal_uploaded">Slip uploaded. Our team will check it and renew the subscription.</string>
+    <string name="st_renewal_upload_failed">Couldn\'t upload the slip. Try again.</string>
+    <string name="st_renewal_file_bad">Couldn\'t read that file. Try another one.</string>
+    <string name="st_renewal_created">Request created. Transfer %1$s, then upload the slip.</string>
+    <string name="st_renewal_created_no_amount">Request created. Pay by bank transfer, then upload the slip.</string>
+
+    <string name="st_renewal_new_title">Renew a vehicle</string>
+    <string name="st_renewal_for">Renew for</string>
+    <string name="st_renewal_runs">%1$s · runs %2$s from the day we approve</string>
+    <string name="st_renewal_price_unknown">Our team confirms the amount for this package.</string>
+    <string name="st_renewal_warranty">%1$s · %2$d-month warranty from your first activation</string>
+    <string name="st_renewal_reference_field">Bank transfer reference (optional)</string>
+    <string name="st_renewal_reference_hint">For example HNB-55120</string>
+    <string name="st_renewal_reference_invalid">Up to 40 characters, without &lt; or &gt;</string>
+    <string name="st_renewal_how">Pay by bank transfer, then upload a photo or PDF of the slip (up to 2 MB). Our team checks it and renews the subscription.</string>
+    <string name="st_renewal_continue">Continue</string>
+    <string name="st_renewal_creating">Creating…</string>
+    <string name="st_renewal_create_failed">Couldn\'t create the renewal request.</string>
+    <string name="st_renewal_loading_prices">Loading prices…</string>
+    <string name="st_renewal_prices_failed">Couldn\'t load the renewal prices. Try again.</string>
+    <string-array name="st_renewal_durations">
+        <item>3 months</item>
+        <item>6 months</item>
+        <item>1 year</item>
+        <item>2 years</item>
+        <item>3 years</item>
+        <item>6 years</item>
+    </string-array>
+</resources>

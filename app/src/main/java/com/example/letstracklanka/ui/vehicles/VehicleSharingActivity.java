@@ -1,31 +1,40 @@
 package com.example.letstracklanka.ui.vehicles;
 
-import android.content.res.ColorStateList;
-import android.graphics.Color;
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.core.widget.NestedScrollView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.RespondToVehicleShareRequest;
 import com.example.letstracklanka.data.model.VehicleShareResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
-import com.example.letstracklanka.utils.PeriodicRefresher;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.example.letstracklanka.ui.common.ConfirmSheet;
+import com.example.letstracklanka.ui.common.EdgeToEdge;
+import com.example.letstracklanka.ui.common.InlineBanner;
+import com.example.letstracklanka.ui.common.NetworkWatcher;
+import com.example.letstracklanka.ui.common.Pill;
+import com.example.letstracklanka.ui.common.Plates;
+import com.example.letstracklanka.ui.common.TimeText;
+import com.example.letstracklanka.ui.common.TopBar;
+import com.example.letstracklanka.ui.more.ProfileText;
+import com.example.letstracklanka.utils.ApiErrors;
+import com.example.letstracklanka.utils.ApiJson;
+import com.example.letstracklanka.utils.SecureScreen;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,531 +44,374 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Vehicle Sharing screen -- pending invites (with accept/decline right on
- * the card) and vehicles currently shared with you, matching the confirmed
- * design mockup.
+ * Sharing (api/VehicleShares): invites waiting for the customer (Accept / Decline on the card), vehicles
+ * shared with them (open on the map), and the vehicles they share (Revoke an accepted share, Cancel a
+ * pending invite). "Share a vehicle" opens ShareInviteSheet.
  *
- * Honest scope note: tapping a shared vehicle currently shows a short
- * message rather than opening full live tracking. Actually wiring that in
- * means teaching HomeActivity/VehiclesActivity's core vehicle list to merge
- * owned and shared vehicles together, which is a separate, larger piece of
- * work than this screen -- flagged here rather than faked.
+ * Until someone accepts, the owner sees only the number they typed, never a name: the server sends the
+ * name only after acceptance, so the list can't be used to look people up.
+ *
+ * Read on open, when the screen comes back, and on pull-to-refresh. Not polled: a new invite arrives as a
+ * push notification. No Toast, Snackbar or dialog.
  */
 public class VehicleSharingActivity extends AppCompatActivity {
 
-    // NEW -- background refresh while this screen is open, so a new
-    // invite, an owner's revoke, or the other party's accept/decline shows
-    // up without the user needing to leave and reopen this screen.
-    //
-    // Honest scope note: each silent tick still rebuilds the invite/share
-    // rows from scratch (removeAllViews + re-add), same as every existing
-    // fetch here -- there's no view-diffing in this screen. At a 20s
-    // interval with a handful of simple rows this is a minor, acceptable
-    // flicker, not a real diffing rewrite of how this screen renders.
-    private static final long REFRESH_INTERVAL_MS = 20_000;
+    /** Optional: the vehicle to preselect in the invite sheet (opened from a vehicle's page). */
+    public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
 
-    private ApiService mainApiService;
-    private PeriodicRefresher refresher;
+    /** Declined and expired invites stay in the owner's list this long, then drop off. */
+    private static final Duration ENDED_VISIBLE_FOR = Duration.ofDays(30);
 
-    private View errorBanner;
-    private TextView tvErrorBannerMessage;
-    private NestedScrollView scrollContent;
-    private ProgressBar progressSharing;
+    private ApiService api;
+    private SwipeRefreshLayout swipe;
+    private ProgressBar progress;
+    private View lists;
+    private InlineBanner banner;
+    private TextView invitesLabel;
+    private LinearLayout invites, sharedWithMe, myShares;
+    private TextView sharedWithMeEmpty, mySharesEmpty;
+    @Nullable private String vehicleId;
 
-    private TextView tvPendingInvitesLabel;
-    private LinearLayout pendingInvitesContainer;
-    private LinearLayout sharedWithMeContainer;
-    private View tvNoSharedVehicles;
-    private LinearLayout mySharesContainer;
-    private View tvNoMyShares;
+    /** Each load gets a number; replies from an older load are dropped. */
+    private int generation;
+    private boolean firstResume = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_vehicle_sharing);
+        SecureScreen.guardTouches(this);
+        TopBar.bind(this, R.string.st_sharing_title);
+        EdgeToEdge.padBottom(findViewById(R.id.sharingContent));
 
-        mainApiService = ApiClient.getClient().create(ApiService.class);
-        refresher = new PeriodicRefresher(REFRESH_INTERVAL_MS, () -> fetchAll(false));
+        vehicleId = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
+        api = ApiClient.getClient().create(ApiService.class);
+        swipe = findViewById(R.id.swipeSharing);
+        progress = findViewById(R.id.progressSharing);
+        lists = findViewById(R.id.groupSharingLists);
+        banner = InlineBanner.in(this);
+        invitesLabel = findViewById(R.id.tvInvitesLabel);
+        invites = findViewById(R.id.listInvites);
+        sharedWithMe = findViewById(R.id.listSharedWithMe);
+        myShares = findViewById(R.id.listMyShares);
+        sharedWithMeEmpty = findViewById(R.id.tvSharedWithMeEmpty);
+        mySharesEmpty = findViewById(R.id.tvMySharesEmpty);
 
-        initViews();
-        fetchAll(true);
+        swipe.setColorSchemeColors(ContextCompat.getColor(this, R.color.st_navy));
+        swipe.setOnRefreshListener(this::load);
+        findViewById(R.id.btnShareVehicle).setOnClickListener(v -> ShareInviteSheet.show(this, vehicleId, phone -> {
+            load();
+            banner.showSuccess(getString(R.string.st_share_sent, phone));
+        }));
+
+        NetworkWatcher.watch(this, new NetworkWatcher.Listener() {
+            @Override
+            public void onLost() {
+                banner.showOffline(R.string.st_error_offline_short, null);
+            }
+
+            @Override
+            public void onRestored() {
+                banner.hide();
+                load();
+            }
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        refresher.start();
+        if (firstResume) progress.setVisibility(View.VISIBLE);
+        firstResume = false;
+        load();
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        refresher.stop();
+    // ---------------------------------------------------------------------------------- loading
+
+    private final class Load {
+        final int id = ++generation;
+        int pending = 3;
+        boolean failed;
+        boolean unauthorised;
+        List<VehicleShareResponse> invited, shared, mine;
+
+        void got(int which, @Nullable List<VehicleShareResponse> data, int code) {
+            if (id != generation || VehicleSharingActivity.this.isFinishing() || VehicleSharingActivity.this.isDestroyed()) return;
+            if (data == null) {
+                failed = true;
+                if (code == 401) unauthorised = true;
+            }
+            if (which == 0) invited = data;
+            else if (which == 1) shared = data;
+            else mine = data;
+            if (--pending > 0) return;
+            progress.setVisibility(View.GONE);
+            swipe.setRefreshing(false);
+            if (failed) {
+                banner.showError(unauthorised ? R.string.st_error_session_expired : R.string.st_sharing_load_failed,
+                        VehicleSharingActivity.this::load);
+            }
+            if (invited != null) showInvites(invited);
+            if (shared != null) showSharedWithMe(shared);
+            if (mine != null) showMyShares(mine);
+            if (invited != null || shared != null || mine != null) lists.setVisibility(View.VISIBLE);
+        }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        refresher.stop(); // safety net -- onPause already stops it in the normal lifecycle
+    private void load() {
+        Load load = new Load();
+        fetch(api.getPendingVehicleShareInvites(), load, 0);
+        fetch(api.getVehiclesSharedWithMe(), load, 1);
+        fetch(api.getMyVehicleShares(null), load, 2);
     }
 
-    private void initViews() {
-        View btnBack = findViewById(R.id.btnBackSharing);
-        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
-
-        errorBanner = findViewById(R.id.errorBanner);
-        tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
-        scrollContent = findViewById(R.id.scrollSharingContent);
-        progressSharing = findViewById(R.id.progressSharing);
-
-        tvPendingInvitesLabel = findViewById(R.id.tvPendingInvitesLabel);
-        pendingInvitesContainer = findViewById(R.id.pendingInvitesContainer);
-        sharedWithMeContainer = findViewById(R.id.sharedWithMeContainer);
-        tvNoSharedVehicles = findViewById(R.id.tvNoSharedVehicles);
-        mySharesContainer = findViewById(R.id.mySharesContainer);
-        tvNoMyShares = findViewById(R.id.tvNoMyShares);
-    }
-
-    // showLoading distinguishes an explicit/user-visible load (first open,
-    // right after accept/decline/revoke) from a silent background tick --
-    // a silent poll never shows the spinner and never raises a fresh error
-    // banner over a screen the user is currently, successfully looking at.
-    private void fetchAll(boolean showLoading) {
-        hideError();
-        if (showLoading) setLoading(true);
-        fetchPendingInvites(showLoading);
-    }
-
-    private void fetchPendingInvites(boolean showLoading) {
-        mainApiService.getPendingVehicleShareInvites().enqueue(new Callback<ResponseBody>() {
+    private void fetch(Call<ResponseBody> call, Load load, int which) {
+        call.enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                List<VehicleShareResponse> invites = new ArrayList<>();
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        List<VehicleShareResponse> parsed = parseList(body.string());
-                        if (parsed != null) invites = parsed;
-                    } else {
-                        Log.w("VehicleSharingActivity", "fetchPendingInvites failed, code " + response.code());
+            public void onResponse(@NonNull Call<ResponseBody> c, @NonNull Response<ResponseBody> response) {
+                List<VehicleShareResponse> data = null;
+                if (response.isSuccessful()) {
+                    try (ResponseBody body = response.body()) {
+                        if (body != null) data = ApiJson.list(body.string(), VehicleShareResponse.class);
+                    } catch (Exception ignored) {
+                        data = null;
                     }
-                } catch (Exception e) {
-                    Log.e("VehicleSharingActivity", "fetchPendingInvites parse error", e);
+                } else {
+                    ApiErrors.close(response);
                 }
-                displayPendingInvites(invites);
-                fetchSharedWithMe(showLoading); // chained, not parallel -- keeps the screen simple
+                load.got(which, clean(data), response.code());
             }
 
             @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("VehicleSharingActivity", "fetchPendingInvites network error", t);
-                fetchSharedWithMe(showLoading);
+            public void onFailure(@NonNull Call<ResponseBody> c, @NonNull Throwable t) {
+                load.got(which, null, 0);
             }
         });
     }
 
-    private void fetchSharedWithMe(boolean showLoading) {
-        mainApiService.getVehiclesSharedWithMe().enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                List<VehicleShareResponse> shared = new ArrayList<>();
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        List<VehicleShareResponse> parsed = parseList(body.string());
-                        if (parsed != null) shared = parsed;
-                    } else {
-                        Log.w("VehicleSharingActivity", "fetchSharedWithMe failed, code " + response.code());
-                        if (showLoading) showError("Couldn't load shared vehicles (code " + response.code() + ")");
-                    }
-                } catch (Exception e) {
-                    Log.e("VehicleSharingActivity", "fetchSharedWithMe parse error", e);
-                }
-                displaySharedWithMe(shared);
-                fetchMyShares(showLoading); // chained, not parallel -- keeps the screen simple
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("VehicleSharingActivity", "fetchSharedWithMe network error", t);
-                if (showLoading) showError("Network error \u2014 check your connection.");
-                fetchMyShares(showLoading);
-            }
-        });
+    @Nullable
+    private static List<VehicleShareResponse> clean(@Nullable List<VehicleShareResponse> in) {
+        if (in == null) return null;
+        List<VehicleShareResponse> out = new ArrayList<>();
+        for (VehicleShareResponse s : in) if (s != null && s.getShareId() != null) out.add(s);
+        return out;
     }
 
-    // NEW -- the owner's own "who have I shared with" view, with revoke.
-    // Shows Pending and Accepted shares only -- Declined/Revoked ones are
-    // dead history the owner doesn't need cluttering this list.
-    private void fetchMyShares(boolean showLoading) {
-        mainApiService.getMyVehicleShares(null).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (showLoading) setLoading(false);
-                List<VehicleShareResponse> shares = new ArrayList<>();
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        List<VehicleShareResponse> parsed = parseList(body.string());
-                        if (parsed != null) {
-                            for (VehicleShareResponse s : parsed) {
-                                if ("Pending".equalsIgnoreCase(s.getStatus()) || "Accepted".equalsIgnoreCase(s.getStatus())) {
-                                    shares.add(s);
-                                }
-                            }
+    // ---------------------------------------------------------------------------- invites for me
+
+    private void showInvites(List<VehicleShareResponse> list) {
+        invites.removeAllViews();
+        invitesLabel.setVisibility(list.isEmpty() ? View.GONE : View.VISIBLE);
+        for (VehicleShareResponse invite : list) {
+            View card = LayoutInflater.from(this).inflate(R.layout.item_share_invite, invites, false);
+            ((TextView) card.findViewById(R.id.tvInvitePlate)).setText(Plates.format(this, invite.getVehicleNumber()));
+            ((TextView) card.findViewById(R.id.tvInviteVehicle)).setText(makeModel(invite));
+            ((TextView) card.findViewById(R.id.tvInviteBody)).setText(
+                    getString(R.string.st_sharing_invite_body, who(invite.getOtherPartyName(), invite.getOtherPartyPhoneNumber())));
+            TextView error = card.findViewById(R.id.tvInviteError);
+            View accept = card.findViewById(R.id.btnInviteAccept);
+            View decline = card.findViewById(R.id.btnInviteDecline);
+            accept.setOnClickListener(v -> respond(invite, true, accept, decline, error));
+            decline.setOnClickListener(v -> respond(invite, false, accept, decline, error));
+            invites.addView(card);
+        }
+    }
+
+    private void respond(VehicleShareResponse invite, boolean accept, View btnAccept, View btnDecline, TextView error) {
+        btnAccept.setEnabled(false);
+        btnDecline.setEnabled(false);
+        error.setVisibility(View.GONE);
+        api.respondToVehicleShare(invite.getShareId(), new RespondToVehicleShareRequest(accept))
+                .enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                        if (isFinishing() || isDestroyed()) {
+                            ApiErrors.close(response);
+                            return;
                         }
-                    } else {
-                        Log.w("VehicleSharingActivity", "fetchMyShares failed, code " + response.code());
+                        if (response.isSuccessful()) {
+                            ApiErrors.close(response);
+                            load();
+                            banner.showSuccess(accept
+                                    ? getString(R.string.st_sharing_accepted, Plates.plain(invite.getVehicleNumber()))
+                                    : getString(R.string.st_sharing_declined));
+                            return;
+                        }
+                        btnAccept.setEnabled(true);
+                        btnDecline.setEnabled(true);
+                        error.setText(ApiErrors.read(response, getString(R.string.st_sharing_respond_failed)).message);
+                        error.setVisibility(View.VISIBLE);
                     }
-                } catch (Exception e) {
-                    Log.e("VehicleSharingActivity", "fetchMyShares parse error", e);
-                }
-                displayMyShares(shares);
-            }
 
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                if (showLoading) setLoading(false);
-                Log.e("VehicleSharingActivity", "fetchMyShares network error", t);
-            }
-        });
+                    @Override
+                    public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                        if (isFinishing() || isDestroyed()) return;
+                        btnAccept.setEnabled(true);
+                        btnDecline.setEnabled(true);
+                        error.setText(R.string.st_error_network);
+                        error.setVisibility(View.VISIBLE);
+                    }
+                });
     }
 
-    private void displayPendingInvites(List<VehicleShareResponse> invites) {
-        if (scrollContent != null) scrollContent.setVisibility(View.VISIBLE);
-        if (pendingInvitesContainer == null) return;
+    // --------------------------------------------------------------------------- shared with me
 
-        pendingInvitesContainer.removeAllViews();
-        boolean hasInvites = invites != null && !invites.isEmpty();
-        if (tvPendingInvitesLabel != null) {
-            tvPendingInvitesLabel.setVisibility(hasInvites ? View.VISIBLE : View.GONE);
-        }
-        if (!hasInvites) return;
-
-        for (VehicleShareResponse invite : invites) {
-            addInviteCard(invite);
-        }
-    }
-
-    private void displaySharedWithMe(List<VehicleShareResponse> shared) {
-        if (sharedWithMeContainer == null) return;
-        sharedWithMeContainer.removeAllViews();
-
-        boolean hasShared = shared != null && !shared.isEmpty();
-        if (tvNoSharedVehicles != null) tvNoSharedVehicles.setVisibility(hasShared ? View.GONE : View.VISIBLE);
-        if (!hasShared) return;
-
-        boolean first = true;
-        for (VehicleShareResponse share : shared) {
-            addSharedVehicleRow(share, first);
-            first = false;
+    private void showSharedWithMe(List<VehicleShareResponse> list) {
+        sharedWithMe.removeAllViews();
+        sharedWithMe.setVisibility(list.isEmpty() ? View.GONE : View.VISIBLE);
+        sharedWithMeEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
+        for (int i = 0; i < list.size(); i++) {
+            VehicleShareResponse share = list.get(i);
+            if (i > 0) addDivider(sharedWithMe);
+            View row = LayoutInflater.from(this).inflate(R.layout.item_shared_with_me, sharedWithMe, false);
+            String owner = who(share.getOtherPartyName(), share.getOtherPartyPhoneNumber());
+            ((TextView) row.findViewById(R.id.tvSharedPlate)).setText(Plates.format(this, share.getVehicleNumber()));
+            ((TextView) row.findViewById(R.id.tvSharedVehicle)).setText(makeModel(share));
+            ((TextView) row.findViewById(R.id.tvSharedOwner)).setText(getString(R.string.st_sharing_from, owner));
+            row.setContentDescription(Plates.plain(share.getVehicleNumber()) + ", " + makeModel(share) + ", "
+                    + getString(R.string.st_sharing_from, owner));
+            row.setOnClickListener(v -> {
+                Intent intent = new Intent(this, SharedVehicleMapActivity.class);
+                intent.putExtra(SharedVehicleMapActivity.EXTRA_VEHICLE_ID, share.getVehicleId());
+                intent.putExtra(SharedVehicleMapActivity.EXTRA_VEHICLE_TITLE, makeModel(share));
+                intent.putExtra(SharedVehicleMapActivity.EXTRA_OWNER_NAME, owner);
+                startActivity(intent);
+            });
+            sharedWithMe.addView(row);
         }
     }
 
-    // NEW -- the owner's own view of who they've shared with, plus revoke.
-    private void displayMyShares(List<VehicleShareResponse> shares) {
-        if (mySharesContainer == null) return;
-        mySharesContainer.removeAllViews();
+    // ------------------------------------------------------------------------------ my shares
 
-        boolean hasShares = shares != null && !shares.isEmpty();
-        if (tvNoMyShares != null) tvNoMyShares.setVisibility(hasShares ? View.GONE : View.VISIBLE);
-        if (!hasShares) return;
-
-        boolean first = true;
-        for (VehicleShareResponse share : shares) {
-            addMyShareRow(share, first);
-            first = false;
+    private void showMyShares(List<VehicleShareResponse> all) {
+        List<VehicleShareResponse> list = new ArrayList<>();
+        Instant cutoff = Instant.now().minus(ENDED_VISIBLE_FOR);
+        for (VehicleShareResponse s : all) {
+            String st = status(s);
+            if ("accepted".equals(st) || "pending".equals(st)) {
+                list.add(s);
+            } else if ("declined".equals(st) || "expired".equals(st)) {
+                Instant when = TimeText.parse(s.getRespondedAt() != null ? s.getRespondedAt() : s.getInvitedAt());
+                if (when != null && when.isAfter(cutoff)) list.add(s);
+            }
+        }
+        myShares.removeAllViews();
+        myShares.setVisibility(list.isEmpty() ? View.GONE : View.VISIBLE);
+        mySharesEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) addDivider(myShares);
+            myShares.addView(myShareRow(list.get(i)));
         }
     }
 
-    // Matches the confirmed mockup: avatar circle, name + vehicle, accept
-    // and decline buttons directly on the card.
-    private void addInviteCard(VehicleShareResponse invite) {
-        int density = (int) getResources().getDisplayMetrics().density;
+    private View myShareRow(VehicleShareResponse share) {
+        View row = LayoutInflater.from(this).inflate(R.layout.item_my_share, myShares, false);
+        String st = status(share);
+        String name = share.getOtherPartyName() != null ? share.getOtherPartyName().trim() : "";
+        String phone = ProfileText.phone(share.getOtherPartyPhoneNumber());
+        String who = name.isEmpty() ? phone : name;
 
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundResource(R.drawable.bg_stat_card);
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        cardParams.setMargins(0, 0, 0, 10 * density);
-        card.setLayoutParams(cardParams);
-        card.setPadding(14 * density, 14 * density, 14 * density, 14 * density);
+        TextView initials = row.findViewById(R.id.tvMyShareInitials);
+        ImageView userIcon = row.findViewById(R.id.imgMyShareUser);
+        initials.setText(ProfileText.initials(name));
+        initials.setVisibility(name.isEmpty() ? View.GONE : View.VISIBLE);
+        userIcon.setVisibility(name.isEmpty() ? View.VISIBLE : View.GONE);
 
-        LinearLayout topRow = new LinearLayout(this);
-        topRow.setOrientation(LinearLayout.HORIZONTAL);
-        topRow.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams topRowParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        topRowParams.bottomMargin = 12 * density;
-        topRow.setLayoutParams(topRowParams);
+        ((TextView) row.findViewById(R.id.tvMyShareWho)).setText(who);
+        ((TextView) row.findViewById(R.id.tvMySharePlate)).setText(Plates.format(this, share.getVehicleNumber()));
+        TextView pill = row.findViewById(R.id.tvMyShareStatus);
+        TextView detail = row.findViewById(R.id.tvMyShareDetail);
+        com.google.android.material.button.MaterialButton action = row.findViewById(R.id.btnMyShareAction);
 
-        LinearLayout avatar = new LinearLayout(this);
-        int avatarSize = 40 * density;
-        avatar.setLayoutParams(new LinearLayout.LayoutParams(avatarSize, avatarSize));
-        avatar.setGravity(Gravity.CENTER);
-        android.graphics.drawable.GradientDrawable avatarBg = new android.graphics.drawable.GradientDrawable();
-        avatarBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        avatarBg.setColor(ContextCompat.getColor(this, R.color.brand_accent));
-        avatar.setBackground(avatarBg);
-        TextView avatarText = new TextView(this);
-        String name = invite.getOtherPartyName() != null ? invite.getOtherPartyName() : "?";
-        avatarText.setText(name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase());
-        avatarText.setTextColor(Color.WHITE);
-        avatarText.setTextSize(15);
-        avatarText.setTypeface(null, android.graphics.Typeface.BOLD);
-        avatar.addView(avatarText);
-        topRow.addView(avatar);
-
-        LinearLayout textCol = new LinearLayout(this);
-        textCol.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams textColParams = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        textColParams.setMarginStart(12 * density);
-        textCol.setLayoutParams(textColParams);
-        TextView titleText = new TextView(this);
-        titleText.setText(name + " wants to share");
-        titleText.setTextSize(14);
-        titleText.setTypeface(null, android.graphics.Typeface.BOLD);
-        titleText.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
-        TextView subtitleText = new TextView(this);
-        subtitleText.setText(invite.getMake() + " " + invite.getModel() + " \u2022 " + invite.getVehicleNumber());
-        subtitleText.setTextSize(13);
-        subtitleText.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
-        textCol.addView(titleText);
-        textCol.addView(subtitleText);
-        topRow.addView(textCol);
-
-        card.addView(topRow);
-
-        LinearLayout buttonRow = new LinearLayout(this);
-        buttonRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams buttonRowParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        buttonRow.setLayoutParams(buttonRowParams);
-
-        android.widget.Button btnAccept = new android.widget.Button(this);
-        btnAccept.setText("Accept");
-        btnAccept.setAllCaps(false);
-        btnAccept.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.status_success)));
-        btnAccept.setTextColor(Color.WHITE);
-        LinearLayout.LayoutParams acceptParams = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        acceptParams.setMarginEnd(8 * density);
-        btnAccept.setLayoutParams(acceptParams);
-        btnAccept.setOnClickListener(v -> respondToInvite(invite, true));
-        buttonRow.addView(btnAccept);
-
-        android.widget.Button btnDecline = new android.widget.Button(this);
-        btnDecline.setText("Decline");
-        btnDecline.setAllCaps(false);
-        LinearLayout.LayoutParams declineParams = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        btnDecline.setLayoutParams(declineParams);
-        btnDecline.setOnClickListener(v -> respondToInvite(invite, false));
-        buttonRow.addView(btnDecline);
-
-        card.addView(buttonRow);
-        pendingInvitesContainer.addView(card);
-    }
-
-    // Matches the confirmed mockup: car icon, vehicle name + owner, chevron.
-    // Container itself carries the card background now; rows are separated
-    // by a divider (skipped before the first row), not individually boxed.
-    private void addSharedVehicleRow(VehicleShareResponse share, boolean isFirst) {
-        int density = (int) getResources().getDisplayMetrics().density;
-
-        if (!isFirst) {
-            View divider = new View(this);
-            divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
-            divider.setBackgroundColor(ContextCompat.getColor(this, R.color.surface_stroke));
-            sharedWithMeContainer.addView(divider);
+        String statusLabel;
+        switch (st) {
+            case "accepted":
+                statusLabel = getString(R.string.st_share_status_accepted);
+                Pill.apply(pill, statusLabel, Pill.Tone.GREEN);
+                detail.setText(getString(R.string.st_share_since,
+                        TimeText.date(share.getRespondedAt() != null ? share.getRespondedAt() : share.getInvitedAt())));
+                action.setText(R.string.st_share_revoke);
+                action.setOnClickListener(v -> confirmEnd(share, who, false));
+                break;
+            case "pending":
+                statusLabel = getString(R.string.st_share_status_invited);
+                Pill.apply(pill, statusLabel, Pill.Tone.AMBER);
+                detail.setText(TimeText.ago(this, share.getInvitedAt()));
+                action.setText(R.string.st_share_cancel_invite);
+                action.setOnClickListener(v -> confirmEnd(share, who, true));
+                break;
+            case "declined":
+                statusLabel = getString(R.string.st_share_status_declined);
+                Pill.apply(pill, statusLabel, Pill.Tone.GREY);
+                detail.setText(TimeText.date(share.getRespondedAt()));
+                action.setVisibility(View.GONE);
+                break;
+            default:
+                statusLabel = getString(R.string.st_share_status_expired);
+                Pill.apply(pill, statusLabel, Pill.Tone.GREY);
+                detail.setText(TimeText.date(share.getInvitedAt()));
+                action.setVisibility(View.GONE);
+                break;
         }
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(14 * density, 12 * density, 14 * density, 12 * density);
-
-        ImageView carIcon = new ImageView(this);
-        carIcon.setImageResource(R.drawable.ic_car_3d_small);
-        int iconSize = 26 * density;
-        carIcon.setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
-        row.addView(carIcon);
-
-        LinearLayout textCol = new LinearLayout(this);
-        textCol.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams textColParams = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        textColParams.setMarginStart(12 * density);
-        textCol.setLayoutParams(textColParams);
-        TextView nameText = new TextView(this);
-        nameText.setText(share.getMake() + " " + share.getModel());
-        nameText.setTextSize(15);
-        nameText.setTypeface(null, android.graphics.Typeface.BOLD);
-        nameText.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
-        TextView ownerText = new TextView(this);
-        ownerText.setText("Shared by " + share.getOtherPartyName());
-        ownerText.setTextSize(12);
-        ownerText.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
-        textCol.addView(nameText);
-        textCol.addView(ownerText);
-        row.addView(textCol);
-
-        ImageView chevron = new ImageView(this);
-        chevron.setImageResource(R.drawable.ic_chevron_right);
-        chevron.setColorFilter(ContextCompat.getColor(this, R.color.text_muted));
-        int chevronSize = 20 * density;
-        chevron.setLayoutParams(new LinearLayout.LayoutParams(chevronSize, chevronSize));
-        row.addView(chevron);
-
-        row.setOnClickListener(v -> {
-            android.content.Intent intent = new android.content.Intent(this, SharedVehicleMapActivity.class);
-            intent.putExtra(SharedVehicleMapActivity.EXTRA_VEHICLE_ID, share.getVehicleId());
-            intent.putExtra(SharedVehicleMapActivity.EXTRA_VEHICLE_TITLE, share.getMake() + " " + share.getModel());
-            intent.putExtra(SharedVehicleMapActivity.EXTRA_OWNER_NAME, share.getOtherPartyName());
-            startActivity(intent);
-        });
-
-        sharedWithMeContainer.addView(row);
+        row.findViewById(R.id.myShareText).setContentDescription(who + ", " + statusLabel + ", "
+                + Plates.plain(share.getVehicleNumber()) + ", " + detail.getText());
+        action.setContentDescription(action.getText() + ", " + who);
+        return row;
     }
 
-    // NEW -- matches the same card style as the other two sections, but
-    // with status text + a revoke/cancel button instead of a chevron.
-    // Button label differs by status: a Pending share hasn't been
-    // accepted yet, so "Cancel invite" reads more accurately than
-    // "Revoke" -- both call the same underlying revoke endpoint.
-    // Container carries the card background; rows separated by dividers.
-    private void addMyShareRow(VehicleShareResponse share, boolean isFirst) {
-        int density = (int) getResources().getDisplayMetrics().density;
-        boolean isPending = "Pending".equalsIgnoreCase(share.getStatus());
+    private void confirmEnd(VehicleShareResponse share, String who, boolean pendingInvite) {
+        String plate = Plates.plain(share.getVehicleNumber());
+        CharSequence title = pendingInvite
+                ? getString(R.string.st_share_cancel_title, who)
+                : getString(R.string.st_share_revoke_title, plate, who);
+        ConfirmSheet.show(this, title,
+                getString(pendingInvite ? R.string.st_share_cancel_body : R.string.st_share_revoke_body),
+                getString(pendingInvite ? R.string.st_share_cancel_action : R.string.st_share_revoke_action),
+                getString(pendingInvite ? R.string.st_share_cancel_busy : R.string.st_share_revoke_busy),
+                done -> api.revokeVehicleShare(share.getShareId()).enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                        if (response.isSuccessful()) {
+                            ApiErrors.close(response);
+                            done.succeeded();
+                            if (isFinishing() || isDestroyed()) return;
+                            load();
+                            banner.showSuccess(getString(R.string.st_share_ended, who));
+                            return;
+                        }
+                        done.failed(ApiErrors.read(response, getString(R.string.st_error_try_again)).message);
+                    }
 
-        if (!isFirst) {
-            View divider = new View(this);
-            divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
-            divider.setBackgroundColor(ContextCompat.getColor(this, R.color.surface_stroke));
-            mySharesContainer.addView(divider);
-        }
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(14 * density, 12 * density, 14 * density, 12 * density);
-
-        ImageView carIcon = new ImageView(this);
-        carIcon.setImageResource(R.drawable.ic_car_3d_small);
-        int iconSize = 26 * density;
-        carIcon.setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
-        row.addView(carIcon);
-
-        LinearLayout textCol = new LinearLayout(this);
-        textCol.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams textColParams = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        textColParams.setMarginStart(12 * density);
-        textCol.setLayoutParams(textColParams);
-        TextView nameText = new TextView(this);
-        nameText.setText(share.getMake() + " " + share.getModel());
-        nameText.setTextSize(15);
-        nameText.setTypeface(null, android.graphics.Typeface.BOLD);
-        nameText.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
-        TextView statusText = new TextView(this);
-        statusText.setText((isPending ? "Invite sent to " : "Shared with ") + share.getOtherPartyName()
-                + " \u2022 " + (isPending ? "Pending" : "Accepted"));
-        statusText.setTextSize(12);
-        statusText.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
-        textCol.addView(nameText);
-        textCol.addView(statusText);
-        row.addView(textCol);
-
-        android.widget.Button btnRevoke = new android.widget.Button(this);
-        btnRevoke.setText(isPending ? "Cancel" : "Revoke");
-        btnRevoke.setAllCaps(false);
-        btnRevoke.setTextColor(ContextCompat.getColor(this, R.color.status_danger));
-        btnRevoke.setOnClickListener(v -> confirmRevoke(share, isPending));
-        row.addView(btnRevoke);
-
-        mySharesContainer.addView(row);
+                    @Override
+                    public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                        done.failed(getString(R.string.st_error_network));
+                    }
+                }));
     }
 
-    private void confirmRevoke(VehicleShareResponse share, boolean isPending) {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(isPending ? "Cancel this invite?" : "Revoke access?")
-                .setMessage((isPending ? "Cancel the pending invite to " : "Remove ")
-                        + share.getOtherPartyName()
-                        + (isPending ? "." : "'s access to this vehicle."))
-                .setPositiveButton(isPending ? "Cancel invite" : "Revoke", (dialog, which) -> revokeShare(share))
-                .setNegativeButton("Never mind", null)
-                .show();
+    // --------------------------------------------------------------------------------- helpers
+
+    private static String status(VehicleShareResponse s) {
+        return s.getStatus() == null ? "" : s.getStatus().trim().toLowerCase(java.util.Locale.ROOT);
     }
 
-    private void revokeShare(VehicleShareResponse share) {
-        mainApiService.revokeVehicleShare(share.getShareId()).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(VehicleSharingActivity.this, "Done.", Toast.LENGTH_SHORT).show();
-                    fetchAll(true);
-                } else {
-                    Log.w("VehicleSharingActivity", "revokeShare failed, code " + response.code());
-                    Toast.makeText(VehicleSharingActivity.this, "Couldn't do that. Try again.", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("VehicleSharingActivity", "revokeShare network error", t);
-                Toast.makeText(VehicleSharingActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
-            }
-        });
+    private static String makeModel(VehicleShareResponse s) {
+        String make = s.getMake() == null ? "" : s.getMake();
+        String model = s.getModel() == null ? "" : s.getModel();
+        return (make + " " + model).trim();
     }
 
-    private void respondToInvite(VehicleShareResponse invite, boolean accept) {
-        RespondToVehicleShareRequest request = new RespondToVehicleShareRequest(accept);
-        mainApiService.respondToVehicleShare(invite.getShareId(), request).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(VehicleSharingActivity.this,
-                            accept ? "Invite accepted." : "Invite declined.", Toast.LENGTH_SHORT).show();
-                    fetchAll(true);
-                } else {
-                    Log.w("VehicleSharingActivity", "respondToInvite failed, code " + response.code());
-                    Toast.makeText(VehicleSharingActivity.this, "Couldn't respond. Try again.", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("VehicleSharingActivity", "respondToInvite network error", t);
-                Toast.makeText(VehicleSharingActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
-            }
-        });
+    private static String who(@Nullable String name, @Nullable String phone) {
+        return name != null && !name.trim().isEmpty() ? name.trim() : ProfileText.phone(phone);
     }
 
-    private void setLoading(boolean loading) {
-        if (progressSharing != null) progressSharing.setVisibility(loading ? View.VISIBLE : View.GONE);
-    }
-
-    private void showError(String message) {
-        if (errorBanner == null) return;
-        errorBanner.setVisibility(View.VISIBLE);
-        if (tvErrorBannerMessage != null) tvErrorBannerMessage.setText(message);
-    }
-
-    private void hideError() {
-        if (errorBanner != null) errorBanner.setVisibility(View.GONE);
-    }
-
-    private List<VehicleShareResponse> parseList(String json) {
-        if (json == null || json.trim().isEmpty()) return null;
-        try {
-            Gson gson = new Gson();
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root != null && root.has("data") && root.get("data").isJsonArray()) {
-                java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<List<VehicleShareResponse>>() {}.getType();
-                return gson.fromJson(root.getAsJsonArray("data"), listType);
-            }
-        } catch (Exception e) {
-            Log.e("VehicleSharingActivity", "parseList error", e);
-        }
-        return null;
+    private void addDivider(LinearLayout parent) {
+        View line = new View(this);
+        line.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                Math.max(1, Math.round(getResources().getDisplayMetrics().density))));
+        line.setBackgroundColor(ContextCompat.getColor(this, R.color.st_line_soft));
+        line.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        parent.addView(line);
     }
 }

@@ -17,10 +17,12 @@ import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.letstracklanka.R;
@@ -44,6 +46,7 @@ import com.example.letstracklanka.ui.history.TripHistoryActivity;
 import com.example.letstracklanka.ui.main.AddressResolver;
 import com.example.letstracklanka.ui.main.AlertsActivity;
 import com.example.letstracklanka.ui.more.MoreRows;
+import com.example.letstracklanka.ui.more.ProfileText;
 import com.example.letstracklanka.ui.vehicles.page.AlertSettingsSheet;
 import com.example.letstracklanka.ui.vehicles.page.HealthCard;
 import com.example.letstracklanka.ui.vehicles.page.LiveLinksSheet;
@@ -53,8 +56,13 @@ import com.example.letstracklanka.utils.ApiJson;
 import com.example.letstracklanka.utils.SecureScreen;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -83,6 +91,8 @@ public class VehiclesActivity extends AppCompatActivity {
     public static final String EXTRA_VEHICLE_ID = "extra_vehicle_id";
 
     private static final long REFRESH_MS = 30_000;
+    /** Geofence names shown on the row before "+N more". */
+    private static final int GEOFENCE_NAMES = 2;
 
     private ApiService api;
     private ShaloTrackApi trackingApi;
@@ -104,7 +114,7 @@ public class VehiclesActivity extends AppCompatActivity {
     private MaterialButton btnEdit;
     private HealthCard health;
 
-    @Nullable private View rowLive, rowReminders, rowAlertSettings;
+    @Nullable private View rowLive, rowReminders, rowAlertSettings, rowGeofences, rowShared;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refresh = new Runnable() {
@@ -116,6 +126,8 @@ public class VehiclesActivity extends AppCompatActivity {
     };
 
     private ActivityResultLauncher<Intent> editLauncher;
+    /** Geofences, sharing: reload the row text when they come back. */
+    private ActivityResultLauncher<Intent> rowsLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,6 +138,7 @@ public class VehiclesActivity extends AppCompatActivity {
         api = ApiClient.getClient().create(ApiService.class);
         trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
         editLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), r -> load(false));
+        rowsLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), r -> loadRowSummaries());
 
         String requested = getIntent().getStringExtra(EXTRA_VEHICLE_ID);
         vehicleId = requested != null && !requested.trim().isEmpty()
@@ -391,15 +404,19 @@ public class VehiclesActivity extends AppCompatActivity {
                     x -> RemindersSheet.show(this, vehicleId, this::onReminders));
             rowAlertSettings = MoreRows.add(manageCard, R.drawable.ic_st_gauge, getString(R.string.st_alert_settings_title),
                     getString(R.string.st_alert_settings_row_default), false,
-                    x -> AlertSettingsSheet.show(this, vehicleId, this::onAlertSettings));
+                    x -> AlertSettingsSheet.show(this, vehicleId, v.getVehicleNumber(), this::onAlertSettings));
         }
-        MoreRows.add(manageCard, R.drawable.ic_st_geofence, getString(R.string.st_more_geofences),
+        rowGeofences = MoreRows.add(manageCard, R.drawable.ic_st_geofence, getString(R.string.st_more_geofences),
                 getString(owner ? R.string.st_vehicle_geofences_detail : R.string.st_vehicle_geofences_detail_viewer), false,
                 x -> openGeofences());
         if (owner) {
-            MoreRows.add(manageCard, R.drawable.ic_st_users, getString(R.string.st_more_sharing),
+            rowShared = MoreRows.add(manageCard, R.drawable.ic_st_users, getString(R.string.st_more_sharing),
                     getString(R.string.st_vehicle_sharing_detail), false,
-                    x -> startActivity(new Intent(this, VehicleSharingActivity.class)));
+                    x -> {
+                        Intent i = new Intent(this, VehicleSharingActivity.class);
+                        i.putExtra(VehicleSharingActivity.EXTRA_VEHICLE_ID, vehicleId);
+                        rowsLauncher.launch(i);
+                    });
         }
         MoreRows.add(manageCard, R.drawable.ic_st_chart, getString(R.string.st_vehicle_statistics),
                 getString(R.string.st_vehicle_statistics_detail), false, x -> {
@@ -412,14 +429,17 @@ public class VehiclesActivity extends AppCompatActivity {
         if (owner) {
             MoreRows.add(dangerCard, R.drawable.ic_st_device, getString(R.string.st_vehicle_tracker_row),
                     getString(v.hasDevice() ? R.string.st_vehicle_tracker_linked : R.string.st_vehicle_tracker_none), false,
-                    x -> editLauncher.launch(new Intent(this, DevicesActivity.class)));
+                    x -> {
+                        Intent i = new Intent(this, DevicesActivity.class);
+                        i.putExtra(EXTRA_VEHICLE_ID, vehicleId);
+                        editLauncher.launch(i);
+                    });
             MoreRows.add(dangerCard, R.drawable.ic_st_trash, getString(R.string.st_remove_vehicle_confirm),
                     getString(R.string.st_vehicle_remove_detail), true, x -> confirmRemove());
             dangerCard.setVisibility(View.VISIBLE);
             btnEdit.setVisibility(View.VISIBLE);
 
-            AlertSettingsSheet.loadSummary(this, vehicleId, this::onAlertSettings);
-            RemindersSheet.loadSummary(this, vehicleId, this::onReminders);
+            loadRowSummaries();
         } else {
             dangerCard.setVisibility(View.GONE);
             btnEdit.setVisibility(View.GONE);
@@ -458,13 +478,35 @@ public class VehiclesActivity extends AppCompatActivity {
 
     // ---- Row updates from the sheets ----
 
-    private void onLiveLinks(int active) {
-        setDetail(rowLive, active == 0 ? getString(R.string.st_live_row_none)
-                : getResources().getQuantityString(R.plurals.st_live_row_active, active, active));
+    /** The live text for each owner row: one small read each, on open and after a change, never polled. */
+    private void loadRowSummaries() {
+        if (vehicle == null || !owner) return;
+        LiveLinksSheet.loadSummary(this, vehicleId, this::onLiveLinks);
+        RemindersSheet.loadSummary(this, vehicleId, this::onReminders);
+        AlertSettingsSheet.loadSummary(this, vehicleId, this::onAlertSettings);
+        loadGeofenceNames();
+        loadShares();
     }
 
-    private void onReminders(@Nullable String soonest) {
-        setDetail(rowReminders, soonest != null ? soonest : getString(R.string.st_reminders_row_none));
+    private void onLiveLinks(int active, @Nullable Instant soonestEnd) {
+        if (active == 0 || soonestEnd == null) {
+            setDetail(rowLive, getString(R.string.st_live_row_none));
+            return;
+        }
+        String in = untilText(soonestEnd);
+        setDetail(rowLive, active == 1
+                ? getString(R.string.st_live_row_one, in)
+                : getResources().getQuantityString(R.plurals.st_live_row_many, active, active, in));
+    }
+
+    private void onReminders(@Nullable String soonest, int daysLeft) {
+        if (soonest == null) {
+            setDetail(rowReminders, getString(R.string.st_reminders_row_none));
+            return;
+        }
+        // Overdue in red, due within 30 days in amber.
+        setDetail(rowReminders, soonest, daysLeft < 0 ? R.color.st_danger_text
+                : daysLeft <= 30 ? R.color.st_status_offline_text : R.color.st_text_3);
     }
 
     private void onAlertSettings(int speed, boolean idleOn, int idleMinutes) {
@@ -474,12 +516,130 @@ public class VehiclesActivity extends AppCompatActivity {
     }
 
     private void setDetail(@Nullable View row, String text) {
+        setDetail(row, text, R.color.st_text_3);
+    }
+
+    private void setDetail(@Nullable View row, String text, @ColorRes int colour) {
         if (row == null) return;
         TextView d = row.findViewById(R.id.moreRowDetail);
         TextView t = row.findViewById(R.id.moreRowTitle);
         d.setText(text);
+        d.setTextColor(ContextCompat.getColor(this, colour));
         d.setVisibility(View.VISIBLE);
         row.setContentDescription(t.getText() + ", " + text);
+    }
+
+    /** Geofences that cover this vehicle: its own plus the "all vehicles" ones. */
+    private void loadGeofenceNames() {
+        api.getMyGeofences().enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (isDestroyed() || !response.isSuccessful()) {
+                    ApiErrors.close(response);
+                    return;
+                }
+                List<String> names = new ArrayList<>();
+                try (ResponseBody b = response.body()) {
+                    JsonArray arr = b != null ? ApiJson.dataArray(b.string()) : null;
+                    if (arr == null) return;
+                    for (JsonElement e : arr) {
+                        if (!e.isJsonObject()) continue;
+                        JsonObject g = e.getAsJsonObject();
+                        String forVehicle = ApiJson.string(g, "vehicleId");
+                        boolean covers = forVehicle == null || forVehicle.isEmpty() || vehicleId.equalsIgnoreCase(forVehicle);
+                        JsonElement active = ApiJson.get(g, "isActive");
+                        boolean on = active == null || !active.isJsonPrimitive() || active.getAsBoolean();
+                        String name = ApiJson.string(g, "name");
+                        if (covers && on && name != null && !name.trim().isEmpty()) names.add(name.trim());
+                    }
+                } catch (Exception ignored) {
+                    return;   // the row keeps its neutral text
+                }
+                String text;
+                if (names.isEmpty()) {
+                    text = getString(R.string.st_vehicle_geofences_none);
+                } else if (names.size() <= GEOFENCE_NAMES) {
+                    text = android.text.TextUtils.join(", ", names);
+                } else {
+                    int more = names.size() - GEOFENCE_NAMES;
+                    text = getResources().getQuantityString(R.plurals.st_vehicle_geofences_more, more,
+                            android.text.TextUtils.join(", ", names.subList(0, GEOFENCE_NAMES)), more);
+                }
+                setDetail(rowGeofences, text, R.color.st_text_3);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                // the row keeps its neutral text
+            }
+        });
+    }
+
+    /** Who this vehicle is shared with: accepted shares by name, pending ones as invited. */
+    private void loadShares() {
+        api.getMyVehicleShares(vehicleId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (isDestroyed() || !response.isSuccessful()) {
+                    ApiErrors.close(response);
+                    return;
+                }
+                List<String> people = new ArrayList<>();
+                String first = null;
+                boolean firstPending = false;
+                try (ResponseBody b = response.body()) {
+                    JsonArray arr = b != null ? ApiJson.dataArray(b.string()) : null;
+                    if (arr == null) return;
+                    for (JsonElement e : arr) {
+                        if (!e.isJsonObject()) continue;
+                        JsonObject s = e.getAsJsonObject();
+                        String forVehicle = ApiJson.string(s, "vehicleId");
+                        if (forVehicle != null && !vehicleId.equalsIgnoreCase(forVehicle)) continue;
+                        String status = ApiJson.string(s, "status");
+                        boolean accepted = "Accepted".equalsIgnoreCase(status) || "1".equals(status);
+                        boolean pending = "Pending".equalsIgnoreCase(status) || "0".equals(status);
+                        if (!accepted && !pending) continue;
+                        // The name arrives once they accept; until then, the number the owner typed.
+                        String name = ApiJson.string(s, "otherPartyName");
+                        if (name == null || name.trim().isEmpty()) {
+                            String phone = ApiJson.string(s, "otherPartyPhoneNumber");
+                            name = phone != null && !phone.trim().isEmpty()
+                                    ? ProfileText.phone(phone)
+                                    : getString(R.string.st_vehicle_someone);
+                        }
+                        if (first == null) {
+                            first = name.trim();
+                            firstPending = pending;
+                        }
+                        people.add(name.trim());
+                    }
+                } catch (Exception ignored) {
+                    return;   // the row keeps its neutral text
+                }
+                String text;
+                if (first == null) {
+                    text = getString(R.string.st_vehicle_shared_none);
+                } else if (people.size() == 1) {
+                    text = getString(firstPending ? R.string.st_vehicle_shared_invited : R.string.st_vehicle_shared_viewer, first);
+                } else {
+                    int more = people.size() - 1;
+                    text = getResources().getQuantityString(R.plurals.st_vehicle_shared_more, more, first, more);
+                }
+                setDetail(rowShared, text, R.color.st_text_3);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                // the row keeps its neutral text
+            }
+        });
+    }
+
+    /** "3 h" or "40 min" until the given time (rounded up, never "0"). */
+    private String untilText(Instant end) {
+        long minutes = Math.max(1, (long) Math.ceil(Duration.between(Instant.now(), end).getSeconds() / 60.0));
+        if (minutes < 60) return getString(R.string.st_live_in_minutes, (int) minutes);
+        return getString(R.string.st_live_in_hours, (int) Math.ceil(minutes / 60.0));
     }
 
     // ---- Actions ----
@@ -507,7 +667,7 @@ public class VehiclesActivity extends AppCompatActivity {
         Intent i = new Intent(this, GeofencesActivity.class);
         i.putExtra(GeofencesActivity.EXTRA_VEHICLE_ID, vehicleId);
         if (vehicle != null) i.putExtra(GeofencesActivity.EXTRA_VEHICLE_NAME, vehicle.getVehicleNumber());
-        startActivity(i);
+        rowsLauncher.launch(i);
     }
 
     /** Directions to where the vehicle is (its reported position; the phone's location is never read here). */

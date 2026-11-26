@@ -1,61 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Single reply bubble. Root is a FrameLayout spanning the RecyclerView's
-     full width specifically so the inner bubble's android:layout_gravity
-     actually takes effect (a RecyclerView with LinearLayoutManager gives
-     its item views plain RecyclerView.LayoutParams, which ignore
-     layout_gravity, so wrapping in a FrameLayout avoids that trap).
-     ComplaintReplyAdapter sets the inner column's gravity to "end" for
-     the customer's own replies and "start" for dealer/admin replies, and
-     swaps the bubble's background tint the same way. -->
+<!-- One message in a complaint thread. The bubble's side, colours and author line are set by
+     ComplaintReplyAdapter (the customer's on the right, staff on the left). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp">
+    android:paddingBottom="10dp">
 
     <LinearLayout
-        android:id="@+id/columnReply"
+        android:id="@+id/replyBubble"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        android:orientation="vertical">
+        android:background="@drawable/bg_st_bubble_theirs"
+        android:focusable="true"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp">
 
         <TextView
             android:id="@+id/tvReplyAuthor"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="2dp"
-            android:textColor="@color/text_muted"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            tools:text="Dealer" />
+            android:fontFamily="@font/inter_bold"
+            android:textColor="@color/st_navy"
+            android:textSize="12sp"
+            tools:text="Dealer · Lanka Auto Trackers" />
 
-        <LinearLayout
-            android:id="@+id/bubbleReply"
+        <TextView
+            android:id="@+id/tvReplyMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/bg_edit_text_rounded"
-            android:padding="12dp"
-            android:maxWidth="280dp">
-
-            <TextView
-                android:id="@+id/tvReplyMessage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                tools:text="Please share a photo of the device installation, that will help us diagnose this faster." />
-        </LinearLayout>
+            android:textAppearance="@style/TextAppearance.ST.Body"
+            android:textIsSelectable="true"
+            tools:text="Thanks. Can you tell us roughly what time it stopped updating?" />
 
         <TextView
             android:id="@+id/tvReplyTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textColor="@color/text_muted"
-            android:textSize="10sp"
-            tools:text="2:14 PM" />
-
+            android:layout_marginTop="4dp"
+            android:textAppearance="@style/TextAppearance.ST.Caption"
+            android:textSize="11sp"
+            tools:text="24 Nov, 11:02" />
     </LinearLayout>
 </FrameLayout>

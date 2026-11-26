@@ -6,10 +6,12 @@ import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
+import com.example.letstracklanka.ui.common.Plates;
 import com.example.letstracklanka.utils.ApiErrors;
 import com.example.letstracklanka.utils.ApiJson;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -26,9 +28,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Alert settings for one vehicle (bottom_sheet_alert_settings): over-speed limit and the idling alert.
- * The allowed ranges come from the server with the current values, so the sliders can never offer a value
- * the server would refuse.
+ * Alert settings for one vehicle (bottom_sheet_alert_settings, AlertSettings board): over-speed limit, the
+ * idling alert, and push on/off for power cut, ignition, over-speed, and low battery plus offline. The allowed
+ * ranges come from the server with the current values, so the sliders can never offer a value the server would
+ * refuse. Push switches are enforced by the server before it sends (a phone-side switch cannot stop a push
+ * Android shows by itself); a muted alert is still saved and listed. SOS has no switch.
  */
 public final class AlertSettingsSheet {
 
@@ -44,11 +48,12 @@ public final class AlertSettingsSheet {
     private final View form, progress, idleGroup;
     private final TextView tvSpeed, tvIdle, tvError;
     private final Slider sliderSpeed, sliderIdle;
-    private final MaterialSwitch swIdle;
+    private final MaterialSwitch swIdle, swPowerCut, swIgnition, swOverspeed, swHealth;
+    private final View powerCutWarning;
     private final MaterialButton btnSave;
 
     @SuppressLint("InflateParams") // dialog content has no parent to measure against
-    private AlertSettingsSheet(Activity activity, String vehicleId, Listener listener) {
+    private AlertSettingsSheet(Activity activity, String vehicleId, @Nullable String plate, Listener listener) {
         this.activity = activity;
         this.vehicleId = vehicleId;
         this.listener = listener;
@@ -64,7 +69,17 @@ public final class AlertSettingsSheet {
         sliderSpeed = v.findViewById(R.id.sliderSpeedLimit);
         sliderIdle = v.findViewById(R.id.sliderIdleMinutes);
         swIdle = v.findViewById(R.id.switchIdleAlert);
+        swPowerCut = v.findViewById(R.id.switchPushPowerCut);
+        swIgnition = v.findViewById(R.id.switchPushIgnition);
+        swOverspeed = v.findViewById(R.id.switchPushOverspeed);
+        swHealth = v.findViewById(R.id.switchPushHealth);
+        powerCutWarning = v.findViewById(R.id.powerCutWarning);
         btnSave = v.findViewById(R.id.btnSaveAlertSettings);
+        if (plate != null && !plate.trim().isEmpty()) {
+            TextView forPlate = v.findViewById(R.id.tvAlertSettingsFor);
+            forPlate.setText(activity.getString(R.string.st_alert_settings_for, Plates.plain(plate)));
+            forPlate.setVisibility(View.VISIBLE);
+        }
         v.findViewById(R.id.btnCancelAlertSettings).setOnClickListener(x -> sheet.dismiss());
 
         sliderSpeed.addOnChangeListener((s, value, fromUser) ->
@@ -72,11 +87,14 @@ public final class AlertSettingsSheet {
         sliderIdle.addOnChangeListener((s, value, fromUser) ->
                 tvIdle.setText(activity.getString(R.string.st_duration_minutes, (long) Math.round(value))));
         swIdle.setOnCheckedChangeListener((b, on) -> idleGroup.setVisibility(on ? View.VISIBLE : View.GONE));
+        // Power cut is the anti-theft signal: say so the moment it is switched off.
+        swPowerCut.setOnCheckedChangeListener((b, on) -> powerCutWarning.setVisibility(on ? View.GONE : View.VISIBLE));
         btnSave.setOnClickListener(x -> save());
     }
 
-    public static void show(@NonNull Activity activity, @NonNull String vehicleId, @NonNull Listener listener) {
-        AlertSettingsSheet s = new AlertSettingsSheet(activity, vehicleId, listener);
+    public static void show(@NonNull Activity activity, @NonNull String vehicleId, @Nullable String plate,
+                            @NonNull Listener listener) {
+        AlertSettingsSheet s = new AlertSettingsSheet(activity, vehicleId, plate, listener);
         s.sheet.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
         s.sheet.getBehavior().setSkipCollapsed(true);
         s.sheet.show();
@@ -143,6 +161,12 @@ public final class AlertSettingsSheet {
         boolean on = idleOn != null && idleOn.isJsonPrimitive() && idleOn.getAsBoolean();
         swIdle.setChecked(on);
         idleGroup.setVisibility(on ? View.VISIBLE : View.GONE);
+        // Missing (an API from before the switches) reads as on: that is what the server does today.
+        swPowerCut.setChecked(boolOr(d, "pushPowerCut", true));
+        swIgnition.setChecked(boolOr(d, "pushIgnition", true));
+        swOverspeed.setChecked(boolOr(d, "pushOverspeed", true));
+        swHealth.setChecked(boolOr(d, "pushTrackerHealth", true));
+        powerCutWarning.setVisibility(swPowerCut.isChecked() ? View.GONE : View.VISIBLE);
         form.setVisibility(View.VISIBLE);
         btnSave.setEnabled(true);
     }
@@ -158,6 +182,10 @@ public final class AlertSettingsSheet {
         body.addProperty("speedLimitKmh", speed);
         body.addProperty("idleAlertEnabled", idleOn);
         body.addProperty("idleAlertMinutes", idle);
+        body.addProperty("pushPowerCut", swPowerCut.isChecked());
+        body.addProperty("pushIgnition", swIgnition.isChecked());
+        body.addProperty("pushOverspeed", swOverspeed.isChecked());
+        body.addProperty("pushTrackerHealth", swHealth.isChecked());
         api.updateVehicleAlertSettings(vehicleId, body).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
@@ -222,6 +250,15 @@ public final class AlertSettingsSheet {
         JsonElement e = ApiJson.get(o, key);
         try {
             return e != null && e.isJsonPrimitive() ? e.getAsInt() : fallback;
+        } catch (Exception ex) {
+            return fallback;
+        }
+    }
+
+    private static boolean boolOr(JsonObject o, String key, boolean fallback) {
+        JsonElement e = ApiJson.get(o, key);
+        try {
+            return e != null && e.isJsonPrimitive() ? e.getAsBoolean() : fallback;
         } catch (Exception ex) {
             return fallback;
         }

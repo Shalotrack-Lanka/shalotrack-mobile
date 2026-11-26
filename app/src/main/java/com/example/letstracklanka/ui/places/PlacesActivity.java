@@ -1,37 +1,36 @@
 package com.example.letstracklanka.ui.places;
 
-import com.example.letstracklanka.utils.InputValidator;
-import android.app.AlertDialog;
-import android.content.Context;
+import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.EditText;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.letstracklanka.R;
-import com.example.letstracklanka.data.model.CreateSavedPlaceRequest;
-import com.example.letstracklanka.data.model.LocationResponse;
 import com.example.letstracklanka.data.model.SavedPlaceResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
-import com.example.letstracklanka.data.remote.ShaloTrackApi;
-import com.example.letstracklanka.ui.main.AddressResolver;
-import com.example.letstracklanka.ui.vehicles.VehicleListActivity;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import com.example.letstracklanka.ui.common.ConfirmSheet;
+import com.example.letstracklanka.ui.common.EdgeToEdge;
+import com.example.letstracklanka.ui.common.EmptyState;
+import com.example.letstracklanka.ui.common.InlineBanner;
+import com.example.letstracklanka.ui.common.NetworkWatcher;
+import com.example.letstracklanka.ui.common.RowDividers;
+import com.example.letstracklanka.ui.common.TopBar;
+import com.example.letstracklanka.ui.more.MoreRows;
+import com.example.letstracklanka.utils.ApiErrors;
+import com.example.letstracklanka.utils.ApiJson;
+import com.example.letstracklanka.utils.SecureScreen;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,253 +40,158 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Real Places screen -- replaces the previous stub (bottom_sheet_places.xml,
- * just a close button, nothing else). Primary save flow is "save the
- * vehicle's current live location", matching this app's actual purpose
- * (vehicle tracking) rather than a general-purpose map-picker, which is a
- * separate, larger sub-feature left for later.
- *
- * Reads the currently-selected vehicle independently via
- * VehicleListActivity's own SharedPreferences constants, since this screen
- * can be opened from the drawer on Tags/Circles too, neither of which
- * track any vehicle location themselves.
+ * Places: the places the customer has named, each with its visit count (the server counts a visit when a
+ * vehicle stops inside one). A place is saved from where a vehicle is right now, read from its tracker;
+ * the phone's own location is never used. Frequent places (where vehicles stop most) is one row away.
+ * All results and errors stay on the screen: no Toast, Snackbar or dialog.
  */
 public class PlacesActivity extends AppCompatActivity {
 
-    private ApiService mainApiService;
-    private ShaloTrackApi trackingApi;
-    private AddressResolver addressResolver;
+    private ApiService api;
 
-    private View errorBanner;
-    private TextView tvErrorBannerMessage;
-    private RecyclerView rvPlaces;
-    private ProgressBar progressPlaces;
-    private View layoutEmptyState;
+    private SwipeRefreshLayout swipe;
+    private ProgressBar progress;
+    private RecyclerView list;
+    private InlineBanner banner;
+    private EmptyState empty;
     private SavedPlaceAdapter adapter;
+    private boolean loaded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_places);
+        SecureScreen.guardTouches(this);
+        TopBar.bind(this, R.string.st_places_title);
+        EdgeToEdge.padBottom(findViewById(R.id.placesContent));
 
-        mainApiService = ApiClient.getClient().create(ApiService.class);
-        trackingApi = ApiClient.getClient().create(ShaloTrackApi.class);
-        addressResolver = new AddressResolver(this);
+        api = ApiClient.getClient().create(ApiService.class);
+        swipe = findViewById(R.id.swipePlaces);
+        progress = findViewById(R.id.progressPlaces);
+        list = findViewById(R.id.rvPlaces);
+        banner = InlineBanner.in(this);
+        empty = new EmptyState(findViewById(R.id.emptyState));
 
-        initViews();
-        fetchPlaces();
-    }
+        swipe.setColorSchemeColors(ContextCompat.getColor(this, R.color.st_navy));
+        swipe.setOnRefreshListener(() -> load(false));
 
-    private void initViews() {
-        View btnBack = findViewById(R.id.btnBackPlaces);
-        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
+        ViewGroup frequent = findViewById(R.id.cardFrequentPlaces);
+        View row = MoreRows.add(frequent, R.drawable.ic_st_star, getString(R.string.st_places_frequent),
+                getString(R.string.st_places_frequent_detail), false,
+                v -> startActivity(new Intent(this, FrequentPlacesActivity.class)));
+        ImageView icon = row.findViewById(R.id.moreRowIcon);
+        icon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.st_signal_text)));
+        row.findViewById(R.id.moreRowIconTile).setBackgroundTintList(
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.st_signal_50)));
 
-        errorBanner = findViewById(R.id.errorBanner);
-        tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
-        rvPlaces = findViewById(R.id.rvPlaces);
-        progressPlaces = findViewById(R.id.progressPlaces);
-        layoutEmptyState = findViewById(R.id.layoutEmptyState);
+        adapter = new SavedPlaceAdapter(this::confirmRemove);
+        list.setLayoutManager(new LinearLayoutManager(this));
+        list.setAdapter(adapter);
+        RowDividers.attach(list, true);
 
-        rvPlaces.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new SavedPlaceAdapter(addressResolver, this::confirmDeletePlace);
-        rvPlaces.setAdapter(adapter);
+        findViewById(R.id.btnSavePlace).setOnClickListener(v -> SavePlaceSheet.show(this, name -> {
+            load(false);
+            banner.showSuccess(getString(R.string.st_place_saved, name));
+        }));
 
-        FloatingActionButton fabAddPlace = findViewById(R.id.fabAddPlace);
-        if (fabAddPlace != null) fabAddPlace.setOnClickListener(v -> startSaveCurrentLocationFlow());
-    }
-
-    private void fetchPlaces() {
-        hideError();
-        if (progressPlaces != null) progressPlaces.setVisibility(View.VISIBLE);
-
-        mainApiService.getMyPlaces().enqueue(new Callback<ResponseBody>() {
+        NetworkWatcher.watch(this, new NetworkWatcher.Listener() {
             @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (progressPlaces != null) progressPlaces.setVisibility(View.GONE);
-                try (ResponseBody body = response.body()) {
-                    if (!response.isSuccessful() || body == null) {
-                        showError("Couldn't load your places (code " + response.code() + ")");
-                        return;
-                    }
-                    List<SavedPlaceResponse> places = parseList(body.string());
-                    adapter.updatePlaces(places);
-                    if (layoutEmptyState != null) {
-                        layoutEmptyState.setVisibility(places.isEmpty() ? View.VISIBLE : View.GONE);
-                    }
-                } catch (Exception e) {
-                    Log.e("PlacesActivity", "fetchPlaces parse error", e);
-                    showError("Something went wrong loading your places.");
-                }
+            public void onLost() {
+                banner.showOffline(R.string.st_error_offline_short, null);
             }
 
             @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                if (progressPlaces != null) progressPlaces.setVisibility(View.GONE);
-                Log.e("PlacesActivity", "fetchPlaces network error", t);
-                showError("Network error \u2014 check your connection.");
+            public void onRestored() {
+                banner.hide();
+                load(false);
             }
         });
+
+        load(true);
     }
 
-    // Step 1: resolve the currently-selected vehicle, independent of
-    // whichever screen this Activity was opened from.
-    private void startSaveCurrentLocationFlow() {
-        String vehicleId = getSharedPreferences(VehicleListActivity.VEHICLE_PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(VehicleListActivity.SELECTED_VEHICLE_ID_KEY, null);
-
-        if (vehicleId == null) {
-            Toast.makeText(this, "No vehicle selected \u2014 pick one from Vehicles first.", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        Toast.makeText(this, "Getting current location...", Toast.LENGTH_SHORT).show();
-
-        // Step 2: fetch that vehicle's real current position, same
-        // endpoint/parsing pattern already proven in VehiclesActivity.
-        trackingApi.getVehicleLocation(vehicleId).enqueue(new Callback<ResponseBody>() {
+    private void load(boolean spinner) {
+        if (spinner && !loaded) progress.setVisibility(View.VISIBLE);
+        api.getMyPlaces().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                try (ResponseBody body = response.body()) {
-                    if (!response.isSuccessful() || body == null) {
-                        Toast.makeText(PlacesActivity.this,
-                                "Couldn't get the vehicle's current location. Try again shortly.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    LocationResponse loc = extractObject(body.string(), LocationResponse.class);
-                    if (loc == null) {
-                        Toast.makeText(PlacesActivity.this,
-                                "No location data available yet for this vehicle.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    showNamePlaceDialog(loc.getLatitude(), loc.getLongitude());
-                } catch (Exception e) {
-                    Log.e("PlacesActivity", "startSaveCurrentLocationFlow parse error", e);
-                    Toast.makeText(PlacesActivity.this, "Something went wrong. Try again.", Toast.LENGTH_SHORT).show();
+                if (isFinishing() || isDestroyed()) {
+                    ApiErrors.close(response);
+                    return;
                 }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("PlacesActivity", "startSaveCurrentLocationFlow network error", t);
-                Toast.makeText(PlacesActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    // Step 3: name it, then save.
-    private void showNamePlaceDialog(double latitude, double longitude) {
-        EditText input = new EditText(this);
-        input.setHint("e.g. Home, Office");
-        int pad = (int) (20 * getResources().getDisplayMetrics().density);
-        input.setPadding(pad, pad, pad, pad);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Save this location as")
-                .setView(input)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String name = InputValidator.cleanLine(input.getText().toString());
-                    String nameError = InputValidator.label(name, 1, 50, "a name for this place");
-                    String coordError = InputValidator.inRange(latitude, -90, 90, "latitude");
-                    if (coordError == null) coordError = InputValidator.inRange(longitude, -180, 180, "longitude");
-                    if (nameError != null || coordError != null) {
-                        Toast.makeText(this, nameError != null ? nameError : coordError, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    savePlace(name, latitude, longitude);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void savePlace(String name, double latitude, double longitude) {
-        CreateSavedPlaceRequest request = new CreateSavedPlaceRequest(name, latitude, longitude);
-        mainApiService.addPlace(request).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                done();
+                List<SavedPlaceResponse> places = null;
                 if (response.isSuccessful()) {
-                    Toast.makeText(PlacesActivity.this, "Place saved.", Toast.LENGTH_SHORT).show();
-                    fetchPlaces();
+                    try (ResponseBody body = response.body()) {
+                        if (body != null) places = ApiJson.list(body.string(), SavedPlaceResponse.class);
+                    } catch (Exception ignored) {
+                        places = null;
+                    }
                 } else {
-                    Log.w("PlacesActivity", "savePlace failed, code " + response.code());
-                    Toast.makeText(PlacesActivity.this, "Couldn't save this place. Try again.", Toast.LENGTH_SHORT).show();
+                    ApiErrors.close(response);
                 }
+                if (places == null) {
+                    failed(response.code() == 401 ? R.string.st_error_session_expired : R.string.st_places_load_failed);
+                    return;
+                }
+                show(places);
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("PlacesActivity", "savePlace network error", t);
-                Toast.makeText(PlacesActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
+                if (isFinishing() || isDestroyed()) return;
+                done();
+                failed(R.string.st_error_network);
             }
         });
     }
 
-    private void confirmDeletePlace(SavedPlaceResponse place) {
-        new AlertDialog.Builder(this)
-                .setTitle("Remove " + place.getName() + "?")
-                .setMessage("This can't be undone.")
-                .setPositiveButton("Remove", (dialog, which) -> deletePlace(place))
-                .setNegativeButton("Cancel", null)
-                .show();
+    private void done() {
+        progress.setVisibility(View.GONE);
+        swipe.setRefreshing(false);
     }
 
-    private void deletePlace(SavedPlaceResponse place) {
-        mainApiService.deletePlace(place.getPlaceId()).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    fetchPlaces();
-                } else {
-                    Log.w("PlacesActivity", "deletePlace failed, code " + response.code());
-                    Toast.makeText(PlacesActivity.this, "Couldn't remove this place. Try again.", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("PlacesActivity", "deletePlace network error", t);
-                Toast.makeText(PlacesActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void showError(String message) {
-        if (errorBanner == null) return;
-        errorBanner.setVisibility(View.VISIBLE);
-        if (tvErrorBannerMessage != null) tvErrorBannerMessage.setText(message);
-    }
-
-    private void hideError() {
-        if (errorBanner != null) errorBanner.setVisibility(View.GONE);
-    }
-
-    private List<SavedPlaceResponse> parseList(String json) {
-        List<SavedPlaceResponse> list = new ArrayList<>();
-        if (json == null || json.trim().isEmpty()) return list;
-        try {
-            Gson gson = new Gson();
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root != null && root.has("data") && root.get("data").isJsonArray()) {
-                Type listType = new TypeToken<List<SavedPlaceResponse>>() {}.getType();
-                List<SavedPlaceResponse> parsed = gson.fromJson(root.getAsJsonArray("data"), listType);
-                if (parsed != null) list = parsed;
-            }
-        } catch (Exception e) {
-            Log.e("PlacesActivity", "parseList error", e);
+    private void show(List<SavedPlaceResponse> places) {
+        loaded = true;
+        List<SavedPlaceResponse> clean = new ArrayList<>();
+        for (SavedPlaceResponse p : places) if (p != null && p.getPlaceId() != null) clean.add(p);
+        adapter.updatePlaces(clean);
+        list.setVisibility(clean.isEmpty() ? View.GONE : View.VISIBLE);
+        if (clean.isEmpty()) {
+            empty.show(getString(R.string.st_places_empty_title), getString(R.string.st_places_empty_body), null, null);
+        } else {
+            empty.hide();
         }
-        return list;
     }
 
-    private <T> T extractObject(String json, Class<T> clazz) {
-        if (json == null || json.trim().isEmpty()) return null;
-        try {
-            Gson gson = new Gson();
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root != null && root.has("data") && root.get("data").isJsonObject()) {
-                return gson.fromJson(root.getAsJsonObject("data"), clazz);
-            }
-        } catch (Exception e) {
-            Log.e("PlacesActivity", "extractObject error", e);
-        }
-        return null;
+    private void failed(int message) {
+        banner.showError(message, () -> load(true));
+        if (!loaded) empty.hide();
+    }
+
+    private void confirmRemove(SavedPlaceResponse place) {
+        String name = place.getName() != null ? place.getName() : "";
+        ConfirmSheet.show(this, getString(R.string.st_places_remove_title, name), getString(R.string.st_places_remove_body),
+                getString(R.string.st_action_remove), getString(R.string.st_action_removing), done ->
+                        api.deletePlace(place.getPlaceId()).enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                                if (response.isSuccessful()) {
+                                    ApiErrors.close(response);
+                                    done.succeeded();
+                                    if (isFinishing() || isDestroyed()) return;
+                                    load(false);
+                                    banner.showSuccess(getString(R.string.st_places_removed, name));
+                                    return;
+                                }
+                                done.failed(ApiErrors.read(response, getString(R.string.st_places_remove_failed)).message);
+                            }
+
+                            @Override
+                            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                                done.failed(getString(R.string.st_error_network));
+                            }
+                        }));
     }
 }

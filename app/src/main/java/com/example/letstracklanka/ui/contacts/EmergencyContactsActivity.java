@@ -1,32 +1,42 @@
 package com.example.letstracklanka.ui.contacts;
 
-import com.example.letstracklanka.utils.InputValidator;
-import android.app.AlertDialog;
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.Network;
+import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.EditText;
-import android.widget.Toast;
+import android.view.inputmethod.EditorInfo;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.CreateEmergencyContactRequest;
 import com.example.letstracklanka.data.model.EmergencyContactResponse;
 import com.example.letstracklanka.data.remote.ApiClient;
 import com.example.letstracklanka.data.remote.ApiService;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import com.example.letstracklanka.ui.common.ConfirmSheet;
+import com.example.letstracklanka.ui.common.EdgeToEdge;
+import com.example.letstracklanka.ui.common.EmptyState;
+import com.example.letstracklanka.ui.common.InlineBanner;
+import com.example.letstracklanka.ui.common.NetworkWatcher;
+import com.example.letstracklanka.ui.common.RowDividers;
+import com.example.letstracklanka.ui.common.TopBar;
+import com.example.letstracklanka.utils.ApiErrors;
+import com.example.letstracklanka.utils.ApiJson;
+import com.example.letstracklanka.utils.InputValidator;
+import com.example.letstracklanka.utils.SecureScreen;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,271 +46,264 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Emergency contact list management -- new screen, nothing like it existed in
- * this app before. Real backend calls throughout (GET/POST/DELETE
- * api/EmergencyContacts), including surfacing the actual plan-based limit
- * message from the backend (e.g. "Your current plan allows up to 1
- * emergency contact(s)...") rather than a generic error, same discipline
- * already established for Subscriptions.
+ * Emergency contacts (api/EmergencyContacts). After an SOS the app lists these people so the customer can
+ * call them; the server does not message them, and the screen says so. The plan's contact limit is
+ * enforced by the server, whose own message is shown when it refuses. No Toast, Snackbar or dialog.
  */
 public class EmergencyContactsActivity extends AppCompatActivity {
 
-    private ApiService mainApiService;
+    private ApiService api;
 
-    private View btnBack, errorBanner, progressBar, layoutEmptyState;
-    private android.widget.TextView tvErrorBannerMessage, tvErrorBannerRetry;
-    private RecyclerView rvContacts;
-    private View fabAdd;
+    private SwipeRefreshLayout swipe;
+    private ProgressBar progress;
+    private RecyclerView list;
+    private InlineBanner banner;
+    private EmptyState empty;
     private EmergencyContactAdapter adapter;
-    private ConnectivityManager.NetworkCallback networkCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_emergency_contacts);
+        SecureScreen.guardTouches(this);
+        TopBar.bind(this, R.string.st_contacts_title);
+        EdgeToEdge.padBottom(findViewById(R.id.contactsContent));
 
-        mainApiService = ApiClient.getClient().create(ApiService.class);
+        api = ApiClient.getClient().create(ApiService.class);
+        swipe = findViewById(R.id.swipeContacts);
+        progress = findViewById(R.id.progressContacts);
+        list = findViewById(R.id.rvContacts);
+        banner = InlineBanner.in(this);
+        empty = new EmptyState(findViewById(R.id.emptyState));
 
-        initViews();
-        registerNetworkMonitor();
-        fetchContacts();
+        swipe.setColorSchemeColors(ContextCompat.getColor(this, R.color.st_navy));
+        swipe.setOnRefreshListener(this::load);
+
+        adapter = new EmergencyContactAdapter(new EmergencyContactAdapter.Listener() {
+            @Override
+            public void onCall(EmergencyContactResponse contact) {
+                dial(contact.getPhoneNumber());
+            }
+
+            @Override
+            public void onRemove(EmergencyContactResponse contact) {
+                confirmRemove(contact);
+            }
+        });
+        list.setLayoutManager(new LinearLayoutManager(this));
+        list.setAdapter(adapter);
+        RowDividers.attach(list, true);
+
+        findViewById(R.id.btnAddContact).setOnClickListener(v -> showAddSheet());
+
+        NetworkWatcher.watch(this, new NetworkWatcher.Listener() {
+            @Override
+            public void onLost() {
+                banner.showOffline(R.string.st_error_offline_short, null);
+            }
+
+            @Override
+            public void onRestored() {
+                banner.hide();
+                load();
+            }
+        });
+
+        progress.setVisibility(View.VISIBLE);
+        load();
     }
 
-    private void initViews() {
-        btnBack = findViewById(R.id.btnBackEmergencyContacts);
-        errorBanner = findViewById(R.id.errorBanner);
-        tvErrorBannerMessage = findViewById(R.id.tvErrorBannerMessage);
-        tvErrorBannerRetry = findViewById(R.id.tvErrorBannerRetry);
-        progressBar = findViewById(R.id.progressEmergencyContacts);
-        layoutEmptyState = findViewById(R.id.layoutEmptyState);
-        rvContacts = findViewById(R.id.rvEmergencyContacts);
-        fabAdd = findViewById(R.id.fabAddEmergencyContact);
-
-        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
-        if (tvErrorBannerRetry != null) tvErrorBannerRetry.setOnClickListener(v -> fetchContacts());
-        if (fabAdd != null) fabAdd.setOnClickListener(v -> showAddContactDialog());
-
-        rvContacts.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new EmergencyContactAdapter(this::confirmDeleteContact);
-        rvContacts.setAdapter(adapter);
-
-        // NEW -- purely visual, matches the confirmed mockup's single
-        // continuous card with dividers between contacts, rather than
-        // each row being its own separate boxed card.
-        androidx.recyclerview.widget.DividerItemDecoration divider =
-                new androidx.recyclerview.widget.DividerItemDecoration(this, LinearLayoutManager.VERTICAL);
-        divider.setDrawable(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.divider_thin));
-        rvContacts.addItemDecoration(divider);
-    }
-
-    private void fetchContacts() {
-        hideErrorBanner();
-        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
-
-        mainApiService.getMyEmergencyContacts().enqueue(new Callback<ResponseBody>() {
+    private void load() {
+        api.getMyEmergencyContacts().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (progressBar != null) progressBar.setVisibility(View.GONE);
-                try (ResponseBody body = response.body()) {
-                    if (response.isSuccessful() && body != null) {
-                        List<EmergencyContactResponse> contacts = parseList(body.string());
-                        adapter.updateContacts(contacts);
-                        if (layoutEmptyState != null) {
-                            layoutEmptyState.setVisibility(contacts.isEmpty() ? View.VISIBLE : View.GONE);
-                        }
-                    } else {
-                        Log.w("EmergencyContacts", "fetchContacts failed, code " + response.code());
-                        showErrorBanner("Couldn't load your emergency contacts.");
-                    }
-                } catch (Exception e) {
-                    Log.e("EmergencyContacts", "fetchContacts parse error", e);
-                    showErrorBanner("Something went wrong loading your contacts.");
+                if (isFinishing() || isDestroyed()) {
+                    ApiErrors.close(response);
+                    return;
                 }
+                progress.setVisibility(View.GONE);
+                swipe.setRefreshing(false);
+                List<EmergencyContactResponse> contacts = null;
+                if (response.isSuccessful()) {
+                    try (ResponseBody body = response.body()) {
+                        if (body != null) contacts = ApiJson.list(body.string(), EmergencyContactResponse.class);
+                    } catch (Exception ignored) {
+                        contacts = null;
+                    }
+                } else {
+                    ApiErrors.close(response);
+                }
+                if (contacts == null) {
+                    banner.showError(response.code() == 401 ? R.string.st_error_session_expired
+                            : R.string.st_contacts_load_failed, () -> load());
+                    return;
+                }
+                show(contacts);
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                if (progressBar != null) progressBar.setVisibility(View.GONE);
-                Log.e("EmergencyContacts", "fetchContacts network error", t);
-                showErrorBanner("Network error \u2014 check your connection.");
+                if (isFinishing() || isDestroyed()) return;
+                progress.setVisibility(View.GONE);
+                swipe.setRefreshing(false);
+                banner.showError(R.string.st_error_network, () -> load());
             }
         });
     }
 
-    private void showAddContactDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_emergency_contact, null);
-        EditText etName = dialogView.findViewById(R.id.etContactName);
-        EditText etPhone = dialogView.findViewById(R.id.etContactPhone);
-        EditText etRelationship = dialogView.findViewById(R.id.etContactRelationship);
+    private void show(List<EmergencyContactResponse> contacts) {
+        List<EmergencyContactResponse> clean = new ArrayList<>();
+        for (EmergencyContactResponse c : contacts) if (c != null && c.getEmergencyContactId() != null) clean.add(c);
+        adapter.updateContacts(clean);
+        list.setVisibility(clean.isEmpty() ? View.GONE : View.VISIBLE);
+        if (clean.isEmpty()) {
+            empty.show(getString(R.string.st_contacts_empty_title), getString(R.string.st_contacts_empty_body), null, null);
+        } else {
+            empty.hide();
+        }
+    }
 
-        new AlertDialog.Builder(this)
-                .setView(dialogView)
-                .setPositiveButton("Add", (dialog, which) -> {
-                    String name = InputValidator.cleanLine(etName.getText().toString());
-                    String phone = InputValidator.cleanLine(etPhone.getText().toString());
-                    String relationship = InputValidator.cleanLine(etRelationship.getText().toString());
+    private void dial(String number) {
+        if (number == null || number.trim().isEmpty()) return;
+        try {
+            startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number.trim())));
+        } catch (Exception e) {
+            banner.showError(R.string.st_error_no_dialer, null);
+        }
+    }
 
-                    String error = InputValidator.name(name);
-                    if (error == null) error = InputValidator.phoneAny(phone);
-                    if (error == null && !relationship.isEmpty()) {
-                        error = InputValidator.label(relationship, 1, 30, "the relationship");
-                    }
-                    if (error != null) {
-                        Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+    // ------------------------------------------------------------------------------------ add
+
+    @SuppressLint("InflateParams") // dialog content has no parent to measure against
+    private void showAddSheet() {
+        BottomSheetDialog sheet = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_add_contact, null);
+        sheet.setContentView(view);
+
+        TextInputLayout tilName = view.findViewById(R.id.tilContactName);
+        TextInputLayout tilPhone = view.findViewById(R.id.tilContactPhone);
+        TextInputLayout tilRelationship = view.findViewById(R.id.tilContactRelationship);
+        TextInputEditText etName = view.findViewById(R.id.etContactName);
+        TextInputEditText etPhone = view.findViewById(R.id.etContactPhone);
+        TextInputEditText etRelationship = view.findViewById(R.id.etContactRelationship);
+        InlineBanner sheetBanner = new InlineBanner(view.findViewById(R.id.inlineBanner));
+        MaterialButton save = view.findViewById(R.id.btnSaveContact);
+        MaterialButton cancel = view.findViewById(R.id.btnCancelContact);
+
+        cancel.setOnClickListener(v -> sheet.dismiss());
+        etRelationship.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                save.performClick();
+                return true;
+            }
+            return false;
+        });
+
+        save.setOnClickListener(v -> {
+            tilName.setError(null);
+            tilPhone.setError(null);
+            tilRelationship.setError(null);
+            sheetBanner.hide();
+
+            String name = InputValidator.cleanLine(text(etName));
+            String phone = InputValidator.cleanLine(text(etPhone));
+            String relationship = InputValidator.cleanLine(text(etRelationship));
+
+            String nameError = InputValidator.name(name);
+            if (nameError != null) {
+                tilName.setError(nameError);
+                etName.requestFocus();
+                return;
+            }
+            String phoneError = InputValidator.phoneAny(phone);
+            if (phoneError != null) {
+                tilPhone.setError(phoneError);
+                etPhone.requestFocus();
+                return;
+            }
+            if (!relationship.isEmpty()) {
+                String relError = InputValidator.label(relationship, 1, 50, "the relationship");
+                if (relError != null) {
+                    tilRelationship.setError(relError);
+                    etRelationship.requestFocus();
+                    return;
+                }
+            }
+
+            setBusy(sheet, save, cancel, true);
+            CreateEmergencyContactRequest request = new CreateEmergencyContactRequest(name,
+                    InputValidator.toE164Any(phone), relationship.isEmpty() ? null : relationship);
+            api.addEmergencyContact(request).enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                    if (!sheet.isShowing()) {
+                        ApiErrors.close(response);
                         return;
                     }
-
-                    addContact(name, InputValidator.toE164Any(phone),
-                            relationship.isEmpty() ? null : relationship);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void addContact(String name, String phone, String relationship) {
-        CreateEmergencyContactRequest request = new CreateEmergencyContactRequest(name, phone, relationship);
-        mainApiService.addEmergencyContact(request).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(EmergencyContactsActivity.this, "Contact added.", Toast.LENGTH_SHORT).show();
-                    fetchContacts();
-                } else {
-                    // Surfaces the real backend message, e.g. "Your current
-                    // plan allows up to 1 emergency contact(s). Upgrade
-                    // your plan to add more." -- not a generic failure.
-                    String errorBody = null;
-                    try {
-                        if (response.errorBody() != null) errorBody = response.errorBody().string();
-                    } catch (Exception e) {
-                        Log.e("EmergencyContacts", "addContact: failed to read error body", e);
+                    setBusy(sheet, save, cancel, false);
+                    if (response.isSuccessful()) {
+                        ApiErrors.close(response);
+                        sheet.dismiss();
+                        if (isFinishing() || isDestroyed()) return;
+                        load();
+                        banner.showSuccess(getString(R.string.st_contact_added, name));
+                        return;
                     }
-                    // FIX: this branch previously logged nothing at all --
-                    // no way to diagnose a failure even from Logcat. Same
-                    // "log the actual error, not just show a toast"
-                    // discipline used everywhere else in this project.
-                    Log.w("EmergencyContacts", "addContact failed, code " + response.code() + ", body=" + errorBody);
-                    String message = extractErrorMessage(errorBody, "Couldn't add contact. Please try again.");
-                    Toast.makeText(EmergencyContactsActivity.this, message, Toast.LENGTH_LONG).show();
+                    // The server's own words, e.g. the plan's contact limit.
+                    ApiErrors.Failure f = ApiErrors.read(response, getString(R.string.st_contact_save_failed));
+                    sheetBanner.showError(f.code == 401 ? getString(R.string.st_error_session_expired) : f.message, null);
                 }
-            }
 
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("EmergencyContacts", "addContact network error", t);
-                Toast.makeText(EmergencyContactsActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void confirmDeleteContact(EmergencyContactResponse contact) {
-        new AlertDialog.Builder(this)
-                .setTitle("Remove " + contact.getName() + "?")
-                .setMessage("This contact will no longer be notified in an emergency.")
-                .setPositiveButton("Remove", (dialog, which) -> deleteContact(contact))
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void deleteContact(EmergencyContactResponse contact) {
-        mainApiService.deleteEmergencyContact(contact.getEmergencyContactId()).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    fetchContacts();
-                } else {
-                    Log.w("EmergencyContacts", "deleteContact failed, code " + response.code());
-                    Toast.makeText(EmergencyContactsActivity.this, "Couldn't remove contact. Please try again.", Toast.LENGTH_SHORT).show();
+                @Override
+                public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                    if (!sheet.isShowing()) return;
+                    setBusy(sheet, save, cancel, false);
+                    sheetBanner.showError(getString(R.string.st_error_network), null);
                 }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                Log.e("EmergencyContacts", "deleteContact network error", t);
-                Toast.makeText(EmergencyContactsActivity.this, "Network error \u2014 check your connection.", Toast.LENGTH_SHORT).show();
-            }
+            });
         });
+
+        sheet.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        sheet.getBehavior().setSkipCollapsed(true);
+        sheet.show();
     }
 
-    private void showErrorBanner(String message) {
-        if (errorBanner == null) return;
-        errorBanner.setVisibility(View.VISIBLE);
-        if (tvErrorBannerMessage != null) tvErrorBannerMessage.setText(message);
+    private static void setBusy(BottomSheetDialog sheet, MaterialButton save, MaterialButton cancel, boolean busy) {
+        save.setEnabled(!busy);
+        cancel.setEnabled(!busy);
+        sheet.setCancelable(!busy);
+        save.setText(busy ? R.string.st_action_saving : R.string.st_contact_save);
     }
 
-    private void hideErrorBanner() {
-        if (errorBanner != null) errorBanner.setVisibility(View.GONE);
+    private static String text(TextInputEditText et) {
+        return et.getText() != null ? et.getText().toString() : "";
     }
 
-    private void registerNetworkMonitor() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return;
+    // --------------------------------------------------------------------------------- remove
 
-        networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onLost(@NonNull Network network) {
-                runOnUiThread(() -> showErrorBanner("No internet connection."));
-            }
+    private void confirmRemove(EmergencyContactResponse contact) {
+        String name = contact.getName() != null ? contact.getName() : "";
+        ConfirmSheet.show(this, getString(R.string.st_contacts_remove_title, name), getString(R.string.st_contacts_remove_body),
+                getString(R.string.st_action_remove), getString(R.string.st_action_removing), done ->
+                        api.deleteEmergencyContact(contact.getEmergencyContactId()).enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                                if (response.isSuccessful()) {
+                                    ApiErrors.close(response);
+                                    done.succeeded();
+                                    if (isFinishing() || isDestroyed()) return;
+                                    load();
+                                    banner.showSuccess(getString(R.string.st_contacts_removed, name));
+                                    return;
+                                }
+                                done.failed(ApiErrors.read(response, getString(R.string.st_contacts_remove_failed)).message);
+                            }
 
-            @Override
-            public void onAvailable(@NonNull Network network) {
-                runOnUiThread(EmergencyContactsActivity.this::fetchContacts);
-            }
-        };
-        cm.registerDefaultNetworkCallback(networkCallback);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (networkCallback != null) {
-            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
-        }
-    }
-
-    private List<EmergencyContactResponse> parseList(String json) {
-        List<EmergencyContactResponse> list = new ArrayList<>();
-        if (json == null || json.trim().isEmpty()) return list;
-        try {
-            Gson gson = new Gson();
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root != null && root.has("data") && root.get("data").isJsonArray()) {
-                Type listType = new TypeToken<List<EmergencyContactResponse>>() {}.getType();
-                List<EmergencyContactResponse> parsed = gson.fromJson(root.getAsJsonArray("data"), listType);
-                if (parsed != null) list = parsed;
-            }
-        } catch (Exception e) {
-            Log.e("EmergencyContacts", "parseList error", e);
-        }
-        return list;
-    }
-
-    // Same pattern already used in HomeActivity's subscription error
-    // handling -- pulls message + first entry of errors out of a failed
-    // ApiResponse envelope, instead of a generic message.
-    private String extractErrorMessage(String json, String fallback) {
-        if (json == null || json.trim().isEmpty()) return fallback;
-        try {
-            Gson gson = new Gson();
-            JsonObject root = gson.fromJson(json, JsonObject.class);
-            if (root == null) return fallback;
-
-            String message = (root.has("message") && !root.get("message").isJsonNull())
-                    ? root.get("message").getAsString() : null;
-
-            String firstError = null;
-            if (root.has("errors") && root.get("errors").isJsonArray() && root.getAsJsonArray("errors").size() > 0) {
-                firstError = root.getAsJsonArray("errors").get(0).getAsString();
-            }
-
-            if (message != null && firstError != null) return message + " " + firstError;
-            if (message != null) return message;
-            if (firstError != null) return firstError;
-            return fallback;
-        } catch (Exception e) {
-            Log.e("EmergencyContacts", "extractErrorMessage parse error", e);
-            return fallback;
-        }
+                            @Override
+                            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                                done.failed(getString(R.string.st_error_network));
+                            }
+                        }));
     }
 }
