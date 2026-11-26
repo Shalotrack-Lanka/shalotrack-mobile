@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A share the customer gave: who (name once accepted, the number until then), its state, the vehicle,
+     and Revoke / Cancel while it is live. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/st_row_height"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="4dp"
+    android:paddingBottom="12dp">
+
+    <FrameLayout
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_st_avatar"
+        android:backgroundTint="@color/st_navy_100"
+        android:importantForAccessibility="no">
+
+        <TextView
+            android:id="@+id/tvMyShareInitials"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="@font/inter_bold"
+            android:gravity="center"
+            android:textColor="@color/st_navy"
+            android:textSize="14sp"
+            tools:text="AM" />
+
+        <ImageView
+            android:id="@+id/imgMyShareUser"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_st_user"
+            android:visibility="gone"
+            app:tint="@color/st_navy" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/myShareText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:focusable="true"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:importantForAccessibility="noHideDescendants"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvMyShareWho"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFeatureSettings="tnum"
+                android:maxWidth="170dp"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+                tools:text="Amma" />
+
+            <TextView
+                android:id="@+id/tvMyShareStatus"
+                style="@style/Widget.ST.StatusPill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                tools:text="Accepted" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:importantForAccessibility="noHideDescendants"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvMySharePlate"
+                style="@style/Widget.ST.Plate.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="WP CAB-1234" />
+
+            <TextView
+                android:id="@+id/tvMyShareDetail"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.ST.Caption"
+                tools:text="since 12 Nov" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMyShareAction"
+        style="@style/Widget.ST.Button.Text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="48dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:textColor="@color/st_danger_text"
+        tools:text="Revoke" />
+</LinearLayout>

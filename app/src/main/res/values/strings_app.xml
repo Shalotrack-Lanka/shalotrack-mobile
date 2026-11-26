@@ -264,7 +264,8 @@
     <string name="st_more_emergency_contacts">Emergency contacts</string>
     <string name="st_more_emergency_contacts_detail">People to call after an SOS</string>
     <string name="st_more_notifications">Notifications</string>
-    <string name="st_more_notifications_detail">Which alerts reach this phone</string>
+    <string name="st_more_notifications_detail">Sound and vibration on this phone. Alerts per vehicle are in Alert settings</string>
+    <string name="st_more_notifications_unavailable">This phone has no notification settings page for apps.</string>
     <string name="st_more_renewals">Tracker renewals</string>
     <string name="st_more_renewals_detail">Keep each tracker’s service active</string>
     <string name="st_more_app_plan">App plan</string>

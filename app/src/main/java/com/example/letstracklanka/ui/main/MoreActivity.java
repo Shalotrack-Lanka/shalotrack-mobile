@@ -246,8 +246,10 @@ public class MoreActivity extends AppCompatActivity {
         ViewGroup safety = section(sections, R.string.st_more_section_safety);
         row(safety, R.drawable.ic_st_sos, R.string.st_more_emergency_contacts, R.string.st_more_emergency_contacts_detail,
                 () -> open(EmergencyContactsActivity.class));
-        row(safety, R.drawable.ic_st_sliders, R.string.st_more_notifications, R.string.st_more_notifications_detail,
-                () -> open(SettingsActivity.class));
+        // Which alerts send a push is set per vehicle (Alert settings) and enforced by the server. This row opens
+        // Android's own settings for the app: sound, vibration, or every notification off on this phone.
+        row(safety, R.drawable.ic_st_bell, R.string.st_more_notifications, R.string.st_more_notifications_detail,
+                this::openSystemNotificationSettings);
 
         ViewGroup billing = section(sections, R.string.st_more_section_billing);
         row(billing, R.drawable.ic_st_calendar, R.string.st_more_renewals, R.string.st_more_renewals_detail,
@@ -285,6 +287,22 @@ public class MoreActivity extends AppCompatActivity {
 
     private void open(Class<?> screen) {
         startActivity(new Intent(this, screen));
+    }
+
+    private void openSystemNotificationSettings() {
+        Intent i = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName());
+        try {
+            startActivity(i);
+        } catch (ActivityNotFoundException e) {
+            // Some phones lack that page: fall back to the app's own system settings page.
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", getPackageName(), null)));
+            } catch (ActivityNotFoundException ignored) {
+                banner.showError(R.string.st_more_notifications_unavailable, null);
+            }
+        }
     }
 
     private void openAddVehicle() {

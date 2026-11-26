@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Vehicle" field: the chosen vehicle's plate and name, tap to choose another. Driven by VehicleField. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/stVehicleField"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/stVehicleFieldBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:background="@drawable/bg_st_field"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingEnd="10dp">
+
+        <TextView
+            android:id="@+id/tvVehicleFieldPlate"
+            style="@style/Widget.ST.Plate.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            tools:text="WP CAB-1234"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/tvVehicleFieldName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.ST.Body"
+            tools:text="Toyota Aqua" />
+
+        <ProgressBar
+            android:id="@+id/progressVehicleField"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:indeterminateTint="@color/st_navy"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/imgVehicleFieldChevron"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_st_chevron_down"
+            app:tint="@color/st_text_3" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:background="@color/st_surface"
+        android:importantForAccessibility="no"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:text="@string/st_field_vehicle"
+        android:textAppearance="@style/TextAppearance.ST.Caption"
+        android:textColor="@color/st_text_2" />
+</FrameLayout>

@@ -1,60 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One saved place: pin tile, name, address and visits, remove button. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingStart="16dp"
-    android:paddingEnd="8dp"
+    android:minHeight="@dimen/st_row_height"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
     android:paddingTop="12dp"
-    android:paddingBottom="12dp"
-    android:background="?attr/selectableItemBackground">
+    android:paddingEnd="4dp"
+    android:paddingBottom="12dp">
+
+    <FrameLayout
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_st_icon_tile"
+        android:backgroundTint="@color/st_navy_100"
+        android:importantForAccessibility="no">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_st_pin"
+            app:tint="@color/st_navy" />
+    </FrameLayout>
 
     <LinearLayout
+        android:id="@+id/placeText"
         android:layout_width="0dp"
-        android:layout_weight="1"
         android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:focusable="true"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/tvPlaceName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Place name"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary" />
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+            tools:text="Home" />
 
         <TextView
             android:id="@+id/tvPlaceAddress"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:text="Resolving address..."
-            android:textSize="13sp"
-            android:textColor="@color/text_secondary"
+            android:ellipsize="end"
             android:maxLines="2"
-            android:ellipsize="end" />
+            android:textAppearance="@style/TextAppearance.ST.Caption"
+            tools:text="12 Temple Rd, Kadawatha" />
 
         <TextView
             android:id="@+id/tvVisitSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text=" "
-            android:textSize="11sp"
-            android:textColor="@color/text_muted" />
+            android:textAppearance="@style/TextAppearance.ST.Caption"
+            tools:text="Visited 41 times · Today, 07:52" />
     </LinearLayout>
 
-    <ImageView
+    <ImageButton
         android:id="@+id/btnDeletePlace"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:padding="8dp"
-        android:src="@android:drawable/ic_menu_delete"
-        app:tint="@color/text_muted"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Remove place" />
-
+        android:src="@drawable/ic_st_trash"
+        app:tint="@color/st_text_3"
+        tools:contentDescription="Remove Home" />
 </LinearLayout>

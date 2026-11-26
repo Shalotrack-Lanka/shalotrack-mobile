@@ -51,8 +51,8 @@ import retrofit2.Response;
 public final class LiveLinksSheet {
 
     public interface Listener {
-        /** Active links changed (made or stopped): the page refreshes its row text. */
-        void onLinksChanged(int activeCount);
+        /** Active links changed (made or stopped): the page refreshes its row ("1 active link, ends in 3 h"). */
+        void onLinksChanged(int activeCount, @Nullable Instant soonestEnd);
     }
 
     private static final String LIVE_BASE_URL = "https://fleet.shalotrack.com/live/";
@@ -151,6 +151,7 @@ public final class LiveLinksSheet {
     private void renderActive(@Nullable JsonArray arr) {
         list.removeAllViews();
         activeCount = 0;
+        Instant soonest = null;
         Instant now = Instant.now();
         if (arr != null) {
             LayoutInflater inf = LayoutInflater.from(activity);
@@ -163,6 +164,7 @@ public final class LiveLinksSheet {
                 Instant exp = TimeText.parse(expires);
                 if (linkId == null || exp == null || !exp.isAfter(now)) continue;
                 activeCount++;
+                if (soonest == null || exp.isBefore(soonest)) soonest = exp;
                 View row = inf.inflate(R.layout.item_live_link, list, false);
                 ((TextView) row.findViewById(R.id.tvLiveEnds)).setText(
                         activity.getString(R.string.st_live_ends, TimeText.dayAndTime(activity, exp)));
@@ -180,7 +182,42 @@ public final class LiveLinksSheet {
         activeLabel.setVisibility(any ? View.VISIBLE : View.GONE);
         btnCreate.setEnabled(activeCount < 3);
         btnCreate.setText(activeCount < 3 ? R.string.st_live_create : R.string.st_live_limit);
-        listener.onLinksChanged(activeCount);
+        listener.onLinksChanged(activeCount, soonest);
+    }
+
+    /** Reads the active links for the page row without showing anything (one call, when the page opens). */
+    public static void loadSummary(@NonNull Activity activity, @NonNull String vehicleId, @NonNull Listener listener) {
+        ApiClient.getClient().create(ApiService.class).getLiveShares(vehicleId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                if (!response.isSuccessful() || activity.isDestroyed()) {
+                    ApiErrors.close(response);
+                    return;
+                }
+                int count = 0;
+                Instant soonest = null;
+                Instant now = Instant.now();
+                try (ResponseBody body = response.body()) {
+                    JsonArray arr = body != null ? ApiJson.dataArray(body.string()) : null;
+                    if (arr == null) return;
+                    for (JsonElement e : arr) {
+                        if (!e.isJsonObject()) continue;
+                        Instant exp = TimeText.parse(ApiJson.string(e.getAsJsonObject(), "expiresAt"));
+                        if (exp == null || !exp.isAfter(now)) continue;
+                        count++;
+                        if (soonest == null || exp.isBefore(soonest)) soonest = exp;
+                    }
+                } catch (Exception ignored) {
+                    return;   // the row keeps its neutral text
+                }
+                listener.onLinksChanged(count, soonest);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
+                // the row keeps its neutral text
+            }
+        });
     }
 
     private void create() {

@@ -44,8 +44,14 @@ import retrofit2.Response;
 public final class RemindersSheet {
 
     public interface Listener {
-        /** Text for the page row, for example "Insurance in 12 days", or null when none is set. */
-        void onRemindersChanged(@Nullable String soonest);
+        /** No reminder set. */
+        int NONE = Integer.MAX_VALUE;
+
+        /**
+         * The page row: "Insurance in 12 days" (null when none is set) and the days left for that one
+         * (negative when overdue, {@link #NONE} when none), so the row can colour a reminder that is close.
+         */
+        void onRemindersChanged(@Nullable String soonest, int daysLeft);
     }
 
     private enum Kind {
@@ -123,7 +129,7 @@ public final class RemindersSheet {
                 } catch (Exception ignored) {
                     return;
                 }
-                if (!activity.isDestroyed()) listener.onRemindersChanged(soonest(activity, m));
+                if (!activity.isDestroyed()) listener.onRemindersChanged(soonest(activity, m), soonestDays(m));
             }
 
             @Override
@@ -157,7 +163,7 @@ public final class RemindersSheet {
                 }
                 tvError.setVisibility(View.GONE);
                 render();
-                listener.onRemindersChanged(soonest(activity, byKind));
+                listener.onRemindersChanged(soonest(activity, byKind), soonestDays(byKind));
             }
 
             @Override
@@ -208,6 +214,12 @@ public final class RemindersSheet {
         if (r.daysLeft < 0) return c.getResources().getQuantityString(R.plurals.st_reminder_overdue, -r.daysLeft, date, -r.daysLeft);
         if (r.daysLeft == 0) return c.getString(R.string.st_reminder_due_today, date);
         return c.getResources().getQuantityString(R.plurals.st_reminder_due_in, r.daysLeft, date, r.daysLeft);
+    }
+
+    private static int soonestDays(Map<Kind, Reminder> m) {
+        int best = Listener.NONE;
+        for (Reminder r : m.values()) best = Math.min(best, r.daysLeft);
+        return best;
     }
 
     @Nullable

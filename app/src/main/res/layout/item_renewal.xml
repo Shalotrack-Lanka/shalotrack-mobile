@@ -1,76 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One renewal request: plate, state, package and amount, a note, and the actions it still allows. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:background="@drawable/bg_st_card"
     android:orientation="vertical"
-    android:background="@drawable/bg_stat_card_clickable"
-    android:layout_marginBottom="10dp"
     android:padding="14dp">
 
     <LinearLayout
+        android:id="@+id/renewalSummary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:focusable="true"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:importantForAccessibility="noHideDescendants"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvRenewalPlate"
+                style="@style/Widget.ST.Plate.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="WP CAB-1234" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvRenewalStatus"
+                style="@style/Widget.ST.StatusPill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Waiting for your slip" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/tvRenewalVehicle"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:id="@+id/tvRenewalDetail"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold"
-            android:textSize="15sp"
-            tools:text="WP CAD 9934" />
+            android:layout_marginTop="8dp"
+            android:fontFeatureSettings="tnum"
+            android:importantForAccessibility="no"
+            android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+            tools:text="1 year · LKR 6,000" />
 
         <TextView
-            android:id="@+id/tvRenewalStatus"
-            android:layout_width="wrap_content"
+            android:id="@+id/tvRenewalNote"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/brand_accent"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            tools:text="Under review" />
+            android:layout_marginTop="4dp"
+            android:importantForAccessibility="no"
+            android:textAppearance="@style/TextAppearance.ST.Caption"
+            tools:text="Reference HNB-55120 · asked 25 Nov 2026" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvRenewalDetail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp"
-        tools:text="1 Year renewal" />
-
-    <TextView
-        android:id="@+id/tvRenewalNote"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:textColor="@color/text_primary"
-        android:textSize="13sp"
-        tools:text="Pay by bank transfer, then upload a photo of the slip." />
-
     <LinearLayout
+        android:id="@+id/groupRenewalActions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:orientation="horizontal"
-        android:gravity="end">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRenewalCancel"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Cancel request" />
+        android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRenewalUpload"
+            style="@style/Widget.ST.Button.Secondary.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:filterTouchesWhenObscured="true"
+            app:icon="@drawable/ic_st_file"
+            app:iconPadding="6dp"
+            app:iconSize="16dp"
+            tools:text="Upload slip" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRenewalCancel"
+            style="@style/Widget.ST.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="Upload slip" />
+            android:text="@string/st_renewal_cancel"
+            android:textColor="@color/st_danger_text" />
     </LinearLayout>
 </LinearLayout>

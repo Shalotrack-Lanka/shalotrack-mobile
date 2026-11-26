@@ -1,58 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One vehicle's tracker: linked (last 4 of the IMEI, Unlink) or not (Link opens the IMEI form here). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    android:background="@drawable/bg_stat_card"
+    android:background="@drawable/bg_st_card"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/tvDeviceVehicleName"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="@color/text_primary" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/tvDeviceVehicleSub"
+        <TextView
+            android:id="@+id/tvDevicePlate"
+            style="@style/Widget.ST.Plate.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="WP CAB-1234" />
+
+        <TextView
+            android:id="@+id/tvDeviceVehicle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.ST.BodySmall"
+            tools:text="Toyota Aqua" />
+
+        <TextView
+            android:id="@+id/tvDeviceState"
+            style="@style/Widget.ST.StatusPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="Linked" />
+    </LinearLayout>
+
+    <!-- Linked -->
+    <LinearLayout
+        android:id="@+id/groupLinked"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textSize="13sp"
-        android:textColor="@color/text_secondary" />
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-    <TextView
-        android:id="@+id/tvDeviceState"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:textSize="14sp"
-        android:textColor="@color/text_primary" />
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_st_device"
+            app:tint="@color/st_text_3" />
 
-    <!-- Row-level result / error (inline, no Toast) -->
-    <TextView
-        android:id="@+id/tvDeviceRowMessage"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:padding="10dp"
-        android:textSize="13sp"
-        android:textColor="@color/danger_banner_text"
-        android:background="@color/danger_banner_bg"
-        android:accessibilityLiveRegion="polite"
-        android:visibility="gone" />
+        <TextView
+            android:id="@+id/tvDeviceImei"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:fontFeatureSettings="tnum"
+            android:textAppearance="@style/TextAppearance.ST.BodySmall"
+            tools:text="Tracker ending 3787" />
 
-    <!-- Default action: Link a device, or Unlink device -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUnlink"
+            style="@style/Widget.ST.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="@string/st_tracker_unlink"
+            android:textColor="@color/st_danger_text" />
+    </LinearLayout>
+
+    <!-- Not linked -->
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDeviceAction"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="match_parent"
+        android:id="@+id/btnShowLink"
+        style="@style/Widget.ST.Button.Secondary.Small"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="12dp"
+        android:text="@string/st_tracker_link"
+        android:visibility="gone"
+        app:icon="@drawable/ic_st_plus"
+        app:iconPadding="6dp"
+        app:iconSize="16dp" />
 
-    <!-- Link form: IMEI + confirm -->
     <LinearLayout
         android:id="@+id/groupLinkForm"
         android:layout_width="match_parent"
@@ -63,91 +104,60 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutImei"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.ST.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Device IMEI (15 digits)">
+            android:hint="@string/st_tracker_imei"
+            app:counterEnabled="true"
+            app:counterMaxLength="15"
+            app:helperText="@string/st_tracker_imei_helper">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etImei"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:digits="0123456789"
+                android:fontFeatureSettings="tnum"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
                 android:inputType="number"
-                android:maxLength="20" />
+                android:maxLength="15"
+                android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="The IMEI is printed on the label of your GPS device."
-            android:textSize="12sp"
-            android:textColor="@color/text_muted" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLinkCancel"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Cancel" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLinkConfirm"
-                android:layout_width="0dp"
+                style="@style/Widget.ST.Button.Secondary.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:filterTouchesWhenObscured="true"
+                android:text="@string/st_tracker_check_link" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLinkCancel"
+                style="@style/Widget.ST.Button.Text"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="Link device" />
+                android:text="@string/st_action_cancel" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Unlink confirmation (inline, no dialog) -->
-    <LinearLayout
-        android:id="@+id/groupUnlinkConfirm"
+    <TextView
+        android:id="@+id/tvDeviceRowError"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Unlink this device from the vehicle? The vehicle stops tracking, and the subscription stays with the device."
-            android:textSize="14sp"
-            android:textColor="@color/text_primary" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUnlinkCancel"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Cancel" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUnlinkConfirm"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:backgroundTint="@color/status_danger"
-                android:textColor="@color/text_on_dark"
-                android:text="Unlink device" />
-        </LinearLayout>
-    </LinearLayout>
-
+        android:layout_marginTop="10dp"
+        android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_st_banner_error"
+        android:padding="10dp"
+        android:textAppearance="@style/TextAppearance.ST.BodySmall"
+        android:textColor="@color/st_danger_text"
+        android:visibility="gone" />
 </LinearLayout>

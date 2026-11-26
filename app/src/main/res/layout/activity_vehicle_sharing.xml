@@ -1,157 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Sharing: invites waiting for the customer, vehicles shared with them, and the vehicles they share
+     (with revoke / cancel). "Share a vehicle" opens the invite sheet. Read on open, on return and on
+     pull-to-refresh; never polled. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/bg_app_gradient">
+    android:background="@color/st_canvas"
+    android:orientation="vertical">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@color/brand_primary"
-        android:padding="16dp"
-        android:elevation="2dp">
+    <include layout="@layout/include_st_top_bar" />
 
-        <ImageView
-            android:id="@+id/btnBackSharing"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="@color/text_on_dark"
-            android:contentDescription="Back" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="Sharing"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_on_dark" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/errorBanner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@color/status_danger"
-        android:padding="12dp"
-        android:visibility="gone">
-        <TextView
-            android:id="@+id/tvErrorBannerMessage"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text=" "
-            android:textColor="@color/text_on_dark"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <FrameLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeSharing"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
         <androidx.core.widget.NestedScrollView
-            android:id="@+id/scrollSharingContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="gone">
+            android:clipToPadding="false">
 
             <LinearLayout
+                android:id="@+id/sharingContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:paddingStart="@dimen/st_gutter"
+                android:paddingTop="@dimen/st_gutter"
+                android:paddingEnd="@dimen/st_gutter"
+                android:paddingBottom="@dimen/st_space_6">
 
-                <TextView
-                    android:id="@+id/tvPendingInvitesLabel"
+                <include
+                    layout="@layout/include_inline_banner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="PENDING INVITES"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:textColor="@color/text_muted"
-                    android:layout_marginBottom="10dp"
-                    android:visibility="gone" />
+                    android:layout_marginBottom="12dp" />
 
-                <LinearLayout
-                    android:id="@+id/pendingInvitesContainer"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShareVehicle"
+                    style="@style/Widget.ST.Button.Primary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
+                    android:text="@string/st_sharing_share"
+                    app:icon="@drawable/ic_st_plus"
+                    app:iconGravity="textStart"
+                    app:iconPadding="6dp"
+                    app:iconSize="18dp" />
 
-                <TextView
-                    android:id="@+id/tvSharedWithYouLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="SHARED WITH YOU"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:textColor="@color/text_muted"
+                <ProgressBar
+                    android:id="@+id/progressSharing"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="center_horizontal"
                     android:layout_marginTop="20dp"
-                    android:layout_marginBottom="10dp" />
+                    android:indeterminateTint="@color/st_navy" />
 
                 <LinearLayout
-                    android:id="@+id/sharedWithMeContainer"
+                    android:id="@+id/groupSharingLists"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:background="@drawable/bg_stat_card" />
+                    android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/tvNoSharedVehicles"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="No vehicles shared with you yet."
-                    android:textSize="13sp"
-                    android:textColor="@color/text_muted"
-                    android:visibility="gone" />
+                    <TextView
+                        android:id="@+id/tvInvitesLabel"
+                        style="@style/Widget.ST.SectionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/st_sharing_invites" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="VEHICLES YOU'VE SHARED"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:textColor="@color/text_muted"
-                    android:layout_marginTop="20dp"
-                    android:layout_marginBottom="10dp" />
+                    <LinearLayout
+                        android:id="@+id/listInvites"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
 
-                <LinearLayout
-                    android:id="@+id/mySharesContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:background="@drawable/bg_stat_card" />
+                    <TextView
+                        style="@style/Widget.ST.SectionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/st_sharing_with_you" />
 
-                <TextView
-                    android:id="@+id/tvNoMyShares"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="You haven't shared any vehicles yet."
-                    android:textSize="13sp"
-                    android:textColor="@color/text_muted"
-                    android:visibility="gone" />
+                    <LinearLayout
+                        android:id="@+id/listSharedWithMe"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_st_card"
+                        android:orientation="vertical"
+                        android:padding="1dp" />
 
+                    <TextView
+                        android:id="@+id/tvSharedWithMeEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/st_sharing_with_you_empty"
+                        android:textAppearance="@style/TextAppearance.ST.BodySmall"
+                        android:visibility="gone" />
+
+                    <TextView
+                        style="@style/Widget.ST.SectionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/st_sharing_you_shared" />
+
+                    <LinearLayout
+                        android:id="@+id/listMyShares"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_st_card"
+                        android:orientation="vertical"
+                        android:padding="1dp" />
+
+                    <TextView
+                        android:id="@+id/tvMySharesEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/st_sharing_you_shared_empty"
+                        android:textAppearance="@style/TextAppearance.ST.BodySmall"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
-
-        <ProgressBar
-            android:id="@+id/progressSharing"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center" />
-
-    </FrameLayout>
-
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </LinearLayout>

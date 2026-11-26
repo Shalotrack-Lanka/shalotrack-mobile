@@ -1,6 +1,6 @@
 package com.example.letstracklanka.ui.places;
 
-import android.text.format.DateUtils;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,15 +11,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.letstracklanka.R;
 import com.example.letstracklanka.data.model.SavedPlaceResponse;
+import com.example.letstracklanka.ui.common.TimeText;
 import com.example.letstracklanka.ui.main.AddressResolver;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
 
+/** Saved places in one grouped card: pin tile, name, address, visits, remove. */
 public class SavedPlaceAdapter extends RecyclerView.Adapter<SavedPlaceAdapter.PlaceViewHolder> {
 
     public interface OnDeleteClickListener {
@@ -27,11 +25,9 @@ public class SavedPlaceAdapter extends RecyclerView.Adapter<SavedPlaceAdapter.Pl
     }
 
     private List<SavedPlaceResponse> places = new ArrayList<>();
-    private final AddressResolver addressResolver;
     private final OnDeleteClickListener deleteListener;
 
-    public SavedPlaceAdapter(AddressResolver addressResolver, OnDeleteClickListener deleteListener) {
-        this.addressResolver = addressResolver;
+    public SavedPlaceAdapter(OnDeleteClickListener deleteListener) {
         this.deleteListener = deleteListener;
     }
 
@@ -50,26 +46,33 @@ public class SavedPlaceAdapter extends RecyclerView.Adapter<SavedPlaceAdapter.Pl
     @Override
     public void onBindViewHolder(@NonNull PlaceViewHolder holder, int position) {
         SavedPlaceResponse place = places.get(position);
+        Context c = holder.itemView.getContext();
+        String name = place.getName() != null ? place.getName() : "";
 
-        holder.tvPlaceName.setText(place.getName());
-        holder.tvPlaceAddress.setText("Resolving address...");
+        holder.tvPlaceName.setText(name);
+        holder.tvPlaceAddress.setText(R.string.st_places_resolving);
 
-        // Address resolution is async -- guards against a recycled
-        // ViewHolder showing a stale address for a different place if the
-        // callback returns after this row has scrolled away and been
-        // reused, by checking the tag still matches this exact place.
-        holder.itemView.setTag(place.getPlaceId());
-        addressResolver.resolveAddress(place.getLatitude(), place.getLongitude(), address -> {
-            if (place.getPlaceId().equals(holder.itemView.getTag())) {
+        // The address arrives later; the tag stops a recycled row from showing another place's address.
+        String id = place.getPlaceId();
+        holder.itemView.setTag(id);
+        AddressResolver.resolveCached(c, place.getLatitude(), place.getLongitude(), address -> {
+            if (id != null && id.equals(holder.itemView.getTag())) {
                 holder.tvPlaceAddress.setText(address);
+                holder.textBlock.setContentDescription(name + ", " + address + ", " + holder.tvVisitSummary.getText());
             }
         });
 
         int visits = place.getVisitCount();
-        String visitText = visits == 1 ? "Visited once" : "Visited " + visits + " times";
-        String lastVisitedText = formatLastVisited(place.getLastVisitedAt());
-        holder.tvVisitSummary.setText(lastVisitedText != null ? visitText + " \u2022 " + lastVisitedText : visitText);
+        String visitText = visits <= 0
+                ? c.getString(R.string.st_places_no_visits)
+                : c.getResources().getQuantityString(R.plurals.st_places_visits, visits, visits);
+        String last = place.getLastVisitedAt();
+        holder.tvVisitSummary.setText(visits > 0 && last != null && !last.trim().isEmpty()
+                ? c.getString(R.string.st_places_visits_last, visitText, TimeText.ago(c, last))
+                : visitText);
+        holder.textBlock.setContentDescription(name + ", " + holder.tvVisitSummary.getText());
 
+        holder.btnDeletePlace.setContentDescription(c.getString(R.string.st_places_remove, name));
         holder.btnDeletePlace.setOnClickListener(v -> {
             if (deleteListener != null) deleteListener.onDeleteClick(place);
         });
@@ -80,31 +83,13 @@ public class SavedPlaceAdapter extends RecyclerView.Adapter<SavedPlaceAdapter.Pl
         return places.size();
     }
 
-    // Backend sends UTC ISO-8601 timestamps (DateTime.UtcNow serialized by
-    // System.Text.Json) -- parsed as UTC explicitly, not the device's
-    // default timezone, then rendered as a relative "3 hours ago" style
-    // string via Android's own DateUtils.
-    private String formatLastVisited(String isoTimestamp) {
-        if (isoTimestamp == null || isoTimestamp.trim().isEmpty()) return null;
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            String trimmed = isoTimestamp.length() > 19 ? isoTimestamp.substring(0, 19) : isoTimestamp;
-            Date date = sdf.parse(trimmed);
-            if (date == null) return null;
-            return "Last visited " + DateUtils.getRelativeTimeSpanString(
-                    date.getTime(), System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     static class PlaceViewHolder extends RecyclerView.ViewHolder {
-        TextView tvPlaceName, tvPlaceAddress, tvVisitSummary;
-        View btnDeletePlace;
+        final TextView tvPlaceName, tvPlaceAddress, tvVisitSummary;
+        final View textBlock, btnDeletePlace;
 
         PlaceViewHolder(@NonNull View itemView) {
             super(itemView);
+            textBlock = itemView.findViewById(R.id.placeText);
             tvPlaceName = itemView.findViewById(R.id.tvPlaceName);
             tvPlaceAddress = itemView.findViewById(R.id.tvPlaceAddress);
             tvVisitSummary = itemView.findViewById(R.id.tvVisitSummary);

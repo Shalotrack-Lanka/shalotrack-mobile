@@ -52,7 +52,6 @@
         <activity android:name=".ui.complaints.ComplaintDetailActivity" android:exported="false" />
         <activity android:name=".ui.renewals.RenewalActivity" android:exported="false" />
 
-        <activity android:name=".ui.main.SettingsActivity" android:exported="false" />
 
         <!-- Account deletion (Google Play: in-app deletion path) and the "keep my account" screen -->
         <activity android:name=".ui.account.AccountDeletionActivity" android:exported="false" />

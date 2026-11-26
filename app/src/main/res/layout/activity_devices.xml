@@ -1,103 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Trackers: one card per vehicle the customer owns, with Link (IMEI form on the card) or Unlink (asks in
+     a sheet). Opened from More or a vehicle's page; from a vehicle it opens that vehicle's form. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/bg_app_gradient">
+    android:background="@color/st_canvas"
+    android:orientation="vertical">
 
-    <!-- Header -->
-    <LinearLayout
+    <include layout="@layout/include_st_top_bar" />
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeDevices"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@color/brand_primary"
-        android:padding="16dp"
-        android:elevation="2dp">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <ImageView
-            android:id="@+id/btnBackDevices"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="@color/text_on_dark"
-            android:contentDescription="Back" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="Devices"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_on_dark" />
-    </LinearLayout>
-
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
-
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/scrollDevices"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
+            android:layout_height="match_parent"
+            android:clipToPadding="false">
 
-            <ProgressBar
-                android:id="@+id/progressDevices"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="48dp" />
-
-            <!-- LOAD ERROR (inline, with retry) -->
             <LinearLayout
-                android:id="@+id/groupDevicesError"
+                android:id="@+id/devicesContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:visibility="gone">
+                android:paddingStart="@dimen/st_gutter"
+                android:paddingTop="@dimen/st_gutter"
+                android:paddingEnd="@dimen/st_gutter"
+                android:paddingBottom="@dimen/st_space_6">
+
+                <include
+                    layout="@layout/include_inline_banner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp" />
 
                 <TextView
-                    android:id="@+id/tvDevicesError"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="32dp"
-                    android:gravity="center"
-                    android:textSize="15sp"
-                    android:textColor="@color/text_primary" />
+                    android:text="@string/st_trackers_intro"
+                    android:textAppearance="@style/TextAppearance.ST.BodySmall" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDevicesRetry"
+                <ProgressBar
+                    android:id="@+id/progressDevices"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="20dp"
+                    android:indeterminateTint="@color/st_navy" />
+
+                <include
+                    layout="@layout/include_empty_state"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Try again" />
+                    android:layout_marginTop="14dp" />
+
+                <LinearLayout
+                    android:id="@+id/listDevices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical" />
             </LinearLayout>
-
-            <!-- EMPTY -->
-            <TextView
-                android:id="@+id/tvDevicesEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="48dp"
-                android:gravity="center"
-                android:text="You don't have any vehicles yet. Add a vehicle first, then link its GPS device here."
-                android:textSize="15sp"
-                android:textColor="@color/text_secondary"
-                android:visibility="gone" />
-
-            <!-- One card per vehicle is added here from item_device_vehicle.xml -->
-            <LinearLayout
-                android:id="@+id/listDevices"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
-
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </LinearLayout>

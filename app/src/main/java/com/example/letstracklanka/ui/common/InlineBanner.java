@@ -18,6 +18,8 @@ import com.example.letstracklanka.R;
  *
  *   offline  amber, "no internet" style: data on screen may be old
  *   error    red: a request failed
+ *   info     blue: what happens next, with an optional action ("Upload slip now")
+ *   success  green: a change went through ("Invite sent")
  */
 public final class InlineBanner {
 
@@ -39,13 +41,25 @@ public final class InlineBanner {
     }
 
     public void showOffline(CharSequence message, @Nullable Runnable retry) {
-        show(message, retry, R.drawable.bg_st_banner_warning, R.drawable.ic_st_wifi_off,
+        show(message, null, retry, R.drawable.bg_st_banner_warning, R.drawable.ic_st_wifi_off,
                 R.color.st_status_offline_text, R.color.st_status_offline_ink);
     }
 
     public void showError(CharSequence message, @Nullable Runnable retry) {
-        show(message, retry, R.drawable.bg_st_banner_error, R.drawable.ic_st_alert_circle,
+        show(message, null, retry, R.drawable.bg_st_banner_error, R.drawable.ic_st_alert_circle,
                 R.color.st_danger_text, R.color.st_danger_text);
+    }
+
+    /** Blue: what happens next. The action, when given, is labelled actionLabel instead of Retry. */
+    public void showInfo(CharSequence message, @Nullable CharSequence actionLabel, @Nullable Runnable action) {
+        show(message, actionLabel, action, R.drawable.bg_st_banner_info, R.drawable.ic_st_info,
+                R.color.st_tone_info_text, R.color.st_tone_info_text);
+    }
+
+    /** Green: a change went through. */
+    public void showSuccess(CharSequence message) {
+        show(message, null, null, R.drawable.bg_st_banner_success, R.drawable.ic_st_check,
+                R.color.st_tone_green_text, R.color.st_tone_green_text);
     }
 
     public void showError(@StringRes int message, @Nullable Runnable retry) {
@@ -66,8 +80,8 @@ public final class InlineBanner {
         return root != null && root.getVisibility() == View.VISIBLE;
     }
 
-    private void show(CharSequence message, @Nullable Runnable retry, int background, int iconRes,
-                      int iconTint, int textColor) {
+    private void show(CharSequence message, @Nullable CharSequence actionLabel, @Nullable Runnable retry,
+                      int background, int iconRes, int iconTint, int textColor) {
         if (root == null) return;
         root.setBackgroundResource(background);
         if (icon != null) {
@@ -80,6 +94,8 @@ public final class InlineBanner {
         }
         if (action != null) {
             if (retry != null) {
+                if (actionLabel != null) action.setText(actionLabel);
+                else action.setText(R.string.st_action_retry);
                 action.setVisibility(View.VISIBLE);
                 action.setOnClickListener(v -> {
                     hide();

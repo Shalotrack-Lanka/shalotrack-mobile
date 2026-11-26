@@ -90,10 +90,6 @@
     <string name="st_live_stop_a11y">Stop the link that ends %1$s</string>
     <string name="st_live_stop_failed">Couldn’t stop the link. Try again.</string>
     <string name="st_live_row_none">Share it live for a few hours</string>
-    <plurals name="st_live_row_active">
-        <item quantity="one">%d active link</item>
-        <item quantity="other">%d active links</item>
-    </plurals>
 
     <!-- Reminders -->
     <string name="st_reminders_title">Reminders</string>
@@ -298,4 +294,40 @@
     <string name="st_pdf_col_last_seen">Last seen</string>
     <string name="st_pdf_col_when">When</string>
     <string name="st_pdf_col_message">Message</string>
+
+    <!-- Vehicle page, rebuilt to the approved VehicleDetail board -->
+    <string name="st_live_row_one">1 active link, ends in %1$s</string>
+    <plurals name="st_live_row_many">
+        <item quantity="one">%1$d active link, ends in %2$s</item>
+        <item quantity="other">%1$d active links, next ends in %2$s</item>
+    </plurals>
+    <string name="st_live_in_hours">%1$d h</string>
+    <string name="st_live_in_minutes">%1$d min</string>
+    <string name="st_vehicle_geofences_none">None yet · add one</string>
+    <plurals name="st_vehicle_geofences_more">
+        <item quantity="one">%1$s +%2$d more</item>
+        <item quantity="other">%1$s +%2$d more</item>
+    </plurals>
+    <string name="st_vehicle_shared_none">Not shared</string>
+    <string name="st_vehicle_shared_viewer">%1$s (can view)</string>
+    <string name="st_vehicle_shared_invited">%1$s (invited)</string>
+    <plurals name="st_vehicle_shared_more">
+        <item quantity="one">%1$s and %2$d other</item>
+        <item quantity="other">%1$s and %2$d others</item>
+    </plurals>
+
+    <!-- Alert settings: push on/off per vehicle (AlertSettings board). Enforced by the server. -->
+    <string name="st_alert_settings_for">For %1$s only</string>
+    <string name="st_push_section">Push notifications</string>
+    <string name="st_push_section_body">Turn one off and nobody following this vehicle gets that push. The alert still appears in Alerts.</string>
+    <string name="st_push_power_cut">Power cut</string>
+    <string name="st_push_power_cut_detail">Tracker cut from the vehicle’s power</string>
+    <string name="st_push_power_cut_warning">A power cut is usually the first sign of theft. While this is off, nobody gets a push when it happens.</string>
+    <string name="st_push_ignition">Ignition on and off</string>
+    <string name="st_push_ignition_detail">Every start and stop</string>
+    <string name="st_push_overspeed">Over-speed</string>
+    <string name="st_push_overspeed_detail">When it goes over your limit</string>
+    <string name="st_push_health">Low battery and offline</string>
+    <string name="st_push_health_detail">Tracker health</string>
+    <string name="st_push_sos_note">SOS always sends a push. Geofence and idling alerts have their own switches.</string>
 </resources>

@@ -1,89 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One complaint: category and where it is, the vehicle, the first lines, when it was opened and replies. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/bg_stat_card_clickable"
-    android:layout_marginBottom="10dp"
-    android:padding="14dp"
+    android:layout_marginBottom="12dp"
+    android:background="@drawable/bg_st_card"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:orientation="vertical"
+    android:padding="14dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:importantForAccessibility="noHideDescendants"
+        android:orientation="horizontal">
 
         <TextView
             android:id="@+id/tvComplaintCategory"
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold"
-            android:textSize="15sp"
-            tools:text="Device Issue" />
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+            tools:text="Device issue" />
 
         <TextView
             android:id="@+id/tvComplaintStatus"
+            style="@style/Widget.ST.StatusPill"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_status_pill"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            tools:text="With Dealer" />
+            android:layout_marginStart="8dp"
+            tools:text="With dealer" />
     </LinearLayout>
 
     <TextView
-        android:id="@+id/tvComplaintVehicle"
-        android:layout_width="match_parent"
+        android:id="@+id/tvComplaintPlate"
+        style="@style/Widget.ST.Plate.Small"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp"
-        tools:text="Honda Vezel (WP CAD 9934)" />
+        android:layout_marginTop="8dp"
+        android:importantForAccessibility="no"
+        tools:text="WP CAB-1234" />
 
     <TextView
         android:id="@+id/tvComplaintDescription"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:maxLines="2"
+        android:layout_marginTop="8dp"
         android:ellipsize="end"
-        android:textColor="@color/text_primary"
-        android:textSize="14sp"
-        tools:text="The GPS device keeps disconnecting every night around 11pm and reconnects only in the morning." />
+        android:importantForAccessibility="no"
+        android:maxLines="2"
+        android:textAppearance="@style/TextAppearance.ST.BodySmall"
+        tools:text="The tracker shows the car parked at home but it was in Kandy all afternoon." />
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tvComplaintMeta"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:layout_marginTop="8dp"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:id="@+id/tvComplaintDate"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_muted"
-            android:textSize="11sp"
-            tools:text="Filed 12 Aug 2026" />
-
-        <TextView
-            android:id="@+id/tvComplaintReplyCount"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/brand_accent"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            tools:text="2 replies" />
-    </LinearLayout>
-
+        android:importantForAccessibility="no"
+        android:textAppearance="@style/TextAppearance.ST.Caption"
+        tools:text="Opened 24 Nov 2026 · 2 replies" />
 </LinearLayout>

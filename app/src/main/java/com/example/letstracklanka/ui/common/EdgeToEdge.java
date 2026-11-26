@@ -47,6 +47,22 @@ public final class EdgeToEdge {
         ViewCompat.requestApplyInsets(view);
     }
 
+    /**
+     * Like padBottom, but also lifts the view above the keyboard: for a bar holding a text field or the
+     * send button of a form (edge-to-edge windows are not resized for the keyboard).
+     */
+    public static void padBottomWithKeyboard(View view) {
+        if (view == null) return;
+        final int start = view.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), start + Math.max(bars.bottom, ime.bottom));
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(view);
+    }
+
     /** Pads both ends: for a screen with no bottom bar of its own. */
     public static void padSystemBars(View view) {
         if (view == null) return;

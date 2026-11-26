@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Alert settings for this vehicle: over-speed limit and the idling alert. Limits come from the server. -->
+<!-- Alert settings for this vehicle (AlertSettings board): over-speed limit, the idling alert, and push on/off per
+     alert type. Limits come from the server; a muted alert is still saved and listed in Alerts. -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -29,6 +30,16 @@
             android:accessibilityHeading="true"
             android:text="@string/st_alert_settings_title"
             android:textAppearance="@style/TextAppearance.ST.Title" />
+
+        <TextView
+            android:id="@+id/tvAlertSettingsFor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="@style/TextAppearance.ST.BodySmall"
+            android:visibility="gone"
+            tools:text="For WP CAB-1234 only"
+            tools:visibility="visible" />
 
         <ProgressBar
             android:id="@+id/progressAlertSettings"
@@ -141,6 +152,267 @@
                     app:thumbColor="@color/st_navy"
                     app:trackColorActive="@color/st_navy"
                     app:trackColorInactive="@color/st_line" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="@color/st_line_soft" />
+
+            <TextView
+                style="@style/Widget.ST.SectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/st_push_section" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/st_push_section_body"
+                android:textAppearance="@style/TextAppearance.ST.BodySmall" />
+
+            <!-- One switch per alert group. Power cut shows a theft warning while it is off. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_st_card"
+                android:divider="@drawable/bg_st_divider"
+                android:orientation="vertical"
+                android:padding="1dp"
+                android:showDividers="middle">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="60dp"
+                    android:orientation="horizontal"
+                    android:paddingStart="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/st_push_power_cut"
+                            android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+                            android:textColor="@color/st_text_1" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/st_push_power_cut_detail"
+                            android:textAppearance="@style/TextAppearance.ST.Caption" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchPushPowerCut"
+                        style="@style/Widget.ST.Switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/st_push_power_cut"
+                        android:minHeight="48dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/powerCutWarning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
+                    android:layout_marginBottom="12dp"
+                    android:accessibilityLiveRegion="polite"
+                    android:background="@drawable/bg_st_banner_warning"
+                    android:orientation="horizontal"
+                    android:padding="10dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginTop="1dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_st_alert_circle"
+                        app:tint="@color/st_status_offline_text" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/st_push_power_cut_warning"
+                        android:textAppearance="@style/TextAppearance.ST.Caption"
+                        android:textColor="@color/st_status_offline_ink" />
+                </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="60dp"
+                    android:orientation="horizontal"
+                    android:paddingStart="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/st_push_ignition"
+                            android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+                            android:textColor="@color/st_text_1" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/st_push_ignition_detail"
+                            android:textAppearance="@style/TextAppearance.ST.Caption" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchPushIgnition"
+                        style="@style/Widget.ST.Switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/st_push_ignition"
+                        android:minHeight="48dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="60dp"
+                    android:orientation="horizontal"
+                    android:paddingStart="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/st_push_overspeed"
+                            android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+                            android:textColor="@color/st_text_1" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/st_push_overspeed_detail"
+                            android:textAppearance="@style/TextAppearance.ST.Caption" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchPushOverspeed"
+                        style="@style/Widget.ST.Switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/st_push_overspeed"
+                        android:minHeight="48dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="60dp"
+                    android:orientation="horizontal"
+                    android:paddingStart="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/st_push_health"
+                            android:textAppearance="@style/TextAppearance.ST.BodyStrong"
+                            android:textColor="@color/st_text_1" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/st_push_health_detail"
+                            android:textAppearance="@style/TextAppearance.ST.Caption" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchPushHealth"
+                        style="@style/Widget.ST.Switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/st_push_health"
+                        android:minHeight="48dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_st_shield"
+                    app:tint="@color/st_text_3" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/st_push_sos_note"
+                    android:textAppearance="@style/TextAppearance.ST.Caption" />
             </LinearLayout>
         </LinearLayout>
 
